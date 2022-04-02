@@ -1,0 +1,15 @@
+-I.
+-std=gnu17
+
+-Wfatal-errors
+-Wall
+-Wextra
+-Wshadow
+
+-Wno-gnu-empty-struct
+-Wno-language-extension-token
+-Wno-keyword-macro
+-Wno-unused-function
+-Wno-multichar
+
+-lm
