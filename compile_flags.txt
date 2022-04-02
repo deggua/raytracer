@@ -13,3 +13,4 @@
 -Wno-multichar
 
 -lm
+-pthread

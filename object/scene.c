@@ -6,11 +6,25 @@
 #include "gfx/primitives.h"
 #include "object/object.h"
 
-Scene* Scene_New(void)
+Scene* Scene_New(Color skyColor)
 {
-    Scene* scene   = malloc(sizeof(Scene));
+    Scene* scene = malloc(sizeof(Scene));
+    if (scene == NULL) {
+        goto error_Scene;
+    }
+
     scene->objects = Vector_New(Object)();
+    if (scene->objects == NULL) {
+        goto error_ObjectVector;
+    }
+
+    scene->skyColor = skyColor;
     return scene;
+
+error_ObjectVector:
+    free(scene);
+error_Scene:
+    return NULL;
 }
 
 void Scene_Delete(Scene* scene)
@@ -19,7 +33,7 @@ void Scene_Delete(Scene* scene)
     free(scene);
 }
 
-bool Scene_HitAny(Scene* scene, const Ray* ray, Object** objHit)
+bool Scene_HitAny(const Scene* scene, const Ray* ray, Object** objHit)
 {
     HitInfo ignore;
     for (size_t ii = 0; ii < scene->objects->length; ii++) {
@@ -34,7 +48,7 @@ bool Scene_HitAny(Scene* scene, const Ray* ray, Object** objHit)
     return false;
 }
 
-bool Scene_HitAt(Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit)
+bool Scene_HitAt(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit)
 {
     Object* closestObjectHit = NULL;
     HitInfo closestHit       = {.tIntersect = INF};

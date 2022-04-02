@@ -5,7 +5,7 @@
 #include "gfx/primitives.h"
 #include "gfx/utils.h"
 
-Camera Camera_Make(
+Camera* Camera_New(
     Point3 lookFrom,
     Point3 lookTo,
     Vec3   vup,
@@ -21,27 +21,27 @@ Camera Camera_Make(
     const float viewportHeight = 2.0f * hh;
     const float viewportWidth  = aspectRatio * viewportHeight;
 
-    Camera cam;
+    Camera* cam = calloc(1, sizeof(*cam));
 
-    cam.w = vunit(vsub(lookFrom, lookTo));
-    cam.u = vunit(vcross(vup, cam.w));
-    cam.v = vcross(cam.w, cam.u);
+    cam->w = vunit(vsub(lookFrom, lookTo));
+    cam->u = vunit(vcross(vup, cam->w));
+    cam->v = vcross(cam->w, cam->u);
 
-    cam.origin     = lookFrom;
-    cam.horizontal = vmul(cam.u, viewportWidth * focusDist);
-    cam.vertical   = vmul(cam.v, viewportHeight * focusDist);
-    cam.bottomLeftCorner
-        = vsub(cam.origin, vmul(cam.horizontal, 0.5f), vmul(cam.vertical, 0.5f), vmul(cam.w, focusDist));
+    cam->origin     = lookFrom;
+    cam->horizontal = vmul(cam->u, viewportWidth * focusDist);
+    cam->vertical   = vmul(cam->v, viewportHeight * focusDist);
+    cam->bottomLeftCorner
+        = vsub(cam->origin, vmul(cam->horizontal, 0.5f), vmul(cam->vertical, 0.5f), vmul(cam->w, focusDist));
 
-    cam.lensRadius = aperature / 2.0f;
+    cam->lensRadius = aperature / 2.0f;
 
-    cam.timeStart = timeStart;
-    cam.timeEnd   = timeEnd;
+    cam->timeStart = timeStart;
+    cam->timeEnd   = timeEnd;
 
     return cam;
 }
 
-Ray Camera_GetRay(Camera* cam, float u, float v)
+Ray Camera_GetRay(const Camera* cam, float u, float v)
 {
     Vec3 rd     = vmul(Vec3_RandomInUnitDisc(), cam->lensRadius);
     Vec3 offset = (Vec3){

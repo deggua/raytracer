@@ -1,8 +1,12 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdint.h>
 
 #define PI 3.141592653589793f
+
+void Random_Seed(uint32_t seed);
+float Random_Float(void);
 
 static inline float clampf(float x, float min, float max) {
     if (x < min) return min;
@@ -11,7 +15,7 @@ static inline float clampf(float x, float min, float max) {
 }
 
 static inline float randf() {
-    return rand() / ((float)RAND_MAX + 1.0f);
+    return Random_Float();
 }
 
 static inline float randrf(float min, float max) {

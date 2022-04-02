@@ -12,7 +12,7 @@ typedef struct {
     float timeStart, timeEnd;
 } Camera;
 
-Camera Camera_Make(
+Camera* Camera_New(
     Point3 lookFrom,
     Point3 lookTo,
     Vec3   vup,
@@ -22,4 +22,4 @@ Camera Camera_Make(
     float  focusDist,
     float  timeStart,
     float  timeEnd);
-Ray Camera_GetRay(Camera* cam, float u, float v);
+Ray Camera_GetRay(const Camera* cam, float u, float v);
