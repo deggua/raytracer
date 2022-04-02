@@ -1,6 +1,8 @@
 #include <math.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "common/cext.h"
 #include "gfx/camera.h"
@@ -53,6 +55,7 @@
     }
 
 Scene* g_Scene = NULL;
+Image* g_Image = NULL;
 
 Color RayColor(const Ray* ray, size_t depth)
 {
@@ -163,6 +166,8 @@ int main(void)
     g_Scene    = Scene_New();
     FillScene();
 
+    clock_t timeStart = clock();
+
     // compute the image
     Image* img = Image_New(imageWidth, imageHeight);
     for (ssize_t yy = imageHeight - 1; yy >= 0; yy--) {
@@ -188,6 +193,10 @@ int main(void)
         }
         printf("Finished line %03zd of %d\r", yy, imageHeight);
     }
+
+    clock_t timeEnd      = clock();
+    float   timeDeltaSec = ((float)(timeEnd - timeStart) / CLOCKS_PER_SEC);
+    printf("\n%.2f seconds taken\n", timeDeltaSec);
 
     FILE* fd = fopen("output.bmp", "w+");
 
