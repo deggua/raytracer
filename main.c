@@ -59,13 +59,13 @@ void FillScene(Scene* scene)
 
 int main(void)
 {
-    const Point3 lookFrom    = (Point3){10, 10, 10};
+    const Point3 lookFrom    = (Point3){-10, 10, -10};
     const Point3 lookAt      = (Point3){0, 0, 0};
     const Vec3   vup         = (Vec3){0, 1, 0};
     const float  focusDist   = 10.0f;
     const float  aperature   = 0.0f;
     const float  aspectRatio = 16.0f / 9.0f;
-    const float  vFov        = 40.0f;
+    const float  vFov        = 30.0f;
     const float  timeStart   = 0.0f;
     const float  timeEnd     = 1.0f;
 

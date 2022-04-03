@@ -21,12 +21,16 @@ float Vec3_Dot(Vec3 v1, Vec3 v2);
 float Vec3_Mag(Vec3 vec);
 Vec3 Vec3_Normalize(Vec3 vec);
 Vec3 Vec3_Cross(Vec3 v1, Vec3 v2);
-Vec3 Vec3_Random(float min, float max);
-Vec3 Vec3_RandomOnUnitSphere();
+
 bool Vec3_IsZero(Vec3 vec);
+
 Vec3 Vec3_Reflect(Vec3 vec, Vec3 normal);
 Vec3 Vec3_Refract(Vec3 vec, Vec3 normal, float refractRatio);
-Vec3 Vec3_RandomInUnitDisc();
+
+Vec3 Vec3_Random(float min, float max);
+Vec3 Vec3_RandomOnUnitSphere(void);
+Vec3 Vec3_RandomInUnitDisc(void);
+Vec3 Vec3_RandomInUnitSphere(void);
 
 #define GETOVERLOAD(IGNORE1, IGNORE2, IGNORE3, INGORE4, IGNORE5, NAME, ...) NAME
 

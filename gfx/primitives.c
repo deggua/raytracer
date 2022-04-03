@@ -71,12 +71,9 @@ Vec3 Vec3_Random(float min, float max)
     };
 }
 
-Vec3 Vec3_RandomOnUnitSphere()
+Vec3 Vec3_RandomInUnitSphere(void)
 {
     Vec3 vec;
-
-    // this unbiases the distribution from a cube to a sphere
-    // TODO: might be more efficient to randomly generate a polar coord and transform to cartesian
     do {
         vec = Vec3_Random(-1, 1);
 
@@ -85,7 +82,31 @@ Vec3 Vec3_RandomOnUnitSphere()
         }
     } while (1);
 
-    return Vec3_Normalize(vec);
+    return vec;
+}
+
+Vec3 Vec3_RandomOnUnitSphere(void)
+{
+    return Vec3_Normalize(Vec3_RandomInUnitSphere());
+}
+
+Vec3 Vec3_RandomInUnitDisc(void)
+{
+    Vec3 vec;
+
+    do {
+        vec = (Vec3){
+            .x = randrf(-1, 1),
+            .y = randrf(-1, 1),
+            .z = 0,
+        };
+
+        if (Vec3_Dot(vec, vec) < 1) {
+            break;
+        }
+    } while (1);
+
+    return vec;
 }
 
 bool Vec3_IsZero(Vec3 vec)
@@ -106,25 +127,6 @@ Vec3 Vec3_Refract(Vec3 vec, Vec3 normal, float refractRatio)
     Vec3  vecOutPerp = Vec3_Mul(Vec3_Add(vec, Vec3_Mul(normal, cosTheta)), refractRatio);
     Vec3  vecOutPara = Vec3_Mul(normal, -sqrtf(fabs(1.0f - Vec3_Dot(vecOutPerp, vecOutPerp))));
     return Vec3_Add(vecOutPerp, vecOutPara);
-}
-
-Vec3 Vec3_RandomInUnitDisc()
-{
-    Vec3 vec;
-
-    do {
-        vec = (Vec3){
-            .x = randrf(-1, 1),
-            .y = randrf(-1, 1),
-            .z = 0,
-        };
-
-        if (Vec3_Dot(vec, vec) < 1) {
-            break;
-        }
-    } while (1);
-
-    return vec;
 }
 
 /* --- Ray --- */

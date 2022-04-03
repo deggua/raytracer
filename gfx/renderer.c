@@ -24,22 +24,9 @@ void RenderCtx_Delete(RenderCtx* ctx)
     free(ctx);
 }
 
-#if 0
-static Color ShadowRay(const Scene* scene, const Ray* ray, size_t depth)
-{
-    Object* objHit = NULL;
-    HitInfo hit;
-
-    if (Scene_HitAt(scene, ray, &objHit, &hit)) {
-    }
-}
-#endif
-
 static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
 {
-    const Vec3  sunDir       = vunit((Vec3){-1, -1, 0});
-    const float sunIntensity = 1.5f;
-    const Color sunColor     = scene->skyColor;
+    const Color skyColor = scene->skyColor;
 
     if (depth == 0) {
         return COLOR_BLACK;
@@ -53,24 +40,13 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
         Color bouncedColor;
 
         if (Material_Bounce(&objHit->material, ray, &hit, &bouncedColor, &bouncedRay)) {
-            Ray shadowRay = (Ray){
-                .origin = hit.position,
-                .dir    = vmul(sunDir, -1),
-                .time   = ray->time,
-            };
-            Object* sunOccluder = NULL;
-
-            if (!Scene_HitAny(scene, &shadowRay, &sunOccluder) || sunOccluder->material.type == MATERIAL_DIELECTRIC) {
-                bouncedColor = Color_Tint(Color_Brighten(bouncedColor, sunIntensity), sunColor);
-            }
-
             return Color_Tint(bouncedColor, RayColor(scene, &bouncedRay, depth - 1));
         } else {
             return COLOR_BLACK;
         }
     }
 
-    return scene->skyColor;
+    return skyColor;
 }
 
 typedef struct {
@@ -135,8 +111,14 @@ static void* RenderThread(void* arg)
 
 Image* Render(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads)
 {
+    const size_t minStackSize = 16 * 1024 * 1024;
+
     pthread_t*       threads    = calloc(1, sizeof(*threads));
     RenderThreadArg* threadArgs = calloc(1, sizeof(*threadArgs));
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, minStackSize);
 
     for (size_t ii = 0; ii < numThreads; ii++) {
         threadArgs[ii].ctx                          = ctx;
@@ -151,6 +133,10 @@ Image* Render(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, 
     for (size_t ii = 0; ii < numThreads; ii++) {
         pthread_join(threads[ii], NULL);
     }
+
+#if 0
+    pthread_attr_destroy(&attr);
+#endif
 
     return ctx->img;
 }
