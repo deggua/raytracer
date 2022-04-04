@@ -35,7 +35,7 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
     Object* objHit = NULL;
     HitInfo hit;
 
-    if (Scene_HitAt(scene, ray, &objHit, &hit)) {
+    if (Scene_ClosestHit(scene, ray, &objHit, &hit)) {
         Ray   bouncedRay;
         Color bouncedColor;
 

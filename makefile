@@ -10,7 +10,7 @@ CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)
 
 SRCS = main.c
 SRCS += gfx/camera.c gfx/color.c gfx/image.c gfx/primitives.c gfx/utils.c gfx/renderer.c
-SRCS += object/object.c object/surfaces.c object/materials.c object/scene.c
+SRCS += object/object.c object/surfaces.c object/materials.c object/scene.c object/kdtree.c
 
 BIN_DIR = bin
 RELEASE_DIR := $(BIN_DIR)/release

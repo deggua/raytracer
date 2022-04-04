@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "gfx/utils.h"
 #include "object/hitinfo.h"
@@ -12,6 +13,22 @@ Sphere Sphere_Make(Point3 center, float radius)
         .center = center,
         .radius = radius,
     };
+}
+
+bool Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box)
+{
+    const Point3 center  = sphere->center;
+    const float  epsilon = 0.001f;
+    const Vec3   vRad    = (Vec3){
+             .x = sphere->radius + epsilon,
+             .y = sphere->radius + epsilon,
+             .z = sphere->radius + epsilon,
+    };
+
+    box->pMin = vsub(center, vRad);
+    box->pMax = vadd(center, vRad);
+
+    return true;
 }
 
 bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, float tMin, float tMax, HitInfo* hit)
@@ -58,6 +75,13 @@ MovingSphere MovingSphere_Make(Point3 (*centerPath)(float time), float radius)
         .centerPath = centerPath,
         .radius     = radius,
     };
+}
+
+bool MovingSphere_BoundedBy(const MovingSphere* sphere, BoundingBox* box)
+{
+    (void)sphere;
+    (void)box;
+    return false;
 }
 
 bool MovingSphere_HitAt(const MovingSphere* sphere, const Ray* ray, float tMin, float tMax, HitInfo* hit)

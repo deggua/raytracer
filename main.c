@@ -18,8 +18,8 @@ static Point3 SpherePath(float time)
 {
     (void)time;
     return (Point3){
-        .x = -4.0f,
-        .y = 1.0f,
+        .x = 0.0,
+        .y = -1000.0f,
         .z = 0.0f,
     };
 }
@@ -28,12 +28,14 @@ void FillScene(Scene* scene)
 {
     Object obj;
 
+#if 0
     // add ground
     obj.material.type    = MATERIAL_LAMBERT;
     obj.material.lambert = Lambert_Make((Color){0.2f, 0.2f, 0.2f});
     obj.surface.type     = SURFACE_SPHERE;
     obj.surface.sphere   = Sphere_Make((Point3){0, -1000, 0}, 1000.0f);
     Vector_Push(Object)(scene->objects, &obj);
+#endif
 
     // large glass
     obj.material.type       = MATERIAL_DIELECTRIC;
@@ -43,10 +45,10 @@ void FillScene(Scene* scene)
     Vector_Push(Object)(scene->objects, &obj);
 
     // large lambert
-    obj.material.type        = MATERIAL_LAMBERT;
-    obj.material.lambert     = Lambert_Make(COLOR_NAVY);
-    obj.surface.type         = SURFACE_MOVING_SPHERE;
-    obj.surface.movingSphere = MovingSphere_Make(SpherePath, 1.0f);
+    obj.material.type    = MATERIAL_LAMBERT;
+    obj.material.lambert = Lambert_Make(COLOR_NAVY);
+    obj.surface.type     = SURFACE_SPHERE;
+    obj.surface.sphere   = Sphere_Make((Point3){0, 1, 4}, 1.0f);
     Vector_Push(Object)(scene->objects, &obj);
 
     // large metal
@@ -54,6 +56,20 @@ void FillScene(Scene* scene)
     obj.material.metal = Metal_Make((Color){0.7f, 0.6f, 0.5f}, 0.0f);
     obj.surface.type   = SURFACE_SPHERE;
     obj.surface.sphere = Sphere_Make((Point3){4, 1, 0}, 1.0f);
+    Vector_Push(Object)(scene->objects, &obj);
+
+    // large lambert
+    obj.material.type    = MATERIAL_LAMBERT;
+    obj.material.lambert = Lambert_Make(COLOR_RED);
+    obj.surface.type     = SURFACE_SPHERE;
+    obj.surface.sphere   = Sphere_Make((Point3){4, 1, 4}, 1.0f);
+    Vector_Push(Object)(scene->objects, &obj);
+
+    // ground
+    obj.material.type        = MATERIAL_LAMBERT;
+    obj.material.lambert     = Lambert_Make(COLOR_GREY);
+    obj.surface.type         = SURFACE_MOVING_SPHERE;
+    obj.surface.movingSphere = MovingSphere_Make(SpherePath, 1000.0f);
     Vector_Push(Object)(scene->objects, &obj);
 }
 
@@ -76,6 +92,7 @@ int main(void)
     Camera* cam   = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
     Scene*  scene = Scene_New(COLOR_WHITE);
     FillScene(scene);
+    Scene_Prepare(scene);
 
     RenderCtx* ctx = RenderCtx_New(scene, img, cam);
 
@@ -84,6 +101,7 @@ int main(void)
     clock_gettime(CLOCK_MONOTONIC, &specStart);
     {
         // TODO: does it make sense for Render to create the image?
+        // TODO: pass in worker thread stack size? or could we compute the required stack size from the ray depth?
         Render(ctx, 256, 32, 4);
     }
     struct timespec specEnd;
