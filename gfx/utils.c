@@ -87,5 +87,8 @@ void Random_Seed(uint32_t seed)
 
 float Random_Float(void)
 {
-    return (float)next() / ((float)UINT32_MAX + 1.0f);
+    uint32_t nextVal = next();
+    float    maxVal  = (float)UINT32_MAX + 1.0f;
+    float    result  = ((float)nextVal) / maxVal;
+    return result;
 }

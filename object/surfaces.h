@@ -14,7 +14,6 @@ typedef struct {
 
 typedef enum
 {
-    SURFACE_NULL = 0,
     SURFACE_SPHERE,
     SURFACE_TRIANGLE,
     SURFACE_MOVING_SPHERE,

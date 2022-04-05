@@ -6,8 +6,10 @@
 
 typedef enum
 {
+    KD_SPLIT_X = VEC_X,
+    KD_SPLIT_Y = VEC_Y,
+    KD_SPLIT_Z = VEC_Z,
     KD_LEAF,
-    KD_PARENT,
 } KDNodeType;
 
 typedef struct KDNode KDNode;
@@ -20,7 +22,7 @@ typedef struct {
 typedef struct {
     float   split;
     KDNode* lt;
-    KDNode* gte;
+    KDNode* gteq;
 } KDParent;
 
 typedef struct KDNode {

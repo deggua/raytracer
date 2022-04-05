@@ -21,6 +21,4 @@ bool Surface_BoundedBy(const Surface* surface, BoundingBox* box);
 bool Surface_HitAt(const Surface* surface, const Ray* ray, float tMin, float tMax, HitInfo* hitInfo);
 bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);
 
-void ObjectBB_SortX(ObjectBB* sort[], size_t len);
-void ObjectBB_SortY(ObjectBB* sort[], size_t len);
-void ObjectBB_SortZ(ObjectBB* sort[], size_t len);
+void ObjectBB_Sort(ObjectBB* sort[], size_t len, VecAxis axis);

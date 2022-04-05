@@ -8,8 +8,18 @@
 #include "object/kdtree.h"
 #include "object/object.h"
 
+#define REQ_PARAM_type Object
+#include "common/vector.h"
+
 #define REQ_PARAM_type ObjectBB
 #include "common/vector.h"
+
+typedef struct Scene {
+    Color skyColor;
+    Vector(Object) * objects;
+    Vector(Object) * unboundObjs;
+    KDNode* root;
+} Scene;
 
 Scene* Scene_New(Color skyColor)
 {
@@ -71,21 +81,15 @@ static bool Scene_ClosestHitInArray(const Object objs[], size_t len, const Ray* 
     }
 }
 
-static bool KDSplitX(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, size_t kdDepth);
-static bool KDSplitY(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, size_t kdDepth);
-static bool KDSplitZ(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, size_t kdDepth);
+static bool CheckHitKD(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, VecAxis axis);
 
-static bool Scene_ClosestHitInKD(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, size_t kdDepth)
+static bool Scene_ClosestHitInKD(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit)
 {
     switch (node->type) {
-        case KD_PARENT: {
-            if (kdDepth % 3 == 0) {
-                return KDSplitX(node, ray, objHit, hit, kdDepth);
-            } else if (kdDepth % 3 == 1) {
-                return KDSplitY(node, ray, objHit, hit, kdDepth);
-            } else if (kdDepth % 3 == 2) {
-                return KDSplitZ(node, ray, objHit, hit, kdDepth);
-            }
+        case KD_SPLIT_X:
+        case KD_SPLIT_Y:
+        case KD_SPLIT_Z: {
+            return CheckHitKD(node, ray, objHit, hit, (VecAxis)(node->type));
         } break;
 
         case KD_LEAF: {
@@ -93,185 +97,63 @@ static bool Scene_ClosestHitInKD(const KDNode* node, const Ray* ray, Object** ob
         } break;
     };
 
+    // TODO: try to enable and see if it breaks code gen
+    __builtin_unreachable();
     return false;
 }
 
-static bool KDSplitX(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, size_t kdDepth)
+static bool CheckHitKD(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, VecAxis axis)
 {
     const float split            = node->node.split;
     const float epsilonParallel  = 0.0001f;
     const float epsilonIntersect = 0.001f;
 
-    if (fabsf(ray->dir.x) < epsilonParallel) {
-        // ray parallel to plane
-        if (ray->origin.x >= split) {
-            return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
+    if (fabsf(ray->dir.e[axis]) < epsilonParallel) {
+        // ray parallel to plane, check the origin to see which side ray falls on
+        // TODO: is this correct when the origin is in the plane?
+        if (ray->origin.e[axis] >= split) {
+            return Scene_ClosestHitInKD(node->node.gteq, ray, objHit, hit);
         } else {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
+            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit);
         }
     }
 
-    float tIntersect = (split - ray->origin.x) / ray->dir.x;
+    float tIntersect = (split - ray->origin.e[axis]) / ray->dir.e[axis];
     if (tIntersect < epsilonIntersect) {
-        // ray doesn't intersect plane at valid t
-        if (ray->origin.x > split) {
-            return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
-        } else if (ray->origin.x < split) {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
+        // ray doesn't intersect plane at valid t, check the origin to see which side ray falls on
+        if (ray->origin.e[axis] > split) {
+            return Scene_ClosestHitInKD(node->node.gteq, ray, objHit, hit);
+        } else if (ray->origin.e[axis] < split) {
+            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit);
         } else {
             // handle ray intersects plane at the origin, idea is to evaluate at some point past the origin and see what
             // side that lands on
-            // TODO: is this correct?
-            float rayAt = Ray_At(ray, 1.0f).x;
-            if (rayAt > split) {
-                return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
+            float rayAt = Ray_At(ray, 1.0f).e[axis];
+            if (rayAt >= split) {
+                return Scene_ClosestHitInKD(node->node.gteq, ray, objHit, hit);
             } else {
-                return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
+                return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit);
             }
         }
     } else {
-        // intersects with the plane, which means it could intersect objects on either side we can check the side the
-        // origin is on first and then if it doesn't hit anything on that side check the opposite, since the ray will
+        // intersects with the plane, which means it could intersect objects on either side. we can check the side the
+        // origin is on first and then if it doesn't hit anything on that side check the opposite since the ray will
         // hit objects on the origin side before objects on the opposite side
-        KDNode* originSide;
-        KDNode* oppositeSide;
+        const KDNode* originSide;
+        const KDNode* oppositeSide;
 
-        if (ray->origin.x >= split) {
-            originSide   = node->node.gte;
+        if (ray->origin.e[axis] >= split) {
+            originSide   = node->node.gteq;
             oppositeSide = node->node.lt;
         } else {
             originSide   = node->node.lt;
-            oppositeSide = node->node.gte;
+            oppositeSide = node->node.gteq;
         }
 
-        Object* tempObjHit;
-        HitInfo tempHit;
-        if (Scene_ClosestHitInKD(originSide, ray, &tempObjHit, &tempHit, kdDepth + 1)) {
-            *objHit = tempObjHit;
-            *hit    = tempHit;
+        if (Scene_ClosestHitInKD(originSide, ray, objHit, hit)) {
             return true;
         } else {
-            return Scene_ClosestHitInKD(oppositeSide, ray, objHit, hit, kdDepth + 1);
-        }
-    }
-}
-
-static bool KDSplitY(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, size_t kdDepth)
-{
-    const float split            = node->node.split;
-    const float epsilonParallel  = 0.0001f;
-    const float epsilonIntersect = 0.001f;
-
-    if (fabsf(ray->dir.y) < epsilonParallel) {
-        // ray parallel to plane
-        if (ray->origin.y >= split) {
-            return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
-        } else {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
-        }
-    }
-
-    float tIntersect = (split - ray->origin.y) / ray->dir.y;
-    if (tIntersect < epsilonIntersect) {
-        // ray doesn't intersect plane at valid t
-        if (ray->origin.y > split) {
-            return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
-        } else if (ray->origin.y < split) {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
-        } else {
-            // handle ray intersects plane at the origin, idea is to evaluate at some point past the origin and see what
-            // side that lands on
-            // TODO: is this correct?
-            float rayAt = Ray_At(ray, 1.0f).y;
-            if (rayAt > split) {
-                return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
-            } else {
-                return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
-            }
-        }
-    } else {
-        // intersects with the plane, which means it could intersect objects on either side we can check the side the
-        // origin is on first and then if it doesn't hit anything on that side check the opposite, since the ray will
-        // hit objects on the origin side before objects on the opposite side
-        KDNode* originSide;
-        KDNode* oppositeSide;
-
-        if (ray->origin.y >= split) {
-            originSide   = node->node.gte;
-            oppositeSide = node->node.lt;
-        } else {
-            originSide   = node->node.lt;
-            oppositeSide = node->node.gte;
-        }
-
-        Object* tempObjHit;
-        HitInfo tempHit;
-        if (Scene_ClosestHitInKD(originSide, ray, &tempObjHit, &tempHit, kdDepth + 1)) {
-            *objHit = tempObjHit;
-            *hit    = tempHit;
-            return true;
-        } else {
-            return Scene_ClosestHitInKD(oppositeSide, ray, objHit, hit, kdDepth + 1);
-        }
-    }
-}
-
-static bool KDSplitZ(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, size_t kdDepth)
-{
-    const float split            = node->node.split;
-    const float epsilonParallel  = 0.0001f;
-    const float epsilonIntersect = 0.001f;
-
-    if (fabsf(ray->dir.z) < epsilonParallel) {
-        // ray parallel to plane
-        if (ray->origin.z >= split) {
-            return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
-        } else {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
-        }
-    }
-
-    float tIntersect = (split - ray->origin.z) / ray->dir.z;
-    if (tIntersect < epsilonIntersect) {
-        // ray doesn't intersect plane at valid t
-        if (ray->origin.z > split) {
-            return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
-        } else if (ray->origin.z < split) {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
-        } else {
-            // handle ray intersects plane at the origin, idea is to evaluate at some point past the origin and see what
-            // side that lands on
-            // TODO: is this correct?
-            float rayAt = Ray_At(ray, 1.0f).z;
-            if (rayAt > split) {
-                return Scene_ClosestHitInKD(node->node.gte, ray, objHit, hit, kdDepth + 1);
-            } else {
-                return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit, kdDepth + 1);
-            }
-        }
-    } else {
-        // intersects with the plane, which means it could intersect objects on either side we can check the side the
-        // origin is on first and then if it doesn't hit anything on that side check the opposite, since the ray will
-        // hit objects on the origin side before objects on the opposite side
-        KDNode* originSide;
-        KDNode* oppositeSide;
-
-        if (ray->origin.z >= split) {
-            originSide   = node->node.gte;
-            oppositeSide = node->node.lt;
-        } else {
-            originSide   = node->node.lt;
-            oppositeSide = node->node.gte;
-        }
-
-        Object* tempObjHit;
-        HitInfo tempHit;
-        if (Scene_ClosestHitInKD(originSide, ray, &tempObjHit, &tempHit, kdDepth + 1)) {
-            *objHit = tempObjHit;
-            *hit    = tempHit;
-            return true;
-        } else {
-            return Scene_ClosestHitInKD(oppositeSide, ray, objHit, hit, kdDepth + 1);
+            return Scene_ClosestHitInKD(oppositeSide, ray, objHit, hit);
         }
     }
 }
@@ -287,7 +169,7 @@ bool Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitIn
     Object* kdObjHit = NULL;
     HitInfo kdHit;
     if (scene->root != NULL) {
-        Scene_ClosestHitInKD(scene->root, ray, &kdObjHit, &kdHit, 0);
+        Scene_ClosestHitInKD(scene->root, ray, &kdObjHit, &kdHit);
     }
 
     if (kdObjHit == NULL && ubObjHit == NULL) {
@@ -309,6 +191,11 @@ bool Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitIn
     }
 
     return true;
+}
+
+bool Scene_ClosestHitSlow(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit)
+{
+    return Scene_ClosestHitInArray(scene->objects->at, scene->objects->length, ray, objHit, hit);
 }
 
 void Scene_Prepare(Scene* scene)
@@ -333,4 +220,19 @@ void Scene_Prepare(Scene* scene)
     } else {
         scene->root = NULL;
     }
+}
+
+bool Scene_Add_Object(Scene* scene, const Object* obj)
+{
+    return Vector_Push(Object)(scene->objects, obj);
+}
+
+void Scene_Set_SkyColor(Scene* scene, Color color)
+{
+    scene->skyColor = color;
+}
+
+Color Scene_Get_SkyColor(const Scene* scene)
+{
+    return scene->skyColor;
 }

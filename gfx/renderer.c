@@ -26,7 +26,8 @@ void RenderCtx_Delete(RenderCtx* ctx)
 
 static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
 {
-    const Color skyColor = scene->skyColor;
+    // TODO: This can be pulled out into pre-RayColor, along with computing every moving object's position
+    const Color skyColor = Scene_Get_SkyColor(scene);
 
     if (depth == 0) {
         return COLOR_BLACK;
@@ -103,7 +104,7 @@ static void* RenderThread(void* arg)
             Image_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
         }
         // TODO: figure out a better way to print progress
-        printf("Finished line %03zd of %zu\n", yy, imageHeight);
+        printf("\rFinished line %03zd of %zu", yy, imageHeight);
     }
 
     return NULL;

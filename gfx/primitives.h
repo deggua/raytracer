@@ -2,25 +2,37 @@
 
 #include <stdbool.h>
 
+typedef enum
+{
+    VEC_X = 0,
+    VEC_Y = 1,
+    VEC_Z = 2,
+} VecAxis;
+
 typedef struct {
-    float x;
-    float y;
-    float z;
+    union {
+        struct {
+            float x;
+            float y;
+            float z;
+        };
+        float e[3];
+    };
 } Vec3;
 
 typedef Vec3 Point3;
 
-#define VEC3_FMT "<%.02f, %.02f, %.02f>"
+#define VEC3_FMT      "<%.02f, %.02f, %.02f>"
 #define VEC3_ARG(vec) vec.x, vec.y, vec.z
 
-Vec3 Vec3_Add(Vec3 v1, Vec3 v2);
-Vec3 Vec3_Sub(Vec3 v1, Vec3 v2);
-Vec3 Vec3_Mul(Vec3 vec, float scalar);
-Vec3 Vec3_Div(Vec3 vec, float scalar);
+Vec3  Vec3_Add(Vec3 v1, Vec3 v2);
+Vec3  Vec3_Sub(Vec3 v1, Vec3 v2);
+Vec3  Vec3_Mul(Vec3 vec, float scalar);
+Vec3  Vec3_Div(Vec3 vec, float scalar);
 float Vec3_Dot(Vec3 v1, Vec3 v2);
 float Vec3_Mag(Vec3 vec);
-Vec3 Vec3_Normalize(Vec3 vec);
-Vec3 Vec3_Cross(Vec3 v1, Vec3 v2);
+Vec3  Vec3_Normalize(Vec3 vec);
+Vec3  Vec3_Cross(Vec3 v1, Vec3 v2);
 
 bool Vec3_IsZero(Vec3 vec);
 
@@ -48,23 +60,22 @@ Vec3 Vec3_RandomInUnitSphere(void);
 
 #define vadd(vec1, ...) GETOVERLOAD(__VA_ARGS__, V3ADD_6, V3ADD_5, V3ADD_4, V3ADD_3, V3ADD_2, IGNORE)(vec1, __VA_ARGS__)
 #define vsub(vec1, ...) GETOVERLOAD(__VA_ARGS__, V3SUB_6, V3SUB_5, V3SUB_4, V3SUB_3, V3SUB_2, IGNORE)(vec1, __VA_ARGS__)
-#define vmul Vec3_Mul
-#define vdiv Vec3_Div
-#define vdot Vec3_Dot
-#define vmag Vec3_Mag
-#define vunit Vec3_Normalize
-#define vcross Vec3_Cross
-#define vrand Vec3_Random
-#define viszero Vec3_IsZero
-#define vreflect Vec3_Reflect
-#define vrefract Vec3_Refract
+#define vmul            Vec3_Mul
+#define vdiv            Vec3_Div
+#define vdot            Vec3_Dot
+#define vmag            Vec3_Mag
+#define vunit           Vec3_Normalize
+#define vcross          Vec3_Cross
+#define vrand           Vec3_Random
+#define viszero         Vec3_IsZero
+#define vreflect        Vec3_Reflect
+#define vrefract        Vec3_Refract
 
 typedef struct {
     Point3 origin;
-    Vec3 dir;
-    float time;
+    Vec3   dir;
+    float  time;
 } Ray;
 
-Ray Ray_Make(Point3 origin, Vec3 dir, float time);
+Ray    Ray_Make(Point3 origin, Vec3 dir, float time);
 Point3 Ray_At(const Ray* ray, float dist);
-

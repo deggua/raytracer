@@ -15,11 +15,12 @@ bool Surface_HitAt(const Surface* surface, const Ray* ray, float tMin, float tMa
             return MovingSphere_HitAt(&surface->movingSphere, ray, tMin, tMax, hit);
         } break;
 
-        case SURFACE_TRIANGLE:
-        case SURFACE_NULL: {
+        case SURFACE_TRIANGLE: {
             return false;
         } break;
     }
+
+    __builtin_unreachable();
 }
 
 bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
@@ -33,11 +34,12 @@ bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
             return MovingSphere_BoundedBy(&surface->movingSphere, box);
         } break;
 
-        case SURFACE_TRIANGLE:
-        case SURFACE_NULL: {
+        case SURFACE_TRIANGLE: {
             return false;
         } break;
     }
+
+    __builtin_unreachable();
 }
 
 bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
@@ -54,66 +56,55 @@ bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* 
         case MATERIAL_DIELECTRIC: {
             return Dielectric_Bounce(&material->dielectric, rayIn, hit, color, rayOut);
         } break;
+    }
 
-        case MATERIAL_NULL: {
-            return false;
-        } break;
+    __builtin_unreachable();
+}
+
+static int CompareBB(const ObjectBB** a, const ObjectBB** b, VecAxis axis)
+{
+    const ObjectBB* bbA = *a;
+    const ObjectBB* bbB = *b;
+
+    if (bbA->box.pMin.e[axis] < bbB->box.pMin.e[axis]) {
+        return -1;
+    } else if (bbA->box.pMin.e[axis] > bbB->box.pMin.e[axis]) {
+        return 1;
+    } else {
+        return 0;
     }
 }
 
 static int CompareBB_X(const void* a, const void* b)
 {
-    const ObjectBB* bbA = *(ObjectBB**)a;
-    const ObjectBB* bbB = *(ObjectBB**)b;
-
-    if (bbA->box.pMin.x < bbB->box.pMin.x) {
-        return -1;
-    } else if (bbA->box.pMin.x > bbB->box.pMin.x) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return CompareBB((const ObjectBB**)a, (const ObjectBB**)b, VEC_X);
 }
 
 static int CompareBB_Y(const void* a, const void* b)
 {
-    const ObjectBB* bbA = *(ObjectBB**)a;
-    const ObjectBB* bbB = *(ObjectBB**)b;
-
-    if (bbA->box.pMin.y < bbB->box.pMin.y) {
-        return -1;
-    } else if (bbA->box.pMin.y > bbB->box.pMin.y) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return CompareBB((const ObjectBB**)a, (const ObjectBB**)b, VEC_Y);
 }
 
 static int CompareBB_Z(const void* a, const void* b)
 {
-    const ObjectBB* bbA = *(ObjectBB**)a;
-    const ObjectBB* bbB = *(ObjectBB**)b;
-
-    if (bbA->box.pMin.z < bbB->box.pMin.z) {
-        return -1;
-    } else if (bbA->box.pMin.z > bbB->box.pMin.z) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return CompareBB((const ObjectBB**)a, (const ObjectBB**)b, VEC_Z);
 }
 
-void ObjectBB_SortX(ObjectBB* sort[], size_t len)
+void ObjectBB_Sort(ObjectBB* sort[], size_t len, VecAxis axis)
 {
-    qsort(sort, len, sizeof(ObjectBB*), CompareBB_X);
-}
+    switch (axis) {
+        case VEC_X: {
+            qsort(sort, len, sizeof(ObjectBB*), CompareBB_X);
+        } break;
 
-void ObjectBB_SortY(ObjectBB* sort[], size_t len)
-{
-    qsort(sort, len, sizeof(ObjectBB*), CompareBB_Y);
-}
+        case VEC_Y: {
+            qsort(sort, len, sizeof(ObjectBB*), CompareBB_Y);
+        } break;
 
-void ObjectBB_SortZ(ObjectBB* sort[], size_t len)
-{
-    qsort(sort, len, sizeof(ObjectBB*), CompareBB_Z);
+        case VEC_Z: {
+            qsort(sort, len, sizeof(ObjectBB*), CompareBB_Z);
+        } break;
+    };
+
+    return;
 }

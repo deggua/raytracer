@@ -1,12 +1,20 @@
 #include "kdtree.h"
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "common/memory_arena.h"
 #include "gfx/utils.h"
 #include "object/object.h"
 
-// return the first index who's bounding box fully lies >= x
-static size_t BinarySearchX(ObjectBB** pBoxes, size_t len, float x)
+typedef struct {
+    size_t index;
+    size_t diff;
+    float  value;
+} Split;
+
+static size_t FirstSplitIndex(ObjectBB* sorted[], size_t len, float split, VecAxis axis)
 {
     ssize_t left  = 0;
     ssize_t right = len;
@@ -14,7 +22,7 @@ static size_t BinarySearchX(ObjectBB** pBoxes, size_t len, float x)
 
     while (left <= right) {
         ssize_t cur = (left + right) / 2;
-        if (pBoxes[cur]->box.pMin.x < x && pBoxes[cur]->box.pMax.x < x) {
+        if (sorted[cur]->box.pMin.e[axis] < split && sorted[cur]->box.pMax.e[axis] < split) {
             left = cur + 1;
         } else {
             ret   = cur;
@@ -25,239 +33,173 @@ static size_t BinarySearchX(ObjectBB** pBoxes, size_t len, float x)
     return (size_t)ret;
 }
 
-// return the first index who's bounding box fully lies >= y
-static size_t BinarySearchY(ObjectBB** pBoxes, size_t len, float y)
-{
-    ssize_t left  = 0;
-    ssize_t right = len;
-    ssize_t ret   = len;
+static KDNode* SplitAxis(MemoryArena* arena, ObjectBB* sort[], size_t len);
 
-    while (left <= right) {
-        size_t cur = (left + right) / 2;
-        if (pBoxes[cur]->box.pMin.y < y && pBoxes[cur]->box.pMax.y < y) {
-            left = cur + 1;
-        } else {
-            ret   = cur;
-            right = cur - 1;
-        }
+static KDNode* BuildParentNode(MemoryArena* arena, ObjectBB* sorted[], size_t len, const Split* split, VecAxis axis)
+{
+    KDNode* lt = SplitAxis(arena, &sorted[0], split->index);
+    if (lt == NULL) {
+        goto error_lt;
     }
 
-    return (size_t)ret;
-}
-
-// return the first index who's bounding box fully lies >= z
-static size_t BinarySearchZ(ObjectBB** pBoxes, size_t len, float z)
-{
-    ssize_t left  = 0;
-    ssize_t right = len;
-    ssize_t ret   = len;
-
-    while (left <= right) {
-        size_t cur = (left + right) / 2;
-        if (pBoxes[cur]->box.pMin.z < z && pBoxes[cur]->box.pMax.z < z) {
-            left = cur + 1;
-        } else {
-            ret   = cur;
-            right = cur - 1;
-        }
+    KDNode* parent = MemoryArena_Malloc(arena, sizeof(*parent));
+    if (parent == NULL) {
+        goto error_parent;
     }
 
-    return (size_t)ret;
+    KDNode* gteq = SplitAxis(arena, &sorted[split->index], len - split->index);
+    if (gteq == NULL) {
+        goto error_gteq;
+    }
+
+    parent->type       = (KDNodeType)axis;
+    parent->node.split = split->value;
+    parent->node.lt    = lt;
+    parent->node.gteq  = gteq;
+
+    const char* axisName;
+    switch (axis) {
+        case VEC_X:
+            axisName = "x";
+            break;
+        case VEC_Y:
+            axisName = "y";
+            break;
+        case VEC_Z:
+            axisName = "z";
+            break;
+    };
+    printf("Created partition in the %s-axis at %s = %.2f\n", axisName, axisName, split->value);
+
+    return parent;
+
+    // TODO: should I bother figuring out how to do deallocations in the arena?
+error_parent:
+    // free(gteq);
+error_gteq:
+    // free(lt);
+error_lt:
+    return NULL;
 }
 
-static KDNode* KDTree_BuildX(ObjectBB* sort[], size_t len);
-static KDNode* KDTree_BuildY(ObjectBB* sort[], size_t len);
-static KDNode* KDTree_BuildZ(ObjectBB* sort[], size_t len);
-
-static KDNode* KDTree_BuildX(ObjectBB* sort[], size_t len)
+static KDNode* BuildLeafNode(MemoryArena* arena, ObjectBB* sorted[], size_t len)
 {
-    // now we sort the boxes by their pMin.x values
-    ObjectBB_SortX(sort, len);
+    KDNode* leaf = MemoryArena_Malloc(arena, sizeof(*leaf) + len * sizeof(Object));
+    if (leaf == NULL) {
+        return NULL;
+    }
 
-    // for the partitioning to work, the dividing value can't intersect an object's bb (for objects that should fall to
-    // the left). Otherwise it can't partition the objects
-    // TODO: there might be a way to do this in log time since it's sorted, but maybe not, because we can't
-    // sort by two values. We could sort by center point, but that still doesn't solve the problem
-    // take the middle element's xMin as the initial splitX
-    float splitX = sort[len / 2]->box.pMin.x;
+    // initialize the node and copy in the objects
+    leaf->type     = KD_LEAF;
+    leaf->objs.len = len;
     for (size_t ii = 0; ii < len; ii++) {
-        // check for intersection
-        if (within(splitX, sort[ii]->box.pMin.x, sort[ii]->box.pMax.x)) {
-            // change splitX and reiterate the array
-            splitX = sort[ii]->box.pMin.x;
-            ii     = 0;
-            continue;
-        }
+        leaf->objs.elem[ii] = *sorted[ii]->obj;
     }
 
-    // split the array where all elems with index >= startRightHalf lie to the right of splitX
-    // and all elems with index < startRightHalf lie to the left of splitX
-    size_t startRightHalf = BinarySearchX(sort, len, splitX);
-
-    if (startRightHalf == 0 || startRightHalf == len) {
-        // all nodes lie to the right or to the left of splitX
-        // we return a leaf node (Objects)
-        KDNode* leaf = malloc(sizeof(*leaf) + len * sizeof(Object));
-        if (leaf == NULL) {
-            return NULL;
-        }
-
-        // initialize the node and copy in the objects
-        leaf->type     = KD_LEAF;
-        leaf->objs.len = len;
-        for (size_t ii = 0; ii < len; ii++) {
-            leaf->objs.elem[ii] = *sort[ii]->obj;
-        }
-
-        return leaf;
-    } else {
-        // some land on the right, some on the left, so we need to split again by Y
-        // we return a parent node (xNode)
-        KDNode* ltX = KDTree_BuildY(&sort[0], startRightHalf);
-        if (ltX == NULL) {
-            return NULL;
-        }
-
-        KDNode* gteqX = KDTree_BuildY(&sort[startRightHalf], len - startRightHalf);
-        if (gteqX == NULL) {
-            free(ltX);
-            return NULL;
-        }
-
-        KDNode* parent = malloc(sizeof(*parent));
-        if (parent == NULL) {
-            free(ltX);
-            free(gteqX);
-            return NULL;
-        }
-
-        parent->type       = KD_PARENT;
-        parent->node.split = splitX;
-        parent->node.lt    = ltX;
-        parent->node.gte   = gteqX;
-
-        return parent;
-    }
+    printf("Created leaf node with %zu objects\n", len);
+    return leaf;
 }
 
-static KDNode* KDTree_BuildY(ObjectBB* sort[], size_t len)
+static size_t SplitDiff(size_t index, size_t len)
 {
-    ObjectBB_SortY(sort, len);
+    size_t elemLeft  = index;
+    size_t elemRight = len - index;
 
-    float splitY = sort[len / 2]->box.pMin.y;
-    for (size_t ii = 0; ii < len; ii++) {
-        if (within(splitY, sort[ii]->box.pMin.y, sort[ii]->box.pMax.y)) {
-            splitY = sort[ii]->box.pMin.y;
-            ii     = 0;
-            continue;
-        }
-    }
-
-    size_t startRightHalf = BinarySearchY(sort, len, splitY);
-
-    if (startRightHalf == 0 || startRightHalf == len) {
-        KDNode* leaf = malloc(sizeof(*leaf) + len * sizeof(Object));
-        if (leaf == NULL) {
-            return NULL;
-        }
-
-        leaf->type     = KD_LEAF;
-        leaf->objs.len = len;
-        for (size_t ii = 0; ii < len; ii++) {
-            leaf->objs.elem[ii] = *sort[ii]->obj;
-        }
-
-        return leaf;
+    size_t splitDiff;
+    if (elemLeft > elemRight) {
+        splitDiff = elemLeft - elemRight;
     } else {
-        KDNode* ltY = KDTree_BuildZ(&sort[0], startRightHalf);
-        if (ltY == NULL) {
-            return NULL;
-        }
-
-        KDNode* gteqY = KDTree_BuildZ(&sort[startRightHalf], len - startRightHalf);
-        if (gteqY == NULL) {
-            free(ltY);
-            return NULL;
-        }
-
-        KDNode* parent = malloc(sizeof(*parent));
-        if (parent == NULL) {
-            free(ltY);
-            free(gteqY);
-            return NULL;
-        }
-
-        parent->type       = KD_PARENT;
-        parent->node.split = splitY;
-        parent->node.lt    = ltY;
-        parent->node.gte   = gteqY;
-
-        return parent;
+        splitDiff = elemRight - elemLeft;
     }
+
+    return splitDiff;
 }
 
-static KDNode* KDTree_BuildZ(ObjectBB* sort[], size_t len)
+// TODO: O(n^2), optimize if possible
+static Split BestSplit(ObjectBB* sorted[], size_t len, VecAxis axis)
 {
-    ObjectBB_SortZ(sort, len);
+    Split best = {
+        .index = 0,
+        .diff  = len,
+        .value = sorted[0]->box.pMin.e[axis],
+    };
 
-    float splitZ = sort[len / 2]->box.pMin.z;
-    for (size_t ii = 0; ii < len; ii++) {
-        if (within(splitZ, sort[ii]->box.pMin.z, sort[ii]->box.pMax.z)) {
-            splitZ = sort[ii]->box.pMin.z;
-            ii     = 0;
-            continue;
+    for (size_t ii = 1; ii < len; ii++) {
+        float split = sorted[ii]->box.pMin.e[axis];
+
+        // splits that intersect a bb are invalid
+        for (size_t xx = 0; xx < len && xx != ii; xx++) {
+            if (within(split, sorted[xx]->box.pMin.e[axis], sorted[xx]->box.pMax.e[axis])) {
+                goto split_intersects;
+            }
         }
+
+        // get the true split index (split index can be a bit funny if pMin values equal)
+        // TODO: there's got to be a better way to do this
+        size_t splitIndex = FirstSplitIndex(sorted, len, split, axis);
+
+        size_t splitDiff = SplitDiff(splitIndex, len);
+        if (splitDiff < best.diff) {
+            best.diff  = splitDiff;
+            best.value = split;
+            best.index = splitIndex;
+        }
+
+        // we can terminate early here because you can't do any better
+        if (splitDiff == len % 2) {
+            return best;
+        }
+
+split_intersects:
+        continue;
     }
 
-    size_t startRightHalf = BinarySearchZ(sort, len, splitZ);
+    return best;
+}
 
-    if (startRightHalf == 0 || startRightHalf == len) {
-        KDNode* leaf = malloc(sizeof(*leaf) + len * sizeof(Object));
-        if (leaf == NULL) {
-            return NULL;
-        }
+// determines which axis is the best to split, and where to do said split.
+// TODO: is there a better way to do this than checking each axis?
+static KDNode* SplitAxis(MemoryArena* arena, ObjectBB* sort[], size_t len)
+{
+    if (len <= 25) {
+        // don't split if it's less than some threshold, probably depends on the number of objects in the scene what
+        // the optimal value is, might be computable but 25 seems good from testing
+        return BuildLeafNode(arena, sort, len);
+    }
 
-        leaf->type     = KD_LEAF;
-        leaf->objs.len = len;
-        for (size_t ii = 0; ii < len; ii++) {
-            leaf->objs.elem[ii] = *sort[ii]->obj;
-        }
+    ObjectBB_Sort(sort, len, VEC_X);
+    Split x = BestSplit(sort, len, VEC_X);
 
-        return leaf;
+    ObjectBB_Sort(sort, len, VEC_Y);
+    Split y = BestSplit(sort, len, VEC_Y);
+
+    ObjectBB_Sort(sort, len, VEC_Z);
+    Split z = BestSplit(sort, len, VEC_Z);
+
+    // TODO: remove the redundant sorts by keeping a copy of the best sort so far, probably faster for large numbers of
+    // objects, just requires more memory and more allocations, but I assume the cost of a sort is larger than the cost
+    // of a malloc (might not be, needs to be profiled)
+    if (x.diff == len && y.diff == len && z.diff == len) {
+        return BuildLeafNode(arena, sort, len);
+    } else if (x.diff <= y.diff && x.diff <= z.diff) {
+        ObjectBB_Sort(sort, len, VEC_X);
+        return BuildParentNode(arena, sort, len, &x, VEC_X);
+    } else if (y.diff <= x.diff && y.diff <= z.diff) {
+        ObjectBB_Sort(sort, len, VEC_Y);
+        return BuildParentNode(arena, sort, len, &y, VEC_Y);
+    } else if (z.diff <= x.diff && z.diff <= y.diff) {
+        ObjectBB_Sort(sort, len, VEC_Z);
+        return BuildParentNode(arena, sort, len, &z, VEC_Z);
     } else {
-        KDNode* ltZ = KDTree_BuildX(&sort[0], startRightHalf);
-        if (ltZ == NULL) {
-            return NULL;
-        }
-
-        KDNode* gteqZ = KDTree_BuildX(&sort[startRightHalf], len - startRightHalf);
-        if (gteqZ == NULL) {
-            free(ltZ);
-            return NULL;
-        }
-
-        KDNode* parent = malloc(sizeof(*parent));
-        if (parent == NULL) {
-            free(ltZ);
-            free(gteqZ);
-            return NULL;
-        }
-
-        parent->type       = KD_PARENT;
-        parent->node.split = splitZ;
-        parent->node.lt    = ltZ;
-        parent->node.gte   = gteqZ;
-
-        return parent;
+        // impossible, but let's print and exit just to be safe
+        // TODO: try to enable the following and see if code gen is still correct
+        // __builtin_unreachable();
+        printf("Reached invalid condition in kdtree.c:SplitAxis\n");
+        exit(1);
     }
 }
 
-// TODO: optimize this for cache locality and minimize the number of allocations
-// seems pretty difficult to preallocate all the memory contiguously because of the recursive nature of these functions
-// getting them to share the buffer correctly is a challenge
-//
-// returns: A KD tree with X -> Y -> Z traversal for parents (if type is KD_PARENT)
-// could also be a leaf node (KD_LEAF)
+// TODO: I think we could preallocate 2 * len buffer of ObjectBB*, so split axis can use them
 KDNode* KDTree_Build(ObjectBB* boxes, size_t len)
 {
     // we need a buffer of pointers to the objects BB's
@@ -265,10 +207,15 @@ KDNode* KDTree_Build(ObjectBB* boxes, size_t len)
     if (pBoxes == NULL) {
         return NULL;
     }
+    // TODO: free the pBoxes buffer before we return KDNode
+    // TODO: return a more generic object so we can free the KDTree (probably a KDNode* root and a MemoryArena* arena)
 
     for (size_t ii = 0; ii < len; ii++) {
         pBoxes[ii] = &boxes[ii];
     }
 
-    return KDTree_BuildX(pBoxes, len);
+    // max amount of memory (I'm pretty sure) is (2*N-1) * sizeof(KDNode) + len * sizeof(Object)
+    MemoryArena* arena = MemoryArena_New(2 * ((2 * len - 1) * sizeof(KDNode) + len * sizeof(Object)), 16);
+
+    return SplitAxis(arena, pBoxes, len);
 }

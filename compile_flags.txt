@@ -11,6 +11,7 @@
 -Wno-keyword-macro
 -Wno-unused-function
 -Wno-multichar
+-Wno-missing-braces
 
 -lm
 -pthread
