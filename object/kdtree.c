@@ -118,6 +118,8 @@ static size_t SplitDiff(size_t index, size_t len)
 // TODO: O(n^2), optimize if possible
 static Split BestSplit(ObjectBB* sorted[], size_t len, VecAxis axis)
 {
+    const size_t optimalSplitDiff = len % 2;
+
     Split best = {
         .index = 0,
         .diff  = len,
@@ -146,7 +148,7 @@ static Split BestSplit(ObjectBB* sorted[], size_t len, VecAxis axis)
         }
 
         // we can terminate early here because you can't do any better
-        if (splitDiff == len % 2) {
+        if (splitDiff == optimalSplitDiff) {
             return best;
         }
 
@@ -161,6 +163,8 @@ split_intersects:
 // TODO: is there a better way to do this than checking each axis?
 static KDNode* SplitAxis(MemoryArena* arena, ObjectBB* sort[], size_t len)
 {
+    const size_t optimalSplitDiff = len % 2;
+
     if (len <= 25) {
         // don't split if it's less than some threshold, probably depends on the number of objects in the scene what
         // the optimal value is, might be computable but 25 seems good from testing
@@ -169,12 +173,21 @@ static KDNode* SplitAxis(MemoryArena* arena, ObjectBB* sort[], size_t len)
 
     ObjectBB_Sort(sort, len, VEC_X);
     Split x = BestSplit(sort, len, VEC_X);
+    if (x.diff == optimalSplitDiff) {
+        return BuildParentNode(arena, sort, len, &x, VEC_X);
+    }
 
     ObjectBB_Sort(sort, len, VEC_Y);
     Split y = BestSplit(sort, len, VEC_Y);
+    if (y.diff == optimalSplitDiff) {
+        return BuildParentNode(arena, sort, len, &y, VEC_Y);
+    }
 
     ObjectBB_Sort(sort, len, VEC_Z);
     Split z = BestSplit(sort, len, VEC_Z);
+    if (z.diff == optimalSplitDiff) {
+        return BuildParentNode(arena, sort, len, &z, VEC_Z);
+    }
 
     // TODO: remove the redundant sorts by keeping a copy of the best sort so far, probably faster for large numbers of
     // objects, just requires more memory and more allocations, but I assume the cost of a sort is larger than the cost
