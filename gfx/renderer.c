@@ -24,7 +24,7 @@ void RenderCtx_Delete(RenderCtx* ctx)
     free(ctx);
 }
 
-static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
+static Color RayColor(const Scene* scene, const Ray* ray, size_t depth, const size_t threadNum)
 {
     // TODO: This can be pulled out into pre-RayColor, along with computing every moving object's position
     const Color skyColor = Scene_Get_SkyColor(scene);
@@ -36,12 +36,12 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
     Object* objHit = NULL;
     HitInfo hit;
 
-    if (Scene_ClosestHit(scene, ray, &objHit, &hit)) {
+    if (Scene_ClosestHit(scene, ray, &objHit, &hit, threadNum)) {
         Ray   bouncedRay;
         Color bouncedColor;
 
         if (Material_Bounce(&objHit->material, ray, &hit, &bouncedColor, &bouncedRay)) {
-            return Color_Tint(bouncedColor, RayColor(scene, &bouncedRay, depth - 1));
+            return Color_Tint(bouncedColor, RayColor(scene, &bouncedRay, depth - 1, threadNum));
         } else {
             return COLOR_BLACK;
         }
@@ -74,6 +74,7 @@ static void* RenderThread(void* arg)
 
     const size_t numThreads = args->numThreads;
     const size_t lineOffset = args->lineOffset;
+    const size_t threadNum  = lineOffset;
 
     const size_t samplesPerPixel = args->renderParams.samplesPerPixel;
     const size_t maxRayDepth     = args->renderParams.maxRayDepth;
@@ -91,7 +92,7 @@ static void* RenderThread(void* arg)
                 float verticalFraction   = (yy + randf()) / (float)(imageHeight - 1);
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
-                Color rayColor = RayColor(scene, &ray, maxRayDepth);
+                Color rayColor = RayColor(scene, &ray, maxRayDepth, threadNum);
                 cumColorPt     = vadd(cumColorPt, rayColor);
             }
 

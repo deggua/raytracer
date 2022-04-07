@@ -7,6 +7,7 @@ typedef enum
     VEC_X = 0,
     VEC_Y = 1,
     VEC_Z = 2,
+    VEC_LAST,
 } VecAxis;
 
 typedef struct {

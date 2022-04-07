@@ -6,6 +6,8 @@
 
 #define ARENA_MAX_ALIGNMENT 16
 
+#define alignto(val, alignMask) ((val) + ((-(val)) & (alignMask)))
+
 typedef struct {
     uint8_t* next;
     size_t   capacity;

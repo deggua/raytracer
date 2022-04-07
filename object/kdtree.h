@@ -4,33 +4,8 @@
 
 #include "object/object.h"
 
-typedef enum
-{
-    KD_SPLIT_X = VEC_X,
-    KD_SPLIT_Y = VEC_Y,
-    KD_SPLIT_Z = VEC_Z,
-    KD_LEAF,
-} KDNodeType;
+typedef struct KDTree KDTree;
 
-typedef struct KDNode KDNode;
-
-typedef struct {
-    size_t len;
-    Object elem[];
-} KDLeaf;
-
-typedef struct {
-    float   split;
-    KDNode* lt;
-    KDNode* gteq;
-} KDParent;
-
-typedef struct KDNode {
-    KDNodeType type;
-    union {
-        KDParent node;
-        KDLeaf   objs;
-    };
-} KDNode;
-
-KDNode* KDTree_Build(ObjectBB* boxes, size_t len);
+KDTree* KDTree_New(const Object objs[], size_t len, size_t numThreads);
+void    KDTree_Delete(KDTree* tree);
+bool    KDTree_HitAt(KDTree* tree, const Ray* ray, Object** objHit, HitInfo* hit, const size_t threadNum);

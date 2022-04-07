@@ -7,8 +7,8 @@ typedef struct Scene Scene;
 
 Scene* Scene_New(Color skyColor);
 void   Scene_Delete(Scene* scene);
-void   Scene_Prepare(Scene* scene);
-bool   Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit);
+void   Scene_Prepare(Scene* scene, size_t numThreads);
+bool   Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit, const size_t threadNum);
 bool   Scene_ClosestHitSlow(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit);
 
 bool  Scene_Add_Object(Scene* scene, const Object* obj);

@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "common/cext.h"
 #include "gfx/primitives.h"
@@ -11,14 +12,12 @@
 #define REQ_PARAM_type Object
 #include "common/vector.h"
 
-#define REQ_PARAM_type ObjectBB
-#include "common/vector.h"
-
 typedef struct Scene {
     Color skyColor;
     Vector(Object) * objects;
     Vector(Object) * unboundObjs;
-    KDNode* root;
+    Vector(Object) * kdObjects;
+    KDTree* kdTree;
 } Scene;
 
 Scene* Scene_New(Color skyColor)
@@ -38,9 +37,16 @@ Scene* Scene_New(Color skyColor)
         goto error_UnboundObjectsVector;
     }
 
+    scene->kdObjects = Vector_New(Object)();
+    if (scene->kdObjects == NULL) {
+        goto error_KdObjects;
+    }
+
     scene->skyColor = skyColor;
     return scene;
 
+error_KdObjects:
+    Vector_Delete(Object)(scene->unboundObjs);
 error_UnboundObjectsVector:
     Vector_Delete(Object)(scene->objects);
 error_ObjectVector:
@@ -81,84 +87,7 @@ static bool Scene_ClosestHitInArray(const Object objs[], size_t len, const Ray* 
     }
 }
 
-static bool CheckHitKD(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, VecAxis axis);
-
-static bool Scene_ClosestHitInKD(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit)
-{
-    switch (node->type) {
-        case KD_SPLIT_X:
-        case KD_SPLIT_Y:
-        case KD_SPLIT_Z: {
-            return CheckHitKD(node, ray, objHit, hit, (VecAxis)(node->type));
-        } break;
-
-        case KD_LEAF: {
-            return Scene_ClosestHitInArray(node->objs.elem, node->objs.len, ray, objHit, hit);
-        } break;
-    };
-
-    // TODO: try to enable and see if it breaks code gen
-    __builtin_unreachable();
-    return false;
-}
-
-static bool CheckHitKD(const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, VecAxis axis)
-{
-    const float split            = node->node.split;
-    const float epsilonParallel  = 0.0001f;
-    const float epsilonIntersect = 0.001f;
-
-    if (fabsf(ray->dir.e[axis]) < epsilonParallel) {
-        // ray parallel to plane, check the origin to see which side ray falls on
-        // TODO: is this correct when the origin is in the plane?
-        if (ray->origin.e[axis] >= split) {
-            return Scene_ClosestHitInKD(node->node.gteq, ray, objHit, hit);
-        } else {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit);
-        }
-    }
-
-    float tIntersect = (split - ray->origin.e[axis]) / ray->dir.e[axis];
-    if (tIntersect < epsilonIntersect) {
-        // ray doesn't intersect plane at valid t, check the origin to see which side ray falls on
-        if (ray->origin.e[axis] > split) {
-            return Scene_ClosestHitInKD(node->node.gteq, ray, objHit, hit);
-        } else if (ray->origin.e[axis] < split) {
-            return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit);
-        } else {
-            // handle ray intersects plane at the origin, idea is to evaluate at some point past the origin and see what
-            // side that lands on
-            float rayAt = Ray_At(ray, 1.0f).e[axis];
-            if (rayAt >= split) {
-                return Scene_ClosestHitInKD(node->node.gteq, ray, objHit, hit);
-            } else {
-                return Scene_ClosestHitInKD(node->node.lt, ray, objHit, hit);
-            }
-        }
-    } else {
-        // intersects with the plane, which means it could intersect objects on either side. we can check the side the
-        // origin is on first and then if it doesn't hit anything on that side check the opposite since the ray will
-        // hit objects on the origin side before objects on the opposite side
-        const KDNode* originSide;
-        const KDNode* oppositeSide;
-
-        if (ray->origin.e[axis] >= split) {
-            originSide   = node->node.gteq;
-            oppositeSide = node->node.lt;
-        } else {
-            originSide   = node->node.lt;
-            oppositeSide = node->node.gteq;
-        }
-
-        if (Scene_ClosestHitInKD(originSide, ray, objHit, hit)) {
-            return true;
-        } else {
-            return Scene_ClosestHitInKD(oppositeSide, ray, objHit, hit);
-        }
-    }
-}
-
-bool Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit)
+bool Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit, const size_t threadNum)
 {
     Object* ubObjHit = NULL;
     HitInfo ubHit;
@@ -168,8 +97,8 @@ bool Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitIn
 
     Object* kdObjHit = NULL;
     HitInfo kdHit;
-    if (scene->root != NULL) {
-        Scene_ClosestHitInKD(scene->root, ray, &kdObjHit, &kdHit);
+    if (scene->kdTree != NULL) {
+        KDTree_HitAt(scene->kdTree, ray, &kdObjHit, &kdHit, threadNum);
     }
 
     if (kdObjHit == NULL && ubObjHit == NULL) {
@@ -198,27 +127,29 @@ bool Scene_ClosestHitSlow(const Scene* scene, const Ray* ray, Object** objHit, H
     return Scene_ClosestHitInArray(scene->objects->at, scene->objects->length, ray, objHit, hit);
 }
 
-void Scene_Prepare(Scene* scene)
+void Scene_Prepare(Scene* scene, size_t numThreads)
 {
-    // first we compute the bounding boxes for each object in our scene
-    Vector(ObjectBB)* bObj = Vector_New(ObjectBB)();
-    Vector_Reserve(ObjectBB)(bObj, scene->objects->length);
+    // only bounded objects (not moving, not infinite) can be stored in the KDTree
+    // TODO: can we store infinite objects? does it make sense to?
+    Vector_Reserve(Object)(scene->kdObjects, scene->objects->length);
 
     for (size_t ii = 0; ii < scene->objects->length; ii++) {
-        ObjectBB bb;
-        if (Surface_BoundedBy(&scene->objects->at[ii].surface, &bb.box)) {
-            bb.obj = &scene->objects->at[ii];
-            Vector_Push(ObjectBB)(bObj, &bb);
+        // TODO: this is because I messed up the API between KDTree and Scene, I should add a Surface_Bounded() function
+        // to check whether it is bounded or not
+        BoundingBox ignore;
+        if (Surface_BoundedBy(&scene->objects->at[ii].surface, &ignore)) {
+            Vector_Push(Object)(scene->kdObjects, &scene->objects->at[ii]);
         } else {
             Vector_Push(Object)(scene->unboundObjs, &scene->objects->at[ii]);
+            printf("scene->unboundObjs->length = %zu\n", scene->unboundObjs->length);
         }
     }
 
     // now we need to construct the kd tree using the bounding boxes
-    if (bObj->length > 0) {
-        scene->root = KDTree_Build(bObj->at, bObj->length);
+    if (scene->kdObjects->length > 0) {
+        scene->kdTree = KDTree_New(scene->kdObjects->at, scene->kdObjects->length, numThreads);
     } else {
-        scene->root = NULL;
+        scene->kdTree = NULL;
     }
 }
 

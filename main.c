@@ -71,6 +71,8 @@ int main(void)
     const size_t imageHeight = 720;
     const size_t imageWidth  = imageHeight * aspectRatio;
 
+    const size_t numThreads = 4;
+
     struct timespec specStart;
     struct timespec specEnd;
 
@@ -80,7 +82,7 @@ int main(void)
 
     Random_Seed(__builtin_readcyclecounter());
     FillScene(scene);
-    Scene_Prepare(scene);
+    Scene_Prepare(scene, numThreads);
 
     RenderCtx* ctx = RenderCtx_New(scene, img, cam);
 
@@ -89,7 +91,7 @@ int main(void)
         clock_gettime(CLOCK_MONOTONIC, &specStart);
         // TODO: does it make sense for Render to create the image?
         // TODO: pass in worker thread stack size? or could we compute the required stack size from the ray depth?
-        Render(ctx, 64, 32, 4);
+        Render(ctx, 64, 32, numThreads);
 
         clock_gettime(CLOCK_MONOTONIC, &specEnd);
         float timeDeltaSec  = (float)(specEnd.tv_sec - specStart.tv_sec);

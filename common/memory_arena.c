@@ -4,15 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define popcount                __builtin_popcount
-#define alignto(val, alignMask) ((val) + ((-(val)) & (alignMask)))
+#define popcount __builtin_popcount
 
 // NOTE: alignment must be a power of 2
 MemoryArena* MemoryArena_New(size_t totalMemory, size_t alignment)
 {
     assert(popcount(alignment) == 1);
 
-    MemoryArena* arena = malloc(sizeof(*arena) + alignto(totalMemory, alignment - 1));
+    MemoryArena* arena = calloc(1, sizeof(*arena) + alignto(totalMemory, alignment - 1));
     arena->capacity    = alignto(totalMemory, alignment - 1);
     arena->used        = 0;
     arena->next        = arena->alloc;
