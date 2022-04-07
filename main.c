@@ -24,7 +24,7 @@ void FillScene(Scene* scene)
         for (ssize_t yy = 0; yy < 5; yy++) {
             for (ssize_t zz = -2; zz < 2; zz++) {
                 float rr = randrf(0.0f, 1.0f);
-                if (rr < 0.33) {
+                if (rr < 1.0f) {
                     // lambert
                     obj.material.type    = MATERIAL_LAMBERT;
                     obj.material.lambert = Lambert_Make(COLOR_NAVY);
