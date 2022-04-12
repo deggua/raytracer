@@ -38,7 +38,7 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
     Object* objHit = NULL;
     HitInfo hit;
 
-    if (Scene_ClosestHitSlow(scene, ray, &objHit, &hit)) {
+    if (Scene_ClosestHit(scene, ray, &objHit, &hit)) {
         Ray   bouncedRay;
         Color bouncedColor;
 
@@ -106,7 +106,7 @@ static void* RenderThread(void* arg)
             Image_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
         }
         // TODO: figure out a better way to print progress
-        printf("\rFinished line %03zd of %zu", yy, imageHeight);
+        printf("Finished line %03zd of %zu\n", yy, imageHeight);
     }
 
     return NULL;

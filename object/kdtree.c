@@ -10,8 +10,25 @@
 #include "gfx/utils.h"
 #include "object/object.h"
 
-#define LEAF_MIN_LOAD 1
+#define LEAF_MIN_LOAD 100
 #define NUM_THREADS   4
+
+// TODO: compress tree nodes to 8 bytes (combine the enum with an offset to a child/the Object* index)
+// TODO: refine traversal code to also check whether the plane intersection ray(t).e[axis] is within the bounds
+// of the current voxel's region (have to pass + split the box as you move down the tree), imagine a ray
+// passing through box, and hitting the inf plane outside of the current voxels box, this gives an early stopping
+// condition where you only need to check the side the ray is on in the intersect case
+// TODO: benchmark code with and without pointer indirection to object array (store Object copies vs copies of ptrs to
+// Objects)
+
+// TODO: track avg intersection tests / ray to determine what kind of improvements modification to the tree structure
+// provide
+// TODO: consider passing the tMin/tMax through the traversal code as it's refined so that HitAt can determine
+// whether it needs to consider certain intersections
+
+// TODO: consider adding max depth to tree
+// TODO: consider adding weight to empty voxel (b_e)
+// TODO: consider allowing bad splits up to some threshold (apparently bad splits may yield good splits later)
 
 typedef enum
 {
@@ -201,16 +218,19 @@ static KDNode* BuildNode(KDTree* tree, const KDBB** kdbbs, size_t len, BoundingB
     float   bestSAH   = INF;
 
     // determine best split location via SAH
+    // TODO: use buckets, this is infeasible for large scenes
+    const size_t numBuckets = 64;
+
     for (VecAxis axis = VEC_X; axis < VEC_LAST; axis++) {
-        for (size_t ii = 0; ii < len; ii++) {
-            for (size_t jj = 0; jj < 2; jj++) {
-                float split = kdbbs[ii]->box.bounds[jj].e[axis];
-                float SAH   = ComputeSplitSAH(kdbbs, len, split, axis, container);
-                if (SAH < bestSAH) {
-                    bestSAH   = SAH;
-                    bestAxis  = axis;
-                    bestSplit = split;
-                }
+        float stride = (container.max.e[axis] - container.min.e[axis]) / numBuckets;
+        for (float bucket = container.min.e[axis] + stride; bucket <= container.max.e[axis] - stride;
+             bucket += stride) {
+            float split = bucket;
+            float SAH   = ComputeSplitSAH(kdbbs, len, split, axis, container);
+            if (SAH < bestSAH) {
+                bestSAH   = SAH;
+                bestAxis  = axis;
+                bestSplit = split;
             }
         }
     }
@@ -301,6 +321,7 @@ KDTree* KDTree_New(const Object objs[], size_t len)
         goto error_KDTree;
     }
 
+    // TODO: really need to refine and accurately compute exactly how much memory we need in worst case
     // max number of inodes = len - 1
     // max number of leaf nodes = len
     const size_t alignment = 8;
@@ -313,7 +334,7 @@ KDTree* KDTree_New(const Object objs[], size_t len)
     tree->nodeArena = nodeArena;
 
     // max number of object pointers allocated = objects * leaf nodes
-    const size_t objMem   = len * len * alignto(sizeof(Object*), alignment - 1);
+    const size_t objMem   = 20 * len * alignto(sizeof(Object*), alignment - 1);
     MemoryArena* objArena = MemoryArena_New(4 * objMem, alignment);
     if (objArena == NULL) {
         goto error_ObjArena;

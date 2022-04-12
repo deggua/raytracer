@@ -41,3 +41,7 @@ typedef struct {
 Sphere Sphere_Make(Point3 center, float radius);
 bool   Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box);
 bool   Sphere_HitAt(const Sphere* sphere, const Ray* ray, float tMin, float tMax, HitInfo* hit);
+
+Triangle Triangle_Make(Point3 v1, Point3 v2, Point3 v3);
+bool     Triangle_BoundedBy(const Triangle* tri, BoundingBox* box);
+bool     Triangle_HitAt(const Triangle* tri, const Ray* ray, float tMin, float tMax, HitInfo* hit);

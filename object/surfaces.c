@@ -68,3 +68,62 @@ bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, float tMin, float tMax, 
         return true;
     }
 }
+
+Triangle Triangle_Make(Point3 v1, Point3 v2, Point3 v3)
+{
+    return (Triangle){
+        .v = {v1, v2, v3},
+    };
+}
+
+bool Triangle_BoundedBy(const Triangle* tri, BoundingBox* box)
+{
+    const float epsilon = 0.001f;
+
+    for (VecAxis axis = VEC_X; axis < VEC_LAST; axis++) {
+        box->min.e[axis] = minf(minf(tri->v[0].e[axis], tri->v[1].e[axis]), tri->v[2].e[axis]) - epsilon;
+        box->max.e[axis] = maxf(maxf(tri->v[0].e[axis], tri->v[1].e[axis]), tri->v[2].e[axis]) + epsilon;
+    }
+
+    return true;
+}
+
+bool Triangle_HitAt(const Triangle* tri, const Ray* ray, float tMin, float tMax, HitInfo* hit)
+{
+    const float epsilon = 0.0001f;
+
+    Vec3 edge1 = vsub(tri->v[1], tri->v[0]);
+    Vec3 edge2 = vsub(tri->v[2], tri->v[0]);
+
+    Vec3  h = vcross(ray->dir, edge2);
+    float a = vdot(edge1, h);
+
+    if (fabsf(a) < epsilon) {
+        // ray is parallel to the triangle plane
+        return false;
+    }
+
+    Vec3  s = vsub(ray->origin, tri->v[0]);
+    float u = vdot(s, h) / a;
+    if (u < 0.0f || u > 1.0f) {
+        return false;
+    }
+
+    Vec3  q = vcross(s, edge1);
+    float v = vdot(ray->dir, q) / a;
+
+    if (v < 0.0f || u + v > 1.0f) {
+        return false;
+    }
+
+    float t = vdot(edge2, q) / a;
+    if (t > tMax || t < tMin) {
+        return false;
+    } else {
+        hit->position      = Ray_At(ray, t);
+        hit->tIntersect    = t;
+        Vec3 outwardNormal = vunit(vcross(edge1, edge2));
+        HitInfo_SetFaceNormal(hit, ray, outwardNormal);
+        return true;
+    }
+}

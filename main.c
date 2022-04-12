@@ -1,5 +1,6 @@
 #include <math.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
@@ -8,6 +9,7 @@
 #include "gfx/camera.h"
 #include "gfx/color.h"
 #include "gfx/image.h"
+#include "gfx/mesh.h"
 #include "gfx/primitives.h"
 #include "gfx/random.h"
 #include "gfx/renderer.h"
@@ -30,10 +32,10 @@ Material metal = {
     },
 };
 
-Material dielectric = {
+Material glass = {
     .type = MATERIAL_DIELECTRIC,
     .dielectric = {
-        .albedo = COLOR_WHITE,
+        .albedo = COLOR_GREEN,
         .refactiveIndex = 1.5f,
     },
 };
@@ -45,39 +47,34 @@ Material ground = {
     },
 };
 
-void FillScene(Scene* scene)
+static void ExportImage(Image* img, const char* filename)
 {
-    const float scale        = 8;
-    const float groundOffset = 1;
+    FILE* fd = fopen(filename, "w+");
+    Image_ExportBMP(img, fd);
+    printf("Output image written to %s\n", filename);
+}
 
-    Object obj;
+Image*      g_img;
+static void InterruptHandler(int sig)
+{
+    (void)sig;
+    printf("\nExporting partial image to disk\n");
+    ExportImage(g_img, "partial.bmp");
+    exit(EXIT_SUCCESS);
+}
 
-    for (ssize_t xx = -5; xx < 5; xx++) {
-        for (ssize_t yy = 0; yy < 10; yy++) {
-            for (ssize_t zz = -5; zz < 5; zz++) {
-                float rr = Random_FloatInRange(0.0f, 1.0f);
-                if (rr < 0.0f) {
-                    // lambert
-                    obj.material       = &diffuse;
-                    obj.surface.type   = SURFACE_SPHERE;
-                    obj.surface.sphere = Sphere_Make((Point3){xx * scale, groundOffset + yy * scale, zz * scale}, 1.0f);
-                } else if (rr < 1.0f) {
-                    // metal
-                    obj.material       = &metal;
-                    obj.surface.type   = SURFACE_SPHERE;
-                    obj.surface.sphere = Sphere_Make((Point3){xx * scale, groundOffset + yy * scale, zz * scale}, 1.0f);
-                } else {
-                    // dielectric
-                    obj.material       = &dielectric;
-                    obj.surface.type   = SURFACE_SPHERE;
-                    obj.surface.sphere = Sphere_Make((Point3){xx * scale, groundOffset + yy * scale, zz * scale}, 1.0f);
-                }
-                Scene_Add_Object(scene, &obj);
-            }
-        }
-    }
+static void FillScene(Scene* scene)
+{
+    // mesh
+    FILE* fd   = fopen("assets/teapot.obj", "r");
+    Mesh* mesh = Mesh_New((Point3){0, 1, 0}, 2.5f, &diffuse);
+
+    Mesh_LoadOBJ(mesh, fd);
+    Mesh_AddToScene(mesh, scene);
+    Mesh_Delete(mesh);
 
     // ground
+    Object obj;
     obj.material       = &ground;
     obj.surface.type   = SURFACE_SPHERE;
     obj.surface.sphere = Sphere_Make((Point3){0, -1000, 0}, 1000.0f);
@@ -91,12 +88,12 @@ int main(void)
     const Vec3   vup         = (Vec3){0, 1, 0};
     const float  focusDist   = 10.0f;
     const float  aperature   = 0.0f;
-    const float  aspectRatio = 16.0f / 9.0f;
+    const float  aspectRatio = 1.0f / 1.0f;
     const float  vFov        = 40.0f;
     const float  timeStart   = 0.0f;
     const float  timeEnd     = 1.0f;
 
-    const size_t imageHeight = 720;
+    const size_t imageHeight = 512;
     const size_t imageWidth  = imageHeight * aspectRatio;
 
     const size_t numThreads = 4;
@@ -104,22 +101,30 @@ int main(void)
     struct timespec specStart;
     struct timespec specEnd;
 
-    Image*  img   = Image_New(imageWidth, imageHeight);
+    signal(SIGINT, InterruptHandler);
+    Random_Seed(__builtin_readcyclecounter());
+
+    Image* img = Image_New(imageWidth, imageHeight);
+    g_img      = img;
+
     Camera* cam   = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
     Scene*  scene = Scene_New(COLOR_WHITE);
 
-    Random_Seed(__builtin_readcyclecounter());
+    printf("Filling scene with objects\n");
     FillScene(scene);
+
+    printf("Preparing scene\n");
     Scene_Prepare(scene);
 
     RenderCtx* ctx = RenderCtx_New(scene, img, cam);
 
     // Time the render
+    printf("Rendering scene\n");
     {
         clock_gettime(CLOCK_MONOTONIC, &specStart);
         // TODO: does it make sense for Render to create the image?
         // TODO: pass in worker thread stack size? or could we compute the required stack size from the ray depth?
-        Render(ctx, 64, 32, numThreads);
+        Render(ctx, 16, 8, numThreads);
 
         clock_gettime(CLOCK_MONOTONIC, &specEnd);
         float timeDeltaSec  = (float)(specEnd.tv_sec - specStart.tv_sec);
@@ -128,17 +133,11 @@ int main(void)
         printf("\n%.2f seconds spent rendering\n", timeDelta);
     }
 
-    const char filename[] = "output.bmp";
-
-    FILE* fd = fopen(filename, "w+");
-
-    Image_ExportBMP(img, fd);
-    printf("Output image written to %s\n", filename);
+    ExportImage(img, "output.bmp");
 
     Image_Delete(img);
     Scene_Delete(scene);
     RenderCtx_Delete(ctx);
-    fclose(fd);
 
     return 0;
 }

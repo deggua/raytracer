@@ -12,7 +12,7 @@ bool Surface_HitAt(const Surface* surface, const Ray* ray, float tMin, float tMa
         } break;
 
         case SURFACE_TRIANGLE: {
-            return false;
+            return Triangle_HitAt(&surface->triangle, ray, tMin, tMax, hit);
         } break;
     }
 
@@ -27,7 +27,7 @@ bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
         } break;
 
         case SURFACE_TRIANGLE: {
-            return false;
+            return Triangle_BoundedBy(&surface->triangle, box);
         } break;
     }
 
