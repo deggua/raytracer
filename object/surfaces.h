@@ -7,45 +7,37 @@
 #include "object/hitinfo.h"
 #include "surfaces.h"
 
-typedef struct {
-    Point3 pMin;
-    Point3 pMax;
+typedef union {
+    struct {
+        Point3 min;
+        Point3 max;
+    };
+    Point3 bounds[2];
 } BoundingBox;
 
 typedef enum
 {
     SURFACE_SPHERE,
     SURFACE_TRIANGLE,
-    SURFACE_MOVING_SPHERE,
 } SurfaceType;
 
 typedef struct {
-    Point3 center;
-    float  radius;
+    Point3 c;
+    float  r;
 } Sphere;
 
 typedef struct {
-    Point3 (*centerPath)(float time);
-    float radius;
-} MovingSphere;
-
-typedef struct {
-    Point3 vertices[3];
+    Point3 v[3];
 } Triangle;
 
 typedef struct {
     SurfaceType type;
     union {
-        Sphere       sphere;
-        MovingSphere movingSphere;
-        Triangle     triangle;
+        Sphere   sphere;
+        Triangle triangle;
     };
 } Surface;
 
 Sphere Sphere_Make(Point3 center, float radius);
 bool   Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box);
 bool   Sphere_HitAt(const Sphere* sphere, const Ray* ray, float tMin, float tMax, HitInfo* hit);
-
-MovingSphere MovingSphere_Make(Point3 (*centerPath)(float time), float radius);
-bool         MovingSphere_BoundedBy(const MovingSphere* sphere, BoundingBox* box);
-bool         MovingSphere_HitAt(const MovingSphere* sphere, const Ray* ray, float tMin, float tMax, HitInfo* hit);

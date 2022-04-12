@@ -1,10 +1,4 @@
-/*  Written in 2018 by David Blackman and Sebastiano Vigna (vigna@acm.org)
-
-To the extent possible under law, the author has dedicated all copyright
-and related and neighboring rights to this software to the public domain
-worldwide. This software is distributed without any warranty.
-
-See <http://creativecommons.org/publicdomain/zero/1.0/>. */
+#include "random.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -76,12 +70,12 @@ static void jump(void)
     s[3] = s3;
 }
 
-void Random_Seed(uint32_t seed)
+void Random_Seed(uint64_t seed)
 {
-    s[0] = seed;
-    s[1] = seed + 1;
-    s[2] = seed + 2;
-    s[3] = seed + 3;
+    s[0] = (uint32_t)seed;
+    s[1] = (uint32_t)(seed >> 32);
+    s[2] = (uint32_t)seed;
+    s[3] = (uint32_t)(seed >> 32);
     jump();
 }
 
@@ -91,4 +85,9 @@ float Random_Float(void)
     float    maxVal  = (float)UINT32_MAX + 1.0f;
     float    result  = ((float)nextVal) / maxVal;
     return result;
+}
+
+float Random_FloatInRange(float min, float max)
+{
+    return min + (max - min) * Random_Float();
 }

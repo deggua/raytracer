@@ -6,6 +6,6 @@
 
 typedef struct KDTree KDTree;
 
-KDTree* KDTree_New(const Object objs[], size_t len, size_t numThreads);
+KDTree* KDTree_New(const Object objs[], size_t len);
 void    KDTree_Delete(KDTree* tree);
-bool    KDTree_HitAt(KDTree* tree, const Ray* ray, Object** objHit, HitInfo* hit, const size_t threadNum);
+bool    KDTree_HitAt(KDTree* tree, const Ray* ray, Object** objHit, HitInfo* hit);

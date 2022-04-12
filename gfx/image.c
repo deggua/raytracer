@@ -140,7 +140,11 @@ void Image_ExportBMP(const Image* img, FILE* fd)
     };
 
     uint8_t* pixelBuffer = calloc(1, rowBytes * img->res.height);
-    uint8_t* curPixel    = pixelBuffer;
+    if (pixelBuffer == NULL) {
+        printf("Failed to allocate pixel buffer\n");
+        return;
+    }
+    uint8_t* curPixel = pixelBuffer;
     for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
         for (size_t xx = 0; xx < img->res.width; xx++) {
             BGR* bmpPix = (BGR*)curPixel;

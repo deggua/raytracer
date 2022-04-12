@@ -8,8 +8,8 @@
 #include "object/surfaces.h"
 
 typedef struct {
-    Material material;
-    Surface  surface;
+    Material* material;
+    Surface   surface;
 } Object;
 
 bool Surface_BoundedBy(const Surface* surface, BoundingBox* box);

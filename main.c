@@ -9,38 +9,67 @@
 #include "gfx/color.h"
 #include "gfx/image.h"
 #include "gfx/primitives.h"
+#include "gfx/random.h"
 #include "gfx/renderer.h"
 #include "gfx/utils.h"
 #include "object/object.h"
 #include "object/scene.h"
 
+Material diffuse = {
+    .type = MATERIAL_DIFFUSE,
+    .diffuse = {
+        .albedo = COLOR_NAVY,
+    },
+};
+
+Material metal = {
+    .type = MATERIAL_METAL,
+    .metal = {
+        .albedo = (Color){0.7f, 0.6f, 0.5f},
+        .fuzz = 0.0f,
+    },
+};
+
+Material dielectric = {
+    .type = MATERIAL_DIELECTRIC,
+    .dielectric = {
+        .albedo = COLOR_WHITE,
+        .refactiveIndex = 1.5f,
+    },
+};
+
+Material ground = {
+    .type = MATERIAL_DIFFUSE,
+    .diffuse = {
+        .albedo = COLOR_GREY,
+    },
+};
+
 void FillScene(Scene* scene)
 {
     const float scale        = 8;
     const float groundOffset = 1;
-    Object      obj;
 
-    for (ssize_t xx = -2; xx < 2; xx++) {
-        for (ssize_t yy = 0; yy < 5; yy++) {
-            for (ssize_t zz = -2; zz < 2; zz++) {
-                float rr = randrf(0.0f, 1.0f);
-                if (rr < 1.0f) {
+    Object obj;
+
+    for (ssize_t xx = -5; xx < 5; xx++) {
+        for (ssize_t yy = 0; yy < 10; yy++) {
+            for (ssize_t zz = -5; zz < 5; zz++) {
+                float rr = Random_FloatInRange(0.0f, 1.0f);
+                if (rr < 0.0f) {
                     // lambert
-                    obj.material.type    = MATERIAL_LAMBERT;
-                    obj.material.lambert = Lambert_Make(COLOR_NAVY);
-                    obj.surface.type     = SURFACE_SPHERE;
+                    obj.material       = &diffuse;
+                    obj.surface.type   = SURFACE_SPHERE;
                     obj.surface.sphere = Sphere_Make((Point3){xx * scale, groundOffset + yy * scale, zz * scale}, 1.0f);
-                } else if (rr < 0.67) {
+                } else if (rr < 1.0f) {
                     // metal
-                    obj.material.type  = MATERIAL_METAL;
-                    obj.material.metal = Metal_Make((Color){0.7f, 0.6f, 0.5f}, 0.0f);
+                    obj.material       = &metal;
                     obj.surface.type   = SURFACE_SPHERE;
                     obj.surface.sphere = Sphere_Make((Point3){xx * scale, groundOffset + yy * scale, zz * scale}, 1.0f);
                 } else {
                     // dielectric
-                    obj.material.type       = MATERIAL_DIELECTRIC;
-                    obj.material.dielectric = Dielectric_Make(COLOR_WHITE, 1.5f);
-                    obj.surface.type        = SURFACE_SPHERE;
+                    obj.material       = &dielectric;
+                    obj.surface.type   = SURFACE_SPHERE;
                     obj.surface.sphere = Sphere_Make((Point3){xx * scale, groundOffset + yy * scale, zz * scale}, 1.0f);
                 }
                 Scene_Add_Object(scene, &obj);
@@ -49,10 +78,9 @@ void FillScene(Scene* scene)
     }
 
     // ground
-    obj.material.type    = MATERIAL_LAMBERT;
-    obj.material.lambert = Lambert_Make(COLOR_GREY);
-    obj.surface.type     = SURFACE_SPHERE;
-    obj.surface.sphere   = Sphere_Make((Point3){0, -1000, 0}, 1000.0f);
+    obj.material       = &ground;
+    obj.surface.type   = SURFACE_SPHERE;
+    obj.surface.sphere = Sphere_Make((Point3){0, -1000, 0}, 1000.0f);
     Scene_Add_Object(scene, &obj);
 }
 
@@ -82,7 +110,7 @@ int main(void)
 
     Random_Seed(__builtin_readcyclecounter());
     FillScene(scene);
-    Scene_Prepare(scene, numThreads);
+    Scene_Prepare(scene);
 
     RenderCtx* ctx = RenderCtx_New(scene, img, cam);
 

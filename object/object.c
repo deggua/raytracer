@@ -11,10 +11,6 @@ bool Surface_HitAt(const Surface* surface, const Ray* ray, float tMin, float tMa
             return Sphere_HitAt(&surface->sphere, ray, tMin, tMax, hit);
         } break;
 
-        case SURFACE_MOVING_SPHERE: {
-            return MovingSphere_HitAt(&surface->movingSphere, ray, tMin, tMax, hit);
-        } break;
-
         case SURFACE_TRIANGLE: {
             return false;
         } break;
@@ -30,10 +26,6 @@ bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
             return Sphere_BoundedBy(&surface->sphere, box);
         } break;
 
-        case SURFACE_MOVING_SPHERE: {
-            return MovingSphere_BoundedBy(&surface->movingSphere, box);
-        } break;
-
         case SURFACE_TRIANGLE: {
             return false;
         } break;
@@ -45,8 +37,8 @@ bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
 bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
 {
     switch (material->type) {
-        case MATERIAL_LAMBERT: {
-            return Lambert_Bounce(&material->lambert, rayIn, hit, color, rayOut);
+        case MATERIAL_DIFFUSE: {
+            return Diffuse_Bounce(&material->diffuse, rayIn, hit, color, rayOut);
         } break;
 
         case MATERIAL_METAL: {

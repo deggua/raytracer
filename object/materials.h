@@ -8,14 +8,14 @@
 
 typedef enum
 {
-    MATERIAL_LAMBERT,
+    MATERIAL_DIFFUSE,
     MATERIAL_METAL,
     MATERIAL_DIELECTRIC,
 } MaterialType;
 
 typedef struct {
     Color albedo;
-} Lambert;
+} Diffuse;
 
 typedef struct {
     Color albedo;
@@ -30,14 +30,14 @@ typedef struct {
 typedef struct {
     MaterialType type;
     union {
-        Lambert    lambert;
+        Diffuse    diffuse;
         Metal      metal;
         Dielectric dielectric;
     };
 } Material;
 
-Lambert Lambert_Make(Color albedo);
-bool    Lambert_Bounce(const Lambert* lambert, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);
+Diffuse Diffuse_Make(Color albedo);
+bool    Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);
 
 Metal Metal_Make(Color albedo, float fuzz);
 bool  Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);

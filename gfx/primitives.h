@@ -76,6 +76,10 @@ typedef struct {
     Point3 origin;
     Vec3   dir;
     float  time;
+    struct {
+        Vec3 invDir;
+        Vec3 originDivDir;
+    } cache;
 } Ray;
 
 Ray    Ray_Make(Point3 origin, Vec3 dir, float time);

@@ -1,8 +1,10 @@
 #include "camera.h"
 
 #include <math.h>
+#include <stdlib.h>
 
 #include "gfx/primitives.h"
+#include "gfx/random.h"
 #include "gfx/utils.h"
 
 Camera* Camera_New(
@@ -50,11 +52,11 @@ Ray Camera_GetRay(const Camera* cam, float u, float v)
         .z = 0,
     };
 
-    return (Ray){
-        .origin = vadd(cam->origin, offset),
-        .dir    = vsub(
-            vadd(cam->bottomLeftCorner, vadd(vmul(cam->horizontal, u), vmul(cam->vertical, v))),
-            vadd(cam->origin, offset)),
-        .time = randrf(cam->timeStart, cam->timeEnd),
-    };
+    Point3 rayOrigin = vadd(cam->origin, offset);
+    Vec3   rayDir    = vsub(
+        vadd(cam->bottomLeftCorner, vadd(vmul(cam->horizontal, u), vmul(cam->vertical, v))),
+        vadd(cam->origin, offset));
+    float rayTime = Random_FloatInRange(cam->timeStart, cam->timeEnd);
+
+    return Ray_Make(rayOrigin, rayDir, rayTime);
 }

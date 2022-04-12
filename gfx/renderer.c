@@ -2,7 +2,9 @@
 
 #include <math.h>
 #include <pthread.h>
+#include <stdlib.h>
 
+#include "gfx/random.h"
 #include "gfx/utils.h"
 
 RenderCtx* RenderCtx_New(const Scene* scene, Image* img, const Camera* cam)
@@ -24,7 +26,7 @@ void RenderCtx_Delete(RenderCtx* ctx)
     free(ctx);
 }
 
-static Color RayColor(const Scene* scene, const Ray* ray, size_t depth, const size_t threadNum)
+static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
 {
     // TODO: This can be pulled out into pre-RayColor, along with computing every moving object's position
     const Color skyColor = Scene_Get_SkyColor(scene);
@@ -36,12 +38,12 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth, const si
     Object* objHit = NULL;
     HitInfo hit;
 
-    if (Scene_ClosestHit(scene, ray, &objHit, &hit, threadNum)) {
+    if (Scene_ClosestHitSlow(scene, ray, &objHit, &hit)) {
         Ray   bouncedRay;
         Color bouncedColor;
 
-        if (Material_Bounce(&objHit->material, ray, &hit, &bouncedColor, &bouncedRay)) {
-            return Color_Tint(bouncedColor, RayColor(scene, &bouncedRay, depth - 1, threadNum));
+        if (Material_Bounce(objHit->material, ray, &hit, &bouncedColor, &bouncedRay)) {
+            return Color_Tint(bouncedColor, RayColor(scene, &bouncedRay, depth - 1));
         } else {
             return COLOR_BLACK;
         }
@@ -74,7 +76,6 @@ static void* RenderThread(void* arg)
 
     const size_t numThreads = args->numThreads;
     const size_t lineOffset = args->lineOffset;
-    const size_t threadNum  = lineOffset;
 
     const size_t samplesPerPixel = args->renderParams.samplesPerPixel;
     const size_t maxRayDepth     = args->renderParams.maxRayDepth;
@@ -88,11 +89,11 @@ static void* RenderThread(void* arg)
             Color cumColorPt = {0};
 
             for (size_t samples = 0; samples < samplesPerPixel; samples++) {
-                float horizontalFraction = (xx + randf()) / (float)(imageWidth - 1);
-                float verticalFraction   = (yy + randf()) / (float)(imageHeight - 1);
+                float horizontalFraction = (xx + Random_Float()) / (float)(imageWidth - 1);
+                float verticalFraction   = (yy + Random_Float()) / (float)(imageHeight - 1);
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
-                Color rayColor = RayColor(scene, &ray, maxRayDepth, threadNum);
+                Color rayColor = RayColor(scene, &ray, maxRayDepth);
                 cumColorPt     = vadd(cumColorPt, rayColor);
             }
 
@@ -115,8 +116,8 @@ Image* Render(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, 
 {
     const size_t minStackSize = 16 * 1024 * 1024;
 
-    pthread_t*       threads    = calloc(1, sizeof(*threads));
-    RenderThreadArg* threadArgs = calloc(1, sizeof(*threadArgs));
+    pthread_t*       threads    = calloc(numThreads, sizeof(*threads));
+    RenderThreadArg* threadArgs = calloc(numThreads, sizeof(*threadArgs));
 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -135,6 +136,9 @@ Image* Render(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, 
     for (size_t ii = 0; ii < numThreads; ii++) {
         pthread_join(threads[ii], NULL);
     }
+
+    free(threads);
+    free(threadArgs);
 
 #if 0
     pthread_attr_destroy(&attr);

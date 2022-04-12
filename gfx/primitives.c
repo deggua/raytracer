@@ -3,7 +3,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "utils.h"
+#include "gfx/random.h"
+#include "gfx/utils.h"
 
 Vec3 Vec3_Add(Vec3 v1, Vec3 v2)
 {
@@ -65,9 +66,9 @@ Vec3 Vec3_Cross(Vec3 v1, Vec3 v2)
 Vec3 Vec3_Random(float min, float max)
 {
     return (Vec3){
-        .x = randrf(min, max),
-        .y = randrf(min, max),
-        .z = randrf(min, max),
+        .x = Random_FloatInRange(min, max),
+        .y = Random_FloatInRange(min, max),
+        .z = Random_FloatInRange(min, max),
     };
 }
 
@@ -96,8 +97,8 @@ Vec3 Vec3_RandomInUnitDisc(void)
 
     do {
         vec = (Vec3){
-            .x = randrf(-1, 1),
-            .y = randrf(-1, 1),
+            .x = Random_FloatInRange(-1, 1),
+            .y = Random_FloatInRange(-1, 1),
             .z = 0,
         };
 
@@ -137,6 +138,10 @@ Ray Ray_Make(Point3 origin, Vec3 dir, float time)
         .origin = origin,
         .dir    = dir,
         .time   = time,
+        .cache = {
+            .invDir = {1.0f / dir.x, 1.0f / dir.y, 1.0f / dir.z},
+            .originDivDir = {origin.x / dir.x, origin.y / dir.y, origin.z / dir.z},
+        },
     };
 }
 

@@ -87,39 +87,9 @@ static bool Scene_ClosestHitInArray(const Object objs[], size_t len, const Ray* 
     }
 }
 
-bool Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit, const size_t threadNum)
+bool Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit)
 {
-    Object* ubObjHit = NULL;
-    HitInfo ubHit;
-    if (scene->unboundObjs->length > 0) {
-        Scene_ClosestHitInArray(scene->unboundObjs->at, scene->unboundObjs->length, ray, &ubObjHit, &ubHit);
-    }
-
-    Object* kdObjHit = NULL;
-    HitInfo kdHit;
-    if (scene->kdTree != NULL) {
-        KDTree_HitAt(scene->kdTree, ray, &kdObjHit, &kdHit, threadNum);
-    }
-
-    if (kdObjHit == NULL && ubObjHit == NULL) {
-        return false;
-    } else if (kdObjHit != NULL && ubObjHit == NULL) {
-        *objHit = kdObjHit;
-        *hit    = kdHit;
-    } else if (kdObjHit == NULL && ubObjHit != NULL) {
-        *objHit = ubObjHit;
-        *hit    = ubHit;
-    } else {
-        if (kdHit.tIntersect <= ubHit.tIntersect) {
-            *objHit = kdObjHit;
-            *hit    = kdHit;
-        } else {
-            *objHit = ubObjHit;
-            *hit    = ubHit;
-        }
-    }
-
-    return true;
+    return KDTree_HitAt(scene->kdTree, ray, objHit, hit);
 }
 
 bool Scene_ClosestHitSlow(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit)
@@ -127,7 +97,7 @@ bool Scene_ClosestHitSlow(const Scene* scene, const Ray* ray, Object** objHit, H
     return Scene_ClosestHitInArray(scene->objects->at, scene->objects->length, ray, objHit, hit);
 }
 
-void Scene_Prepare(Scene* scene, size_t numThreads)
+void Scene_Prepare(Scene* scene)
 {
     // only bounded objects (not moving, not infinite) can be stored in the KDTree
     // TODO: can we store infinite objects? does it make sense to?
@@ -147,7 +117,7 @@ void Scene_Prepare(Scene* scene, size_t numThreads)
 
     // now we need to construct the kd tree using the bounding boxes
     if (scene->kdObjects->length > 0) {
-        scene->kdTree = KDTree_New(scene->kdObjects->at, scene->kdObjects->length, numThreads);
+        scene->kdTree = KDTree_New(scene->kdObjects->at, scene->kdObjects->length);
     } else {
         scene->kdTree = NULL;
     }

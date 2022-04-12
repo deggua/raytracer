@@ -5,19 +5,20 @@
 
 #include "gfx/color.h"
 #include "gfx/primitives.h"
+#include "gfx/random.h"
 #include "gfx/utils.h"
 #include "object/hitinfo.h"
 
 /* ---- LAMBERT ---- */
 
-Lambert Lambert_Make(Color albedo)
+Diffuse Diffuse_Make(Color albedo)
 {
-    return (Lambert){
+    return (Diffuse){
         .albedo = albedo,
     };
 }
 
-bool Lambert_Bounce(const Lambert* lambert, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
+bool Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
 {
     (void)rayIn;
 
@@ -28,11 +29,7 @@ bool Lambert_Bounce(const Lambert* lambert, const Ray* rayIn, const HitInfo* hit
     }
 
     *color  = lambert->albedo;
-    *rayOut = (Ray){
-        .origin = hit->position,
-        .dir    = scattered,
-        .time   = rayIn->time,
-    };
+    *rayOut = Ray_Make(hit->position, scattered, rayIn->time);
 
     return true;
 }
@@ -53,14 +50,9 @@ bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Colo
     // may be be backwards, atm we always make the normal point against
     Vec3 reflected = vreflect(vunit(rayIn->dir), hit->unitNormal);
     Vec3 fuzz      = vmul(Vec3_RandomOnUnitSphere(), metal->fuzz);
-    Ray  scattered = {
-         .origin = hit->position,
-         .dir    = vadd(reflected, fuzz),
-         .time   = rayIn->time,
-    };
 
     *color  = metal->albedo;
-    *rayOut = scattered;
+    *rayOut = Ray_Make(hit->position, vadd(reflected, fuzz), rayIn->time);
 
     // NOTE: this calculation requires the normal to point against the ray, and is to catch scattered rays entering the
     // object
@@ -95,17 +87,13 @@ bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* 
 
     bool cannotRefract = refractionRatio * sinTheta > 1.0f;
     Vec3 bounce;
-    if (cannotRefract || reflectance(cosTheta, refractionRatio) > randf()) {
+    if (cannotRefract || reflectance(cosTheta, refractionRatio) > Random_Float()) {
         bounce = vreflect(normRayDir, hit->unitNormal);
     } else {
         bounce = vrefract(normRayDir, hit->unitNormal, refractionRatio);
     }
 
-    *rayOut = (Ray){
-        .origin = hit->position,
-        .dir    = bounce,
-        .time   = rayIn->time,
-    };
+    *rayOut = Ray_Make(hit->position, bounce, rayIn->time);
 
     return true;
 }
