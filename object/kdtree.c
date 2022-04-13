@@ -9,25 +9,22 @@
 #include "gfx/utils.h"
 #include "object/object.h"
 
-#define LEAF_MIN_LOAD 50
-const float TraversalCost = 1.0f;
-const float IntersectCost = 6.0f;
+static const size_t MinLeafLoad   = 4;
+static const size_t NumBuckets    = 64;
+static const float  TraversalCost = 1.0f;
+static const float  IntersectCost = 1.0f;
 
-// TODO: refine traversal code to also check whether the plane intersection ray(t).e[axis] is within the bounds
-// of the current voxel's region (have to pass + split the box as you move down the tree), imagine a ray
-// passing through box, and hitting the inf plane outside of the current voxels box, this gives an early stopping
-// condition where you only need to check the side the ray is on in the intersect case
 // TODO: benchmark code with and without pointer indirection to object array (store Object copies vs copies of ptrs to
 // Objects)
 
 // TODO: track avg intersection tests / ray to determine what kind of improvements modification to the tree structure
 // provide
-// TODO: consider passing the tMin/tMax through the traversal code as it's refined so that HitAt can determine
-// whether it needs to consider certain intersections
 
 // TODO: consider adding max depth to tree
 // TODO: consider adding weight to empty voxel (b_e)
 // TODO: consider allowing bad splits up to some threshold (apparently bad splits may yield good splits later)
+// TODO: consider adding priority to right nodes in the tree in the SAH since right child nodes should be cheaper to
+// traverse
 
 typedef enum
 {
@@ -107,7 +104,6 @@ static ssize_t BuildParentNode(
     if (parentIndex < 0) {
         goto error_parent;
     }
-    printf("Created parent node at index %zd\n", parentIndex);
 
     // construct right node after parent, causes the next node to be at the index immediately after
     // parent's index (ie if you have the KDNode* to parent, parent + 1 == right child)
@@ -115,13 +111,11 @@ static ssize_t BuildParentNode(
     if (rightNode < 0) {
         goto error_gteq;
     }
-    printf("Created right child node at index %zd\n", rightNode);
 
     ssize_t leftNode = BuildNode(tree, leftVec, leftContainer);
     if (leftNode < 0) {
         goto error_lt;
     }
-    printf("Created left child node at index %zd\n", leftNode);
 
     KDNode* parent          = &tree->nodes->at[parentIndex];
     parent->type            = (KDNodeType)axis;
@@ -154,8 +148,6 @@ static ssize_t BuildLeafNode(KDTree* tree, const Vector(KDBBPtr) * vec)
     }
 
     node->leaf.objIndex = firstObjIndex;
-
-    printf("Created leaf node at index %zd with %u objects\n", nodeIndex, node->leaf.len);
 
     return nodeIndex;
 }
@@ -239,7 +231,7 @@ static float ComputeSplitSAH(const Vector(KDBBPtr) * vec, float split, VecAxis a
 
 static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox container)
 {
-    if (vec->length <= LEAF_MIN_LOAD) {
+    if (vec->length <= MinLeafLoad) {
         return BuildLeafNode(tree, vec);
     }
 
@@ -247,12 +239,8 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
     VecAxis bestAxis  = VEC_X;
     float   bestSAH   = INF;
 
-    // determine best split location via SAH
-    // TODO: use buckets, this is infeasible for large scenes
-    const size_t numBuckets = 64;
-
     for (VecAxis axis = VEC_X; axis < VEC_LAST; axis++) {
-        float stride = (container.max.e[axis] - container.min.e[axis]) / numBuckets;
+        float stride = (container.max.e[axis] - container.min.e[axis]) / NumBuckets;
         for (float bucket = container.min.e[axis] + stride; bucket <= container.max.e[axis] - stride;
              bucket += stride) {
             float split = bucket;
@@ -381,7 +369,22 @@ void KDTree_Delete(KDTree* tree)
     free(tree);
 }
 
-static bool CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit);
+static const char* AxisName(VecAxis axis)
+{
+    switch (axis) {
+        case VEC_X:
+            return "x";
+        case VEC_Y:
+            return "y";
+        case VEC_Z:
+            return "z";
+        default:
+            return "?";
+    }
+}
+
+static bool
+CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit, float tMax);
 
 static bool CheckHitInternalNode(
     const KDTree*     tree,
@@ -390,32 +393,28 @@ static bool CheckHitInternalNode(
     Object**          objHit,
     HitInfo*          hit,
     VecAxis           axis,
-    BoundingBox       bounds);
+    float             tMax);
 
-static bool CheckHitNextNode(
-    const KDTree* tree,
-    const KDNode* node,
-    const Ray*    ray,
-    Object**      objHit,
-    HitInfo*      hit,
-    BoundingBox   bounds)
+static bool
+CheckHitNextNode(const KDTree* tree, const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, float tMax)
 {
     switch (node->type) {
         case KD_INTERNAL_X:
         case KD_INTERNAL_Y:
         case KD_INTERNAL_Z: {
-            return CheckHitInternalNode(tree, &node->inode, ray, objHit, hit, (VecAxis)node->type, bounds);
+            return CheckHitInternalNode(tree, &node->inode, ray, objHit, hit, (VecAxis)node->type, tMax);
         }
 
         case KD_LEAF: {
-            return CheckHitLeafNode(tree, &node->leaf, ray, objHit, hit);
+            return CheckHitLeafNode(tree, &node->leaf, ray, objHit, hit, tMax);
         } break;
     };
 
     return false;
 }
 
-static bool CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit)
+static bool
+CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit, float tMax)
 {
     HitInfo       hitClosest = {.tIntersect = INF};
     const Object* objClosest = NULL;
@@ -424,7 +423,7 @@ static bool CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* 
         HitInfo       hitCur;
         const Object* objCur = tree->objPtrs->at[leaf->objIndex + ii];
 
-        if (Surface_HitAt(&objCur->surface, ray, 0.001f, INF, &hitCur)) {
+        if (Surface_HitAt(&objCur->surface, ray, 0.001f, tMax, &hitCur)) {
             if (hitCur.tIntersect < hitClosest.tIntersect) {
                 objClosest = objCur;
                 hitClosest = hitCur;
@@ -441,20 +440,6 @@ static bool CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* 
     return false;
 }
 
-static const char* AxisName(VecAxis axis)
-{
-    switch (axis) {
-        case VEC_X:
-            return "x";
-        case VEC_Y:
-            return "y";
-        case VEC_Z:
-            return "z";
-        default:
-            return "?";
-    }
-}
-
 // TODO: we probably want to pass KDNode instead of KDInteral since we have to type pun to get to the right node,
 // which might be UB
 static bool CheckHitInternalNode(
@@ -464,12 +449,11 @@ static bool CheckHitInternalNode(
     Object**          objHit,
     HitInfo*          hit,
     VecAxis           axis,
-    BoundingBox       bounds)
+    float             tMax)
 {
-    const float           split            = node->split;
-    const float           epsilonParallel  = 0.0001f;
-    const float           epsilonIntersect = 0.001f;
-    const BoundingBoxPair childBounds      = SplitBox(bounds, split, axis);
+    const float split            = node->split;
+    const float epsilonParallel  = 0.0001f;
+    const float epsilonIntersect = 0.001f;
 
     const KDNode* left  = &tree->nodes->at[node->leftIndex];
     const KDNode* right = &((KDNode*)node)[1];
@@ -478,26 +462,27 @@ static bool CheckHitInternalNode(
         // ray parallel to plane, check the origin to see which side ray falls on
         // TODO: is this correct when the origin is in the plane?
         if (ray->origin.e[axis] >= split) {
-            return CheckHitNextNode(tree, right, ray, objHit, hit, childBounds.right);
+            return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
         } else {
-            return CheckHitNextNode(tree, left, ray, objHit, hit, childBounds.left);
+            return CheckHitNextNode(tree, left, ray, objHit, hit, tMax);
         }
     }
 
     float tIntersect = split * ray->cache.invDir.e[axis] - ray->cache.originDivDir.e[axis];
+    float tMaxNew    = minf(tMax, tIntersect);
     if (tIntersect < epsilonIntersect) {
         // ray doesn't intersect plane at valid t, check the origin to see which side ray falls on
         if (likely(ray->origin.e[axis] > split)) {
-            return CheckHitNextNode(tree, right, ray, objHit, hit, childBounds.right);
+            return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
         } else if (likely(ray->origin.e[axis] < split)) {
-            return CheckHitNextNode(tree, left, ray, objHit, hit, childBounds.left);
+            return CheckHitNextNode(tree, left, ray, objHit, hit, tMax);
         } else {
             // ray intersects the plane at the origin, eval the ray later and see what side it's on
             float rayAt = Ray_At(ray, 1.0f).e[axis];
             if (rayAt >= split) {
-                return CheckHitNextNode(tree, right, ray, objHit, hit, childBounds.right);
+                return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
             } else {
-                return CheckHitNextNode(tree, left, ray, objHit, hit, childBounds.left);
+                return CheckHitNextNode(tree, left, ray, objHit, hit, tMax);
             }
         }
     } else {
@@ -510,48 +495,24 @@ static bool CheckHitInternalNode(
         if (ray->origin.e[axis] >= split) {
             originSide   = right;
             oppositeSide = left;
-            if (CheckHitNextNode(tree, originSide, ray, objHit, hit, childBounds.right)
-                && hit->position.e[axis] >= split) {
+            if (CheckHitNextNode(tree, originSide, ray, objHit, hit, tMaxNew)) {
                 // the object hit needs to lie on the right side of the plane
                 return true;
+            } else if (tMaxNew == tIntersect) {
+                return CheckHitNextNode(tree, oppositeSide, ray, objHit, hit, tMax);
             } else {
-                Point3  planeIntersect = Ray_At(ray, tIntersect);
-                VecAxis otherAxis1     = (axis + 1) % VEC_LAST;
-                VecAxis otherAxis2     = (axis + 2) % VEC_LAST;
-
-                if ((planeIntersect.e[otherAxis1] <= bounds.max.e[otherAxis1])
-                    && (planeIntersect.e[otherAxis1] >= bounds.min.e[otherAxis1])
-                    && (planeIntersect.e[otherAxis2] <= bounds.max.e[otherAxis2])
-                    && (planeIntersect.e[otherAxis2] >= bounds.min.e[otherAxis2])) {
-                    // only check the opposite side if the ray-plane intersection lies inside the bounds of the current
-                    // node's voxel
-                    return CheckHitNextNode(tree, oppositeSide, ray, objHit, hit, childBounds.left);
-                } else {
-                    return false;
-                }
+                return false;
             }
         } else {
             originSide   = left;
             oppositeSide = right;
-            if (CheckHitNextNode(tree, originSide, ray, objHit, hit, childBounds.left)
-                && hit->position.e[axis] < split) {
+            if (CheckHitNextNode(tree, originSide, ray, objHit, hit, tMaxNew)) {
                 // the object hit needs to lie on the left side of the plane
                 return true;
+            } else if (tMaxNew == tIntersect) {
+                return CheckHitNextNode(tree, oppositeSide, ray, objHit, hit, tMax);
             } else {
-                Point3  planeIntersect = Ray_At(ray, tIntersect);
-                VecAxis otherAxis1     = (axis + 1) % VEC_LAST;
-                VecAxis otherAxis2     = (axis + 2) % VEC_LAST;
-
-                if ((planeIntersect.e[otherAxis1] <= bounds.max.e[otherAxis1])
-                    && (planeIntersect.e[otherAxis1] >= bounds.min.e[otherAxis1])
-                    && (planeIntersect.e[otherAxis2] <= bounds.max.e[otherAxis2])
-                    && (planeIntersect.e[otherAxis2] >= bounds.min.e[otherAxis2])) {
-                    // only check the opposite side if the ray-plane intersection lies inside the bounds of the current
-                    // node's voxel
-                    return CheckHitNextNode(tree, oppositeSide, ray, objHit, hit, childBounds.right);
-                } else {
-                    return false;
-                }
+                return false;
             }
         }
     }
@@ -561,5 +522,5 @@ bool KDTree_HitAt(const KDTree* tree, const Ray* ray, Object** objHit, HitInfo* 
 {
     // then we traverse the tree and check for collisions
     KDNode* root = &tree->nodes->at[tree->rootIndex];
-    return CheckHitNextNode(tree, root, ray, objHit, hit, tree->worldBox);
+    return CheckHitNextNode(tree, root, ray, objHit, hit, INF);
 }

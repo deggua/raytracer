@@ -106,7 +106,7 @@ static void* RenderThread(void* arg)
             Image_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
         }
         // TODO: figure out a better way to print progress
-        printf("Finished line %03zd of %zu\n", yy, imageHeight);
+        printf("\rFinished line %03zd of %zu", yy, imageHeight);
     }
 
     return NULL;

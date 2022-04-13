@@ -35,7 +35,7 @@ Material metal = {
 Material glass = {
     .type = MATERIAL_DIELECTRIC,
     .dielectric = {
-        .albedo = COLOR_GREEN,
+        .albedo = COLOR_WHITE,
         .refactiveIndex = 1.5f,
     },
 };
@@ -66,14 +66,14 @@ static void InterruptHandler(int sig)
 static void FillScene(Scene* scene)
 {
     // mesh
-#if 1
+#if 0
     FILE* fd   = fopen("assets/teapot.obj", "r");
     Mesh* mesh = Mesh_New((Point3){0, 1, 0}, 2.5f, &diffuse);
 #endif
 
-#if 0
+#if 1
     FILE* fd   = fopen("assets/dragon.obj", "r");
-    Mesh* mesh = Mesh_New((Point3){0, 6, 0}, 1.0f / 10.0f, &diffuse);
+    Mesh* mesh = Mesh_New((Point3){0, 7, 0}, 1.0f / 10.0f, &glass);
 #endif
 
     Mesh_LoadOBJ(mesh, fd);
@@ -91,19 +91,19 @@ static void FillScene(Scene* scene)
 int main(void)
 {
     const Point3 lookFrom    = (Point3){20, 12, 20};
-    const Point3 lookAt      = (Point3){3, 3, 3};
+    const Point3 lookAt      = (Point3){0, 4, 0};
     const Vec3   vup         = (Vec3){0, 1, 0};
     const float  focusDist   = 10.0f;
     const float  aperature   = 0.0f;
-    const float  aspectRatio = 1.0f / 1.0f;
+    const float  aspectRatio = 16.0f / 9.0f;
     const float  vFov        = 40.0f;
     const float  timeStart   = 0.0f;
     const float  timeEnd     = 1.0f;
 
-    const size_t imageHeight = 512;
+    const size_t imageHeight = 720;
     const size_t imageWidth  = imageHeight * aspectRatio;
 
-    const size_t numThreads = 1;
+    const size_t numThreads = 4;
 
     struct timespec specStart;
     struct timespec specEnd;
@@ -131,7 +131,7 @@ int main(void)
         clock_gettime(CLOCK_MONOTONIC, &specStart);
         // TODO: does it make sense for Render to create the image?
         // TODO: pass in worker thread stack size? or could we compute the required stack size from the ray depth?
-        Render(ctx, 16, 8, numThreads);
+        Render(ctx, 64, 32, numThreads);
 
         clock_gettime(CLOCK_MONOTONIC, &specEnd);
         float timeDeltaSec  = (float)(specEnd.tv_sec - specStart.tv_sec);
