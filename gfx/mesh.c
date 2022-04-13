@@ -4,10 +4,10 @@
 #include "object/scene.h"
 #include "object/surfaces.h"
 
-#define REQ_PARAM_type Triangle
+#define TEMPLATE_TYPE Triangle
 #include "common/vector.h"
 
-#define REQ_PARAM_type Point3
+#define TEMPLATE_TYPE Point3
 #include "common/vector.h"
 
 typedef struct Mesh {

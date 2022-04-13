@@ -1,160 +1,164 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#if !defined(_VECTOR_INCLUDED)
-#    define _VECTOR_INCLUDED
-#    if !defined(_CONCAT2)
-#        define _CONCAT2_(a, b) a##_##b
-#        define _CONCAT2(a, b)  _CONCAT2_(a, b)
+#if !defined(VECTOR_INCLUDED)
+#    define VECTOR_INCLUDED
+#    if !defined(CONCAT2)
+#        define CONCAT2_(a, b) a##_##b
+#        define CONCAT2(a, b)  CONCAT2_(a, b)
 #    endif
 
-#    define _Vector_GrowTo(T) _CONCAT2(_Vector_GrowTo, T)
+#    define Vector_GrowTo(T) CONCAT2(Vector_GrowTo, T)
 
 /* --------- PUBLIC API ---------- */
 
 // Include Parameters:
 //  The type of the elements the vector should contain:
-//      #define REQ_PARAM_type                 T
+//      #define TEMPLATE_TYPE                 T
 //
 //  The initial length the vector should allocate to:
 //      Default: 16 elements
-//      #define OPT_PARAM_init_capacity         16
+//      #define TEMPLATE_INIT_CAPACITY         16
 //
 //  The growth function the vector should use when it needs to expand:
 //      Default: 2 * old_size
-//      #define OPT_PARAM_grow(old_size)        (2 * old_size)
+//      #define TEMPLATE_GROW(old_size)        (2 * old_size)
 //
 //  An allocator function (obeying ISO C's malloc/calloc semantics):
 //      Default: malloc
-//      #define OPT_PARAM_malloc(bytes)        malloc(bytes)
+//      #define TEMPLATE_MALLOC(bytes)        malloc(bytes)
 //
 //  A reallocator function (obeying ISO C's realloc semantics):
 //      Default: realloc
-//      #define OPT_PARAM_realloc(ptr, bytes)  realloc(ptr, bytes)
+//      #define TEMPLATE_REALLOC(ptr, bytes)  realloc(ptr, bytes)
 //
 //  A free function (obeying ISO C's free semantics):
 //      Default: free
-//      #define OPT_PARAM_free(ptr)            free(ptr)
+//      #define TEMPLATE_FREE(ptr)            free(ptr)
 
 // Functions:
 //  The vector type
-#    define Vector(T) _CONCAT2(Vector, T)
+#    define Vector(T) CONCAT2(Vector, T)
 
 // Create a new vector
 //  Vector(T)* Vector_New(T)()
-#    define Vector_New(T) _CONCAT2(Vector_New, T)
+#    define Vector_New(T) CONCAT2(Vector_New, T)
 
 // Delete a vector
 //  void Vector_Delete(T)(Vector(T)* vec)
-#    define Vector_Delete(T) _CONCAT2(Vector_Delete, T)
+#    define Vector_Delete(T) CONCAT2(Vector_Delete, T)
 
 // Ensure a vector is preallocated to some length
 //  Returns true if operation succeeded, false otherwise
 //  bool Vector_Reserve(T)(Vector(T)* vec, size_t length)
-#    define Vector_Reserve(T) _CONCAT2(Vector_Reserve, T)
+#    define Vector_Reserve(T) CONCAT2(Vector_Reserve, T)
 
 // Copy an element to the end of the vector
 //  Returns true if operation succeeded, false otherwise
 //  bool Vector_Push(T)(Vector(T)* vec, const T* element)
-#    define Vector_Push(T) _CONCAT2(Vector_Push, T)
+#    define Vector_Push(T) CONCAT2(Vector_Push, T)
 
 // Copy multiple elements to the end of the vector in order
 //  Returns true if operation succeeded, false otherwise
 //  bool Vector_PushMany(T)(Vector(T)* vec, const T* element, size_t length)
-#    define Vector_PushMany(T) _CONCAT2(Vector_PushMany, T)
+#    define Vector_PushMany(T) CONCAT2(Vector_PushMany, T)
 
 // Copy an element to a particular index in the vector
 //  The index specified must be a valid index in the vector, or just past the last element in the vector
 //  Returns true if operation succeeded, false otherwise
 //  bool Vector_Insert(T)(Vector(T)* vec, size_t index, const T* element)
-#    define Vector_Insert(T) _CONCAT2(Vector_Insert, T)
+#    define Vector_Insert(T) CONCAT2(Vector_Insert, T)
 
 // Copy multiple elements into the vector, starting at a particular index in the vector
 //  The index specified must be a valid index in the vector, or just past the last element in the vector
 //  Returns true if operation succeeded, false otherwise
 //  bool Vector_Insert(T)(Vector(T)* vec, size_t index, const T* element, size_t length)
-#    define Vector_InsertMany(T) _CONCAT2(Vector_InsertMany, T)
+#    define Vector_InsertMany(T) CONCAT2(Vector_InsertMany, T)
 
 // Remove an element from the vector
 //  The index specified must be a valid index in the vector
 //  void Vector_Remove(T)(Vector(T)* vec, size_t index)
-#    define Vector_Remove(T) _CONCAT2(Vector_Remove, T)
+#    define Vector_Remove(T) CONCAT2(Vector_Remove, T)
 
 // Remove a range of elements from the vector
 //  The all indexes in the range specified must be a valid index in the vector
 //  The range removed is [start, stop) (not inclusive of the final index)
 //  void Vector_RemoveRange(T)(Vector(T)* vec, size_t start, size_t stop)
-#    define Vector_RemoveRange(T) _CONCAT2(Vector_RemoveRange, T)
+#    define Vector_RemoveRange(T) CONCAT2(Vector_RemoveRange, T)
 
 // Shrink the vector's allocated memory to fit the number of elements in the vector
 //  Returns true if operation succeeded, false otherwise
 //  bool Vector_Shrink(T)(Vector(T)* vec)
-#    define Vector_Shrink(T) _CONCAT2(Vector_Shrink, T)
+#    define Vector_Shrink(T) CONCAT2(Vector_Shrink, T)
 
 // Empties a vector and frees the underlying buffer
 //  Returns true if operation succeeded, false otherwise
 //  bool Vector_Clear(T)(Vector(T)* vec)
-#    define Vector_Clear(T) _CONCAT2(Vector_Clear, T)
+#    define Vector_Clear(T) CONCAT2(Vector_Clear, T)
 
 // Pops an element off the end of the vector
 //  bool Vector_Pop(T)(Vector(T)* vec, T* dest)
-#    define Vector_Pop(T) _CONCAT2(Vector_Pop, T)
+#    define Vector_Pop(T) CONCAT2(Vector_Pop, T)
 
 // Pops multiple elements off the end of the vector
 // size_t Vector_PopMany(T)(Vector(T)* vec, T[] dest, size_t length)
-#    define Vector_PopMany(T) _CONCAT2(Vector_PopMany, T)
+#    define Vector_PopMany(T) CONCAT2(Vector_PopMany, T)
+
+// Allocates space at the end of the vector without putting any data at that element,
+// and returns the index that element was placed at. Returns -1 if the vector failed to realloc
+#    define Vector_PushEmpty(T) CONCAT2(Vector_PushEmpty, T)
 
 /* --------- END PUBLIC API ---------- */
 #endif
 
-#if !defined(REQ_PARAM_type)
+#if !defined(TEMPLATE_TYPE)
 #    error "Vector requires a type specialization"
 #endif
 
-#if !defined(OPT_PARAM_init_capacity)
-#    define OPT_PARAM_init_capacity 16
+#if !defined(TEMPLATE_INIT_CAPACITY)
+#    define TEMPLATE_INIT_CAPACITY 16
 #endif
 
-#if !defined(OPT_PARAM_grow)
-#    define OPT_PARAM_grow(old_size) (2 * old_size)
+#if !defined(TEMPLATE_GROW)
+#    define TEMPLATE_GROW(old_size) (2 * old_size)
 #endif
 
-#if !defined(OPT_PARAM_malloc)
-#    if !defined(_DEFAULT_ALLOCATOR)
-#        define _DEFAULT_ALLOCATOR
+#if !defined(TEMPLATE_MALLOC)
+#    if !defined(DEFAULT_ALLOCATOR)
+#        define DEFAULT_ALLOCATOR
 #    endif
 
-#    define OPT_PARAM_malloc(bytes) calloc(1, bytes)
+#    define TEMPLATE_MALLOC(bytes) calloc(1, bytes)
 #endif
 
-#if !defined(OPT_PARAM_realloc)
-#    if !defined(_DEFAULT_ALLOCATOR)
+#if !defined(TEMPLATE_REALLOC)
+#    if !defined(DEFAULT_ALLOCATOR)
 #        warning "Non-default malloc used with default realloc"
 #    endif
 
-#    define OPT_PARAM_realloc realloc
+#    define TEMPLATE_REALLOC realloc
 #endif
 
-#if !defined(OPT_PARAM_free)
-#    if !defined(_DEFAULT_ALLOCATOR)
+#if !defined(TEMPLATE_FREE)
+#    if !defined(DEFAULT_ALLOCATOR)
 #        warning "Non-default malloc used with default free"
 #    endif
 
-#    define OPT_PARAM_free free
+#    define TEMPLATE_FREE free
 #endif
 
-#if defined(_DEFAULT_ALLOCATOR)
+#if defined(DEFAULT_ALLOCATOR)
 #    include <stdlib.h>
 #endif
 
 // useful macros internally
 
-#define T                    REQ_PARAM_type
-#define vector_init_capacity OPT_PARAM_init_capacity
-#define vector_grow          OPT_PARAM_grow
-#define malloc               OPT_PARAM_malloc
-#define realloc              OPT_PARAM_realloc
-#define free                 OPT_PARAM_free
+#define T                    TEMPLATE_TYPE
+#define vector_init_capacity TEMPLATE_INIT_CAPACITY
+#define vector_grow          TEMPLATE_GROW
+#define malloc               TEMPLATE_MALLOC
+#define realloc              TEMPLATE_REALLOC
+#define free                 TEMPLATE_FREE
 
 #ifndef max
 #    define DEFD_MAX
@@ -199,7 +203,7 @@ static void Vector_Delete(T)(Vector(T) * vec)
     free(vec);
 }
 
-static bool _Vector_GrowTo(T)(Vector(T) * vec, size_t length)
+static bool Vector_GrowTo(T)(Vector(T) * vec, size_t length)
 {
     T* newBuffer = realloc(vec->at, sizeof(T) * length);
     if (newBuffer == NULL) {
@@ -218,7 +222,7 @@ static bool Vector_Reserve(T)(Vector(T) * vec, size_t length)
         return true;
     }
 
-    return _Vector_GrowTo(T)(vec, length);
+    return Vector_GrowTo(T)(vec, length);
 }
 
 static bool Vector_PushMany(T)(Vector(T) * vec, const T elems[], size_t length)
@@ -232,7 +236,7 @@ static bool Vector_PushMany(T)(Vector(T) * vec, const T elems[], size_t length)
             newCapacity = max(vec->length + length, vector_grow(vec->capacity));
         }
 
-        if (!_Vector_GrowTo(T)(vec, newCapacity)) {
+        if (!Vector_GrowTo(T)(vec, newCapacity)) {
             return false;
         }
     }
@@ -248,6 +252,16 @@ static bool Vector_PushMany(T)(Vector(T) * vec, const T elems[], size_t length)
 static bool Vector_Push(T)(Vector(T) * vec, const T* elem)
 {
     return Vector_PushMany(T)(vec, elem, 1);
+}
+
+static ssize_t Vector_PushEmpty(T)(Vector(T) * vec)
+{
+    if (Vector_Reserve(T)(vec, vec->length + 1)) {
+        vec->length += 1;
+        return vec->length - 1;
+    } else {
+        return -1;
+    }
 }
 
 static bool Vector_InsertMany(T)(Vector(T) * vec, size_t index, const T elems[], size_t length)
@@ -272,7 +286,7 @@ static bool Vector_InsertMany(T)(Vector(T) * vec, size_t index, const T elems[],
             newCapacity = max(vec->length + length, vector_grow(vec->capacity));
         }
 
-        if (!_Vector_GrowTo(T)(vec, newCapacity)) {
+        if (!Vector_GrowTo(T)(vec, newCapacity)) {
             return false;
         }
     }
@@ -370,11 +384,11 @@ static void Vector_Remove(T)(Vector(T) * vec, size_t index)
 #    undef DEFD_MAX
 #endif
 
-#undef _DEFAULT_ALLOCATOR
+#undef DEFAULT_ALLOCATOR
 
-#undef REQ_PARAM_type
-#undef OPT_PARAM_init_capacity
-#undef OPT_PARAM_grow
-#undef OPT_PARAM_malloc
-#undef OPT_PARAM_realloc
-#undef OPT_PARAM_free
+#undef TEMPLATE_TYPE
+#undef TEMPLATE_INIT_CAPACITY
+#undef TEMPLATE_GROW
+#undef TEMPLATE_MALLOC
+#undef TEMPLATE_REALLOC
+#undef TEMPLATE_FREE

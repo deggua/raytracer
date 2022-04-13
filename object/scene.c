@@ -9,7 +9,7 @@
 #include "object/kdtree.h"
 #include "object/object.h"
 
-#define REQ_PARAM_type Object
+#define TEMPLATE_TYPE Object
 #include "common/vector.h"
 
 typedef struct Scene {

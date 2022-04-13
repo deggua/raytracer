@@ -66,8 +66,15 @@ static void InterruptHandler(int sig)
 static void FillScene(Scene* scene)
 {
     // mesh
+#if 1
     FILE* fd   = fopen("assets/teapot.obj", "r");
     Mesh* mesh = Mesh_New((Point3){0, 1, 0}, 2.5f, &diffuse);
+#endif
+
+#if 0
+    FILE* fd   = fopen("assets/dragon.obj", "r");
+    Mesh* mesh = Mesh_New((Point3){0, 6, 0}, 1.0f / 10.0f, &diffuse);
+#endif
 
     Mesh_LoadOBJ(mesh, fd);
     Mesh_AddToScene(mesh, scene);
@@ -96,7 +103,7 @@ int main(void)
     const size_t imageHeight = 512;
     const size_t imageWidth  = imageHeight * aspectRatio;
 
-    const size_t numThreads = 4;
+    const size_t numThreads = 1;
 
     struct timespec specStart;
     struct timespec specEnd;
