@@ -9,22 +9,51 @@
 #include "gfx/utils.h"
 #include "object/object.h"
 
-static const size_t MinLeafLoad   = 4;
-static const size_t NumBuckets    = 64;
-static const float  TraversalCost = 1.0f;
-static const float  IntersectCost = 1.0f;
+/* ---  KD-Tree Metaparameters --- */
+// Threshold for which a leaf node will be automatically created. Lower values result in greater tree depth and sparser
+// leaves, which can be better or worse depending on scene complexity
+// Range: [2, INF)
+static const size_t MinLeafLoad = 4;
 
+// TODO:
+// Function for determining the max tree depth
+// #define MaxTreeDepth(nprims) ((size_t)(8 + 1.3f * log2f(nprims)))
+
+// The number of positions to compute the SAH along each axis. Large values result in a finer resolution SAH search
+// which can yield a better tree at the cost of time to construct the tree.
+// Range: [2, INF)
+static const size_t NumBuckets = 64;
+
+// The cost of a triangle intersection. Should be > 1, and is only relevant in relation to the TraversalCost
+// Range: (1, INF)
+static const float IntersectCost = 1.0f;
+
+// A bonus weight towards putting objects in the right side of the tree. Because the right child is directly adjacent to
+// its parent, the cost of right traversal is less because it should be in cache
+// Range: [0.9, 1]
+static const float RightNodeRelativeCost = 0.95f;
+
+// A bonus weight towards having empty tree regions. Helps with early termination during traversal.
+// Range: [0, 1]
+static const float EmptyBonus = 0.5f;
+
+// These shouldn't be tuned directly, instead change their relative parameter above
+static const float TraversalCost        = 1.0f;
+static const float LeftNodeRelativeCost = 1.0f + (1.0f - RightNodeRelativeCost);
+
+/* --- TODOs --- */
+// Structural changes:
 // TODO: benchmark code with and without pointer indirection to object array (store Object copies vs copies of ptrs to
 // Objects)
+// NOTE: seems like the memory overhead for having many copies of the same primitive may be prohibitive for large scenes
+// even if there is a performance improvement
 
-// TODO: track avg intersection tests / ray to determine what kind of improvements modification to the tree structure
-// provide
+// Debugging modifications:
+// TODO: track avg intersection tests / ray to better determine what metaparmeter changes do to the traversal provide
 
-// TODO: consider adding max depth to tree
-// TODO: consider adding weight to empty voxel (b_e)
+// Construction modifications:
+// TODO: consider adding max depth to tree (should be a function of the number of primitives in the scene)
 // TODO: consider allowing bad splits up to some threshold (apparently bad splits may yield good splits later)
-// TODO: consider adding priority to right nodes in the tree in the SAH since right child nodes should be cheaper to
-// traverse
 
 typedef enum
 {
@@ -225,8 +254,11 @@ static float ComputeSplitSAH(const Vector(KDBBPtr) * vec, float split, VecAxis a
         }
     }
 
-    return TraversalCost + (SurfaceArea(boxPair.left) / parentSA) * leftPrims * IntersectCost
-           + (SurfaceArea(boxPair.right) / parentSA) * rightPrims * IntersectCost;
+    float leftCost   = (SurfaceArea(boxPair.left) / parentSA) * leftPrims * IntersectCost * LeftNodeRelativeCost;
+    float rightCost  = (SurfaceArea(boxPair.right) / parentSA) * rightPrims * IntersectCost * RightNodeRelativeCost;
+    float emptyBonus = (leftPrims == 0 || rightPrims == 0) ? EmptyBonus : 0;
+
+    return TraversalCost + (1.0f - emptyBonus) * (leftCost + rightCost);
 }
 
 static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox container)
@@ -301,7 +333,10 @@ static ssize_t BuildKDTree(KDTree* tree, const Vector(KDBB) * boxes)
         Vector_Push(KDBBPtr)(vec, &ptr);
     }
 
-    return BuildNode(tree, vec, tree->worldBox);
+    ssize_t rootIndex = BuildNode(tree, vec, tree->worldBox);
+
+    Vector_Delete(KDBBPtr)(vec);
+    return rootIndex;
 }
 
 static Vector(KDBB) * CreateKDBBs(const Object objs[], size_t len)

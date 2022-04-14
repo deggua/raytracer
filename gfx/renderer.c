@@ -7,7 +7,7 @@
 #include "gfx/random.h"
 #include "gfx/utils.h"
 
-RenderCtx* RenderCtx_New(const Scene* scene, Image* img, const Camera* cam)
+RenderCtx* Render_New(const Scene* scene, Image* img, const Camera* cam)
 {
     RenderCtx* ctx = malloc(sizeof(*ctx));
     if (ctx == NULL) {
@@ -21,7 +21,7 @@ RenderCtx* RenderCtx_New(const Scene* scene, Image* img, const Camera* cam)
     return ctx;
 }
 
-void RenderCtx_Delete(RenderCtx* ctx)
+void Render_Delete(RenderCtx* ctx)
 {
     free(ctx);
 }
@@ -112,7 +112,7 @@ static void* RenderThread(void* arg)
     return NULL;
 }
 
-Image* Render(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads)
+Image* Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads)
 {
     const size_t minStackSize = 16 * 1024 * 1024;
 
@@ -136,6 +136,8 @@ Image* Render(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, 
     for (size_t ii = 0; ii < numThreads; ii++) {
         pthread_join(threads[ii], NULL);
     }
+
+    printf("\nFinished rendering\n");
 
     free(threads);
     free(threadArgs);

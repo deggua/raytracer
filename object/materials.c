@@ -9,7 +9,7 @@
 #include "gfx/utils.h"
 #include "object/hitinfo.h"
 
-/* ---- LAMBERT ---- */
+/* ---- DIFFUSE ---- */
 
 Diffuse Diffuse_Make(Color albedo)
 {

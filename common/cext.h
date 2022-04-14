@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
+#include <time.h>
 
 // macro helpers
 #define __static_assert_decl(const_expr) static_assert(const_expr, #const_expr)
@@ -77,3 +78,20 @@
 #ifndef NAN
 #    define NAN (__builtin_nanf(""))
 #endif
+
+#define TIMEIT(desc, statement)                                                    \
+    do {                                                                           \
+        printf("Starting: " desc "\n");                                            \
+        struct timespec specStart;                                                 \
+        struct timespec specEnd;                                                   \
+        clock_gettime(CLOCK_MONOTONIC, &specStart);                                \
+                                                                                   \
+        statement;                                                                 \
+                                                                                   \
+        clock_gettime(CLOCK_MONOTONIC, &specEnd);                                  \
+        float timeDeltaSec  = (float)(specEnd.tv_sec - specStart.tv_sec);          \
+        float timeDeltaFrac = (float)(specEnd.tv_nsec - specStart.tv_nsec) * 1e-9; \
+        float timeDelta     = timeDeltaSec + timeDeltaFrac;                        \
+                                                                                   \
+        printf(desc " took %.2f seconds\n\n", timeDelta);                          \
+    } while (0)

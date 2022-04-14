@@ -3,7 +3,6 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <time.h>
 
 #include "common/cext.h"
 #include "gfx/camera.h"
@@ -27,8 +26,8 @@ Material diffuse = {
 Material metal = {
     .type = MATERIAL_METAL,
     .metal = {
-        .albedo = (Color){0.7f, 0.6f, 0.5f},
-        .fuzz = 0.0f,
+        .albedo = COLOR_RED,
+        .fuzz = 0.4f,
     },
 };
 
@@ -50,7 +49,7 @@ Material ground = {
 static void ExportImage(Image* img, const char* filename)
 {
     FILE* fd = fopen(filename, "w+");
-    Image_ExportBMP(img, fd);
+    Image_Export_BMP(img, fd);
     printf("Output image written to %s\n", filename);
 }
 
@@ -65,7 +64,6 @@ static void InterruptHandler(int sig)
 
 static void FillScene(Scene* scene)
 {
-    // mesh
 #if 0
     FILE* fd   = fopen("assets/teapot.obj", "r");
     Mesh* mesh = Mesh_New((Point3){0, 1, 0}, 2.5f, &diffuse);
@@ -73,12 +71,24 @@ static void FillScene(Scene* scene)
 
 #if 1
     FILE* fd   = fopen("assets/dragon.obj", "r");
-    Mesh* mesh = Mesh_New((Point3){0, 7, 0}, 1.0f / 10.0f, &glass);
-#endif
+    Mesh* mesh = Mesh_New();
+    Mesh_Import_OBJ(mesh, fd);
 
-    Mesh_LoadOBJ(mesh, fd);
+    Mesh_Set_Origin(mesh, (Point3){0, 7, 10});
+    Mesh_Set_Scale(mesh, 1.0f / 10.0f);
+    Mesh_Set_Material(mesh, &diffuse);
     Mesh_AddToScene(mesh, scene);
+
+    Mesh_Set_Origin(mesh, (Point3){0, 7, 0});
+    Mesh_Set_Material(mesh, &metal);
+    Mesh_AddToScene(mesh, scene);
+
+    Mesh_Set_Origin(mesh, (Point3){0, 7, -10});
+    Mesh_Set_Material(mesh, &glass);
+    Mesh_AddToScene(mesh, scene);
+
     Mesh_Delete(mesh);
+#endif
 
     // ground
     Object obj;
@@ -90,8 +100,8 @@ static void FillScene(Scene* scene)
 
 int main(void)
 {
-    const Point3 lookFrom    = (Point3){20, 12, 20};
-    const Point3 lookAt      = (Point3){0, 4, 0};
+    const Point3 lookFrom    = (Point3){20, 14, 20};
+    const Point3 lookAt      = (Point3){0, 6, 0};
     const Vec3   vup         = (Vec3){0, 1, 0};
     const float  focusDist   = 10.0f;
     const float  aperature   = 0.0f;
@@ -105,9 +115,6 @@ int main(void)
 
     const size_t numThreads = 4;
 
-    struct timespec specStart;
-    struct timespec specEnd;
-
     signal(SIGINT, InterruptHandler);
     Random_Seed(__builtin_readcyclecounter());
 
@@ -117,34 +124,18 @@ int main(void)
     Camera* cam   = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
     Scene*  scene = Scene_New(COLOR_WHITE);
 
-    printf("Filling scene with objects\n");
-    FillScene(scene);
+    TIMEIT("Scene load", FillScene(scene));
+    TIMEIT("Scene prepare", Scene_Prepare(scene));
 
-    printf("Preparing scene\n");
-    Scene_Prepare(scene);
+    RenderCtx* ctx = Render_New(scene, img, cam);
 
-    RenderCtx* ctx = RenderCtx_New(scene, img, cam);
-
-    // Time the render
-    printf("Rendering scene\n");
-    {
-        clock_gettime(CLOCK_MONOTONIC, &specStart);
-        // TODO: does it make sense for Render to create the image?
-        // TODO: pass in worker thread stack size? or could we compute the required stack size from the ray depth?
-        Render(ctx, 64, 32, numThreads);
-
-        clock_gettime(CLOCK_MONOTONIC, &specEnd);
-        float timeDeltaSec  = (float)(specEnd.tv_sec - specStart.tv_sec);
-        float timeDeltaFrac = (float)(specEnd.tv_nsec - specStart.tv_nsec) * 1e-9;
-        float timeDelta     = timeDeltaSec + timeDeltaFrac;
-        printf("\n%.2f seconds spent rendering\n", timeDelta);
-    }
+    TIMEIT("Scene render", Render_Do(ctx, 64, 32, numThreads));
 
     ExportImage(img, "output.bmp");
 
     Image_Delete(img);
     Scene_Delete(scene);
-    RenderCtx_Delete(ctx);
+    Render_Delete(ctx);
 
     return 0;
 }

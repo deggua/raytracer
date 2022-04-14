@@ -15,3 +15,6 @@
 
 -lm
 -pthread
+
+-march=native
+-mtune=native

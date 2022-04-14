@@ -6,10 +6,10 @@
 
 typedef struct {
     const Camera* cam;
-    Image* img;
-    const Scene* scene;
+    Image*        img;
+    const Scene*  scene;
 } RenderCtx;
 
-RenderCtx* RenderCtx_New(const Scene* scene, Image* img, const Camera* cam);
-void RenderCtx_Delete(RenderCtx* ctx);
-Image* Render(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads);
+RenderCtx* Render_New(const Scene* scene, Image* img, const Camera* cam);
+void       Render_Delete(RenderCtx* ctx);
+Image*     Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads);

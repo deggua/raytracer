@@ -58,6 +58,13 @@ error_Scene:
 void Scene_Delete(Scene* scene)
 {
     Vector_Delete(Object)(scene->objects);
+    Vector_Delete(Object)(scene->unboundObjs);
+    Vector_Delete(Object)(scene->kdObjects);
+
+    if (scene->kdTree != NULL) {
+        KDTree_Delete(scene->kdTree);
+    }
+
     free(scene);
 }
 
@@ -102,6 +109,7 @@ void Scene_Prepare(Scene* scene)
     // only bounded objects (not moving, not infinite) can be stored in the KDTree
     // TODO: can we store infinite objects? does it make sense to?
     Vector_Reserve(Object)(scene->kdObjects, scene->objects->length);
+    printf("%zu primitives in scene\n", scene->objects->length);
 
     for (size_t ii = 0; ii < scene->objects->length; ii++) {
         // TODO: this is because I messed up the API between KDTree and Scene, I should add a Surface_Bounded() function
@@ -111,7 +119,6 @@ void Scene_Prepare(Scene* scene)
             Vector_Push(Object)(scene->kdObjects, &scene->objects->at[ii]);
         } else {
             Vector_Push(Object)(scene->unboundObjs, &scene->objects->at[ii]);
-            printf("scene->unboundObjs->length = %zu\n", scene->unboundObjs->length);
         }
     }
 

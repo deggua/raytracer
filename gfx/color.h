@@ -4,7 +4,7 @@
 
 #include "gfx/primitives.h"
 
-#define COLOR_RED    ((Color){0.9f, 0.3f, 0.3f})
+#define COLOR_RED    ((Color){0.7f, 0.3f, 0.3f})
 #define COLOR_BLUE   ((Color){0.8f, 0.8f, 1.0f})
 #define COLOR_GREY   ((Color){0.5f, 0.5f, 0.5f})
 #define COLOR_WHITE  ((Color){1.0f, 1.0f, 1.0f})

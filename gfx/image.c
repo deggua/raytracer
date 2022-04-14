@@ -48,7 +48,7 @@ RGB Image_GetPixel(const Image* img, size_t xx, size_t yy)
 #define PPM_RGB_FMT      "%" PRIu8 " %" PRIu8 " %" PRIu8
 #define PPM_RGB_ARG(rgb) rgb.r, rgb.g, rgb.b
 
-void Image_ExportPPM(const Image* img, FILE* fd)
+void Image_Export_PPM(const Image* img, FILE* fd)
 {
     fprintf(fd, PPM_HEADER_FMT, PPM_HEADER_ARG(img));
 
@@ -104,7 +104,7 @@ typedef struct {
 static_assert(sizeof(BMPHeader) == 0x36, "Incorrect BMP header size");
 static_assert(sizeof(BGR) == 3, "Incorrect BGR pixel size");
 
-void Image_ExportBMP(const Image* img, FILE* fd)
+void Image_Export_BMP(const Image* img, FILE* fd)
 {
     const size_t pixBytesPerRow = sizeof(BGR) * img->res.width;
 

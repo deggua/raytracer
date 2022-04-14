@@ -17,7 +17,7 @@ typedef struct Mesh {
     Vector(Triangle) * polys;
 } Mesh;
 
-Mesh* Mesh_New(Point3 origin, float scale, Material* material)
+Mesh* Mesh_New(void)
 {
     Mesh* mesh = calloc(1, sizeof(*mesh));
     if (mesh == NULL) {
@@ -28,10 +28,6 @@ Mesh* Mesh_New(Point3 origin, float scale, Material* material)
     if (mesh->polys == NULL) {
         goto error_Polys;
     }
-
-    mesh->material = material;
-    mesh->origin   = origin;
-    mesh->scale    = scale;
 
     return mesh;
 
@@ -64,12 +60,7 @@ void Mesh_AddToScene(Mesh* mesh, Scene* scene)
     }
 }
 
-void Mesh_Set_Material(Mesh* mesh, Material* material)
-{
-    mesh->material = material;
-}
-
-bool Mesh_LoadOBJ(Mesh* mesh, FILE* fd)
+bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd)
 {
     Vector(Point3)* vertices = Vector_New(Point3)();
     fseek(fd, 0, SEEK_SET);
@@ -101,4 +92,19 @@ bool Mesh_LoadOBJ(Mesh* mesh, FILE* fd)
     Vector_Delete(Point3)(vertices);
 
     return true;
+}
+
+void Mesh_Set_Material(Mesh* mesh, Material* material)
+{
+    mesh->material = material;
+}
+
+void Mesh_Set_Origin(Mesh* mesh, Point3 origin)
+{
+    mesh->origin = origin;
+}
+
+void Mesh_Set_Scale(Mesh* mesh, float scale)
+{
+    mesh->scale = scale;
 }
