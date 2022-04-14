@@ -80,11 +80,11 @@ static void FillScene(Scene* scene)
     Mesh_AddToScene(mesh, scene);
 
     Mesh_Set_Origin(mesh, (Point3){0, 7, 0});
-    Mesh_Set_Material(mesh, &metal);
+    Mesh_Set_Material(mesh, &glass);
     Mesh_AddToScene(mesh, scene);
 
     Mesh_Set_Origin(mesh, (Point3){0, 7, -10});
-    Mesh_Set_Material(mesh, &glass);
+    Mesh_Set_Material(mesh, &metal);
     Mesh_AddToScene(mesh, scene);
 
     Mesh_Delete(mesh);

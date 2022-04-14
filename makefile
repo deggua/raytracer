@@ -10,10 +10,10 @@ CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)
 CC_FLAGS_SANITIZE = $(CC_FLAGS_DEBUG) -fsanitize=address
 CC_FLAGS_PROFILE = $(CC_FLAGS_RELEASE) -pg
 
-SRCS = main.c
-SRCS += gfx/camera.c gfx/color.c gfx/image.c gfx/primitives.c gfx/random.c gfx/renderer.c gfx/mesh.c
-SRCS += object/object.c object/surfaces.c object/materials.c object/scene.c object/kdtree.c
-SRCS += common/memory_arena.c
+SRCS = src/main.c
+SRCS += src/gfx/camera.c src/gfx/color.c src/gfx/image.c src/gfx/primitives.c src/gfx/random.c src/gfx/renderer.c src/gfx/mesh.c
+SRCS += src/object/object.c src/object/surfaces.c src/object/materials.c src/object/scene.c src/object/kdtree.c
+SRCS += src/common/memory_arena.c
 
 BIN_DIR = bin
 RELEASE_DIR := $(BIN_DIR)/release

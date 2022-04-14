@@ -104,7 +104,7 @@ bool Scene_ClosestHitSlow(const Scene* scene, const Ray* ray, Object** objHit, H
     return Scene_ClosestHitInArray(scene->objects->at, scene->objects->length, ray, objHit, hit);
 }
 
-void Scene_Prepare(Scene* scene)
+bool Scene_Prepare(Scene* scene)
 {
     // only bounded objects (not moving, not infinite) can be stored in the KDTree
     // TODO: can we store infinite objects? does it make sense to?
@@ -128,6 +128,8 @@ void Scene_Prepare(Scene* scene)
     } else {
         scene->kdTree = NULL;
     }
+
+    return true;
 }
 
 bool Scene_Add_Object(Scene* scene, const Object* obj)

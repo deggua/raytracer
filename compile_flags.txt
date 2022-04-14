@@ -1,4 +1,4 @@
--I.
+-Isrc
 -std=gnu17
 
 -Wfatal-errors
