@@ -4,13 +4,14 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "common/cext.h"
-#include "gfx/primitives.h"
-#include "object/kdtree.h"
-#include "object/object.h"
+#include "common/common.h"
+#include "common/math.h"
+#include "common/vec.h"
+#include "rt/accelerators/kdtree.h"
+#include "world/object.h"
 
 #define TEMPLATE_TYPE Object
-#include "common/vector.h"
+#include "templates/vector.h"
 
 typedef struct Scene {
     Color skyColor;

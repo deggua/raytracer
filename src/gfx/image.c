@@ -1,12 +1,13 @@
 #include "image.h"
 
+#include <assert.h>
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common/cext.h"
+#include "common/common.h"
 
 Image* Image_New(size_t width, size_t height)
 {
@@ -70,33 +71,33 @@ enum BMP_VALUES
 };
 
 typedef struct {
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
+    u8 b;
+    u8 g;
+    u8 r;
 } attr_aligned(1) BGR;
 
 typedef struct {
     struct {
-        uint16_t id;
-        uint32_t size;
-        uint16_t reserved_0x06;
-        uint16_t reserved_0x08;
-        uint32_t pixelArrayOffset;
+        u16 id;
+        u32 size;
+        u16 reserved_0x06;
+        u16 reserved_0x08;
+        u32 pixelArrayOffset;
     } attr_aligned(1) FileHeader;
 
     union {
         struct {
-            uint32_t headerSize;
-            int32_t  pixelWidth;
-            int32_t  pixelHeight;
-            uint16_t colorPlanes;
-            uint16_t bitsPerPixel;
-            uint32_t compressionMethod;
-            uint32_t bitmapSize;
-            int32_t  ppmHorizontal;
-            int32_t  ppmVertical;
-            uint32_t numColors;
-            uint32_t numImportantColors;
+            u32     headerSize;
+            int32_t pixelWidth;
+            int32_t pixelHeight;
+            u16     colorPlanes;
+            u16     bitsPerPixel;
+            u32     compressionMethod;
+            u32     bitmapSize;
+            int32_t ppmHorizontal;
+            int32_t ppmVertical;
+            u32     numColors;
+            u32     numImportantColors;
         } attr_aligned(1) BITMAPINFOHEADER;
     } attr_aligned(1) DIBHeader;
 } attr_aligned(1) BMPHeader;
@@ -109,8 +110,8 @@ void Image_Export_BMP(const Image* img, FILE* fd)
     const size_t pixBytesPerRow = sizeof(BGR) * img->res.width;
 
     size_t padBytesPerRow;
-    if (pixBytesPerRow % sizeof(uint32_t) != 0) {
-        padBytesPerRow = sizeof(uint32_t) - pixBytesPerRow;
+    if (pixBytesPerRow % sizeof(u32) != 0) {
+        padBytesPerRow = sizeof(u32) - pixBytesPerRow;
     } else {
         padBytesPerRow = 0;
     }
@@ -139,12 +140,13 @@ void Image_Export_BMP(const Image* img, FILE* fd)
         },
     };
 
-    uint8_t* pixelBuffer = calloc(1, rowBytes * img->res.height);
+    u8* pixelBuffer = calloc(1, rowBytes * img->res.height);
     if (pixelBuffer == NULL) {
         printf("Failed to allocate pixel buffer\n");
         return;
     }
-    uint8_t* curPixel = pixelBuffer;
+
+    u8* curPixel = pixelBuffer;
     for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
         for (size_t xx = 0; xx < img->res.width; xx++) {
             BGR* bmpPix = (BGR*)curPixel;

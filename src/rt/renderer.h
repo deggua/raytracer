@@ -1,8 +1,9 @@
 #pragma once
 
-#include "gfx/camera.h"
+#include "common/common.h"
 #include "gfx/image.h"
-#include "object/scene.h"
+#include "world/camera.h"
+#include "world/scene.h"
 
 typedef struct {
     const Camera* cam;

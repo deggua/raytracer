@@ -3,11 +3,12 @@
 #include <math.h>
 #include <stdbool.h>
 
+#include "common/common.h"
+#include "common/math.h"
+#include "common/random.h"
+#include "common/vec.h"
 #include "gfx/color.h"
-#include "gfx/primitives.h"
-#include "gfx/random.h"
-#include "gfx/utils.h"
-#include "object/hitinfo.h"
+#include "rt/hitinfo.h"
 
 /* ---- DIFFUSE ---- */
 
@@ -22,9 +23,9 @@ bool Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit
 {
     (void)rayIn;
 
-    Vec3 scattered = vadd(hit->unitNormal, Vec3_RandomOnUnitSphere());
+    vec3 scattered = vadd(hit->unitNormal, vec3_RandomOnUnitSphere());
 
-    if (viszero(scattered)) {
+    if (vequ(scattered, 0.0f)) {
         scattered = hit->unitNormal;
     }
 
@@ -36,7 +37,7 @@ bool Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit
 
 /* ---- METAL ---- */
 
-Metal Metal_Make(Color albedo, float fuzz)
+Metal Metal_Make(Color albedo, f32 fuzz)
 {
     return (Metal){
         .albedo = albedo,
@@ -48,8 +49,8 @@ bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Colo
 {
     // TODO: do we need to do the face fix thing on the hit normal? I'm guessing we do because otherwise the reflect
     // may be be backwards, atm we always make the normal point against
-    Vec3 reflected = vreflect(vunit(rayIn->dir), hit->unitNormal);
-    Vec3 fuzz      = vmul(Vec3_RandomOnUnitSphere(), metal->fuzz);
+    vec3 reflected = vec3_Reflect(vnorm(rayIn->dir), hit->unitNormal);
+    vec3 fuzz      = vmul(vec3_RandomOnUnitSphere(), metal->fuzz);
 
     *color  = metal->albedo;
     *rayOut = Ray_Make(hit->position, vadd(reflected, fuzz), rayIn->time);
@@ -61,7 +62,7 @@ bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Colo
 
 /* ---- DIELECTRIC ---- */
 
-Dielectric Dielectric_Make(Color albedo, float refractiveIndex)
+Dielectric Dielectric_Make(Color albedo, f32 refractiveIndex)
 {
     return (Dielectric){
         .albedo         = albedo,
@@ -69,28 +70,28 @@ Dielectric Dielectric_Make(Color albedo, float refractiveIndex)
     };
 }
 
-static float reflectance(float cosine, float refractiveIndex)
+static f32 reflectance(f32 cosine, f32 refractiveIndex)
 {
-    float r0 = (1.0f - refractiveIndex) / (1.0f + refractiveIndex);
-    r0       = r0 * r0;
+    f32 r0 = (1.0f - refractiveIndex) / (1.0f + refractiveIndex);
+    r0     = r0 * r0;
     return r0 + (1.0f - r0) * powf((1.0f - cosine), 5.0f);
 }
 
 bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
 {
-    *color                = diel->albedo;
-    float refractionRatio = hit->frontFace ? (1.0f / diel->refactiveIndex) : diel->refactiveIndex;
+    *color              = diel->albedo;
+    f32 refractionRatio = hit->frontFace ? (1.0f / diel->refactiveIndex) : diel->refactiveIndex;
 
-    Vec3  normRayDir = vunit(rayIn->dir);
-    float cosTheta   = fminf(vdot(vmul(normRayDir, -1), hit->unitNormal), 1.0f);
-    float sinTheta   = sqrtf(1.0f - cosTheta * cosTheta);
+    vec3 normRayDir = vnorm(rayIn->dir);
+    f32  cosTheta   = fminf(vdot(vmul(normRayDir, -1), hit->unitNormal), 1.0f);
+    f32  sinTheta   = sqrtf(1.0f - cosTheta * cosTheta);
 
     bool cannotRefract = refractionRatio * sinTheta > 1.0f;
-    Vec3 bounce;
-    if (cannotRefract || reflectance(cosTheta, refractionRatio) > Random_Float()) {
-        bounce = vreflect(normRayDir, hit->unitNormal);
+    vec3 bounce;
+    if (cannotRefract || reflectance(cosTheta, refractionRatio) > RNG_Random()) {
+        bounce = vec3_Reflect(normRayDir, hit->unitNormal);
     } else {
-        bounce = vrefract(normRayDir, hit->unitNormal, refractionRatio);
+        bounce = vec3_Refract(normRayDir, hit->unitNormal, refractionRatio);
     }
 
     *rayOut = Ray_Make(hit->position, bounce, rayIn->time);

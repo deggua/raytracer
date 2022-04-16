@@ -5,9 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/cext.h"
-#include "gfx/utils.h"
-#include "object/object.h"
+#include "common/math.h"
+#include "world/object.h"
 
 /* ---  KD-Tree Metaparameters --- */
 // Threshold for which a leaf node will be automatically created. Lower values result in greater tree depth and sparser
@@ -26,20 +25,20 @@ static const size_t NumBuckets = 64;
 
 // The cost of a triangle intersection. Should be > 1, and is only relevant in relation to the TraversalCost
 // Range: (1, INF)
-static const float IntersectCost = 1.0f;
+static const f32 IntersectCost = 1.0f;
 
 // A bonus weight towards putting objects in the right side of the tree. Because the right child is directly adjacent to
 // its parent, the cost of right traversal is less because it should be in cache
 // Range: [0.9, 1]
-static const float RightNodeRelativeCost = 0.95f;
+static const f32 RightNodeRelativeCost = 0.95f;
 
 // A bonus weight towards having empty tree regions. Helps with early termination during traversal.
 // Range: [0, 1]
-static const float EmptyBonus = 0.5f;
+static const f32 EmptyBonus = 0.5f;
 
 // These shouldn't be tuned directly, instead change their relative parameter above
-static const float TraversalCost        = 1.0f;
-static const float LeftNodeRelativeCost = 1.0f + (1.0f - RightNodeRelativeCost);
+static const f32 TraversalCost        = 1.0f;
+static const f32 LeftNodeRelativeCost = 1.0f + (1.0f - RightNodeRelativeCost);
 
 /* --- TODOs --- */
 // Structural changes:
@@ -57,9 +56,9 @@ static const float LeftNodeRelativeCost = 1.0f + (1.0f - RightNodeRelativeCost);
 
 typedef enum
 {
-    KD_INTERNAL_X = VEC_X,
-    KD_INTERNAL_Y = VEC_Y,
-    KD_INTERNAL_Z = VEC_Z,
+    KD_INTERNAL_X = AXIS_X,
+    KD_INTERNAL_Y = AXIS_Y,
+    KD_INTERNAL_Z = AXIS_Z,
     KD_LEAF       = 3,
 } KDNodeType;
 
@@ -68,40 +67,39 @@ typedef struct KDBB {
     const Object* obj;
 } KDBB;
 
-typedef KDBB*   KDBBPtr;
-typedef Object* ObjectPtr;
+#define TEMPLATE_TYPE Object*
+#define TEMPLATE_NAME ObjectPtr
+#include "templates/vector.h"
 
-#define TEMPLATE_TYPE ObjectPtr
-#include "common/vector.h"
-
-#define TEMPLATE_TYPE KDBBPtr
-#include "common/vector.h"
+#define TEMPLATE_TYPE KDBB*
+#define TEMPLATE_NAME KDBBPtr
+#include "templates/vector.h"
 
 #define TEMPLATE_TYPE KDBB
-#include "common/vector.h"
+#include "templates/vector.h"
 
 typedef struct {
     struct {
-        KDNodeType   : 2;
-        uint32_t len : 30;
+        KDNodeType : 2;
+        u32 len    : 30;
     };
-    uint32_t objIndex;
+    u32 objIndex;
 } KDLeaf;
 static_assert(sizeof(KDLeaf) == 8, "sizeof(KDLeaf) != 8");
 
 typedef struct {
     struct {
-        KDNodeType         : 2;
-        uint32_t leftIndex : 30;
+        KDNodeType    : 2;
+        u32 leftIndex : 30;
     };
-    float split;
+    f32 split;
 } KDInternal;
 static_assert(sizeof(KDInternal) == 8, "sizeof(KDInternal) != 8");
 
 typedef union KDNode {
     struct {
         KDNodeType type : 2;
-        uint32_t        : 30;
+        u32             : 30;
     };
     KDInternal inode;
     KDLeaf     leaf;
@@ -109,7 +107,7 @@ typedef union KDNode {
 static_assert(sizeof(KDNode) == 8, "sizeof(KDNode) != 8");
 
 #define TEMPLATE_TYPE KDNode
-#include "common/vector.h"
+#include "templates/vector.h"
 
 typedef struct KDTree {
     Vector(KDNode) * nodes;
@@ -126,8 +124,8 @@ static ssize_t BuildParentNode(
     BoundingBox leftContainer,
     const Vector(KDBBPtr) * rightVec,
     BoundingBox rightContainer,
-    float       partition,
-    VecAxis     axis)
+    f32         partition,
+    Axis        axis)
 {
     ssize_t parentIndex = Vector_PushEmpty(KDNode)(tree->nodes);
     if (parentIndex < 0) {
@@ -172,7 +170,7 @@ static ssize_t BuildLeafNode(KDTree* tree, const Vector(KDBBPtr) * vec)
 
     ssize_t firstObjIndex = tree->objPtrs->length;
     for (size_t ii = 0; ii < vec->length; ii++) {
-        if (!Vector_Push(ObjectPtr)(tree->objPtrs, (Object**)&vec->at[ii]->obj)) {
+        if (!Vector_Push(ObjectPtr)(tree->objPtrs, &vec->at[ii]->obj)) {
             return -1;
         }
     }
@@ -182,11 +180,11 @@ static ssize_t BuildLeafNode(KDTree* tree, const Vector(KDBBPtr) * vec)
     return nodeIndex;
 }
 
-static float SurfaceArea(BoundingBox box)
+static f32 SurfaceArea(BoundingBox box)
 {
-    const float xDim = box.max.x - box.min.x;
-    const float yDim = box.max.y - box.min.y;
-    const float zDim = box.max.z - box.min.z;
+    const f32 xDim = box.max.x - box.min.x;
+    const f32 yDim = box.max.y - box.min.y;
+    const f32 zDim = box.max.z - box.min.z;
 
     return 2 * xDim * yDim + 2 * xDim * zDim + 2 * yDim * zDim;
 }
@@ -203,12 +201,12 @@ static BoundingBox BoxBoundingAll(const Vector(KDBB) * vec)
 
     for (size_t ii = 1; ii < len; ii++) {
         for (size_t axis = 0; axis < 3; axis++) {
-            if (kdbbs[ii].box.min.e[axis] < box.min.e[axis]) {
-                box.min.e[axis] = kdbbs[ii].box.min.e[axis];
+            if (kdbbs[ii].box.min.v[axis] < box.min.v[axis]) {
+                box.min.v[axis] = kdbbs[ii].box.min.v[axis];
             }
 
-            if (kdbbs[ii].box.max.e[axis] > box.max.e[axis]) {
-                box.max.e[axis] = kdbbs[ii].box.max.e[axis];
+            if (kdbbs[ii].box.max.v[axis] > box.max.v[axis]) {
+                box.max.v[axis] = kdbbs[ii].box.max.v[axis];
             }
         }
     }
@@ -221,21 +219,21 @@ typedef struct {
     BoundingBox right;
 } BoundingBoxPair;
 
-static BoundingBoxPair SplitBox(BoundingBox box, float split, VecAxis axis)
+static BoundingBoxPair SplitBox(BoundingBox box, f32 split, Axis axis)
 {
     BoundingBoxPair splitBoxes = {
         .left  = box,
         .right = box,
     };
-    splitBoxes.left.max.e[axis]  = split;
-    splitBoxes.right.min.e[axis] = split;
+    splitBoxes.left.max.v[axis]  = split;
+    splitBoxes.right.min.v[axis] = split;
 
     return splitBoxes;
 }
 
-static float ComputeSplitSAH(const Vector(KDBBPtr) * vec, float split, VecAxis axis, BoundingBox parent)
+static f32 ComputeSplitSAH(const Vector(KDBBPtr) * vec, f32 split, Axis axis, BoundingBox parent)
 {
-    const float parentSA = SurfaceArea(parent);
+    const f32 parentSA = SurfaceArea(parent);
 
     KDBB** kdbbs = vec->at;
 
@@ -245,9 +243,9 @@ static float ComputeSplitSAH(const Vector(KDBBPtr) * vec, float split, VecAxis a
 
     for (size_t ii = 0; ii < vec->length; ii++) {
         const BoundingBox* box = &kdbbs[ii]->box;
-        if (box->max.e[axis] < split) {
+        if (box->max.v[axis] < split) {
             leftPrims += 1;
-        } else if (box->min.e[axis] > split) {
+        } else if (box->min.v[axis] > split) {
             rightPrims += 1;
         } else {
             leftPrims += 1;
@@ -255,9 +253,9 @@ static float ComputeSplitSAH(const Vector(KDBBPtr) * vec, float split, VecAxis a
         }
     }
 
-    float leftCost   = (SurfaceArea(boxPair.left) / parentSA) * leftPrims * IntersectCost * LeftNodeRelativeCost;
-    float rightCost  = (SurfaceArea(boxPair.right) / parentSA) * rightPrims * IntersectCost * RightNodeRelativeCost;
-    float emptyBonus = (leftPrims == 0 || rightPrims == 0) ? EmptyBonus : 0;
+    f32 leftCost   = (SurfaceArea(boxPair.left) / parentSA) * leftPrims * IntersectCost * LeftNodeRelativeCost;
+    f32 rightCost  = (SurfaceArea(boxPair.right) / parentSA) * rightPrims * IntersectCost * RightNodeRelativeCost;
+    f32 emptyBonus = (leftPrims == 0 || rightPrims == 0) ? EmptyBonus : 0;
 
     return TraversalCost + (1.0f - emptyBonus) * (leftCost + rightCost);
 }
@@ -268,16 +266,15 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
         return BuildLeafNode(tree, vec);
     }
 
-    float   bestSplit = 0.0f;
-    VecAxis bestAxis  = VEC_X;
-    float   bestSAH   = INF;
+    f32  bestSplit = 0.0f;
+    Axis bestAxis  = AXIS_X;
+    f32  bestSAH   = INF;
 
-    for (VecAxis axis = VEC_X; axis < VEC_LAST; axis++) {
-        float stride = (container.max.e[axis] - container.min.e[axis]) / NumBuckets;
-        for (float bucket = container.min.e[axis] + stride; bucket <= container.max.e[axis] - stride;
-             bucket += stride) {
-            float split = bucket;
-            float SAH   = ComputeSplitSAH(vec, split, axis, container);
+    for (Axis axis = AXIS_X; axis < AXIS_Z + 1; axis++) {
+        f32 stride = (container.max.v[axis] - container.min.v[axis]) / NumBuckets;
+        for (f32 bucket = container.min.v[axis] + stride; bucket <= container.max.v[axis] - stride; bucket += stride) {
+            f32 split = bucket;
+            f32 SAH   = ComputeSplitSAH(vec, split, axis, container);
             if (SAH < bestSAH) {
                 bestSAH   = SAH;
                 bestAxis  = axis;
@@ -286,7 +283,7 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
         }
     }
 
-    float parentSAH = vec->length * IntersectCost;
+    f32 parentSAH = vec->length * IntersectCost;
     if (parentSAH <= bestSAH) {
         // cost of best split outweighs just putting everything in a leaf
         return BuildLeafNode(tree, vec);
@@ -313,20 +310,20 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
 
         for (size_t ii = 0; ii < vec->length; ii++) {
             const BoundingBox* box = &vec->at[ii]->box;
-            if (box->max.e[bestAxis] < bestSplit) {
-                if (!Vector_Push(KDBBPtr)(leftVec, &vec->at[ii])) {
+            if (box->max.v[bestAxis] < bestSplit) {
+                if (!Vector_Push(KDBBPtr)(leftVec, (const KDBB**)&vec->at[ii])) {
                     goto error_Push;
                 }
-            } else if (box->min.e[bestAxis] > bestSplit) {
-                if (!Vector_Push(KDBBPtr)(rightVec, &vec->at[ii])) {
+            } else if (box->min.v[bestAxis] > bestSplit) {
+                if (!Vector_Push(KDBBPtr)(rightVec, (const KDBB**)&vec->at[ii])) {
                     goto error_Push;
                 }
             } else {
-                if (!Vector_Push(KDBBPtr)(leftVec, &vec->at[ii])) {
+                if (!Vector_Push(KDBBPtr)(leftVec, (const KDBB**)&vec->at[ii])) {
                     goto error_Push;
                 }
 
-                if (!Vector_Push(KDBBPtr)(rightVec, &vec->at[ii])) {
+                if (!Vector_Push(KDBBPtr)(rightVec, (const KDBB**)&vec->at[ii])) {
                     goto error_Push;
                 }
             }
@@ -368,7 +365,7 @@ static ssize_t BuildKDTree(KDTree* tree, const Vector(KDBB) * boxes)
 
     for (size_t ii = 0; ii < boxes->length; ii++) {
         KDBB* ptr = &boxes->at[ii];
-        if (!Vector_Push(KDBBPtr)(vec, &ptr)) {
+        if (!Vector_Push(KDBBPtr)(vec, (const KDBB**)&ptr)) {
             goto error_VectorPush;
         }
     }
@@ -478,22 +475,8 @@ void KDTree_Delete(KDTree* tree)
     free(tree);
 }
 
-static const char* AxisName(VecAxis axis)
-{
-    switch (axis) {
-        case VEC_X:
-            return "x";
-        case VEC_Y:
-            return "y";
-        case VEC_Z:
-            return "z";
-        default:
-            return "?";
-    }
-}
-
 static bool
-CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit, float tMax);
+CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit, f32 tMax);
 
 static bool CheckHitInternalNode(
     const KDTree*     tree,
@@ -501,17 +484,17 @@ static bool CheckHitInternalNode(
     const Ray*        ray,
     Object**          objHit,
     HitInfo*          hit,
-    VecAxis           axis,
-    float             tMax);
+    Axis              axis,
+    f32               tMax);
 
 static bool
-CheckHitNextNode(const KDTree* tree, const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, float tMax)
+CheckHitNextNode(const KDTree* tree, const KDNode* node, const Ray* ray, Object** objHit, HitInfo* hit, f32 tMax)
 {
     switch (node->type) {
         case KD_INTERNAL_X:
         case KD_INTERNAL_Y:
         case KD_INTERNAL_Z: {
-            return CheckHitInternalNode(tree, &node->inode, ray, objHit, hit, (VecAxis)node->type, tMax);
+            return CheckHitInternalNode(tree, &node->inode, ray, objHit, hit, (Axis)node->type, tMax);
         }
 
         case KD_LEAF: {
@@ -523,7 +506,7 @@ CheckHitNextNode(const KDTree* tree, const KDNode* node, const Ray* ray, Object*
 }
 
 static bool
-CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit, float tMax)
+CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object** objHit, HitInfo* hit, f32 tMax)
 {
     HitInfo       hitClosest = {.tIntersect = INF};
     const Object* objClosest = NULL;
@@ -557,37 +540,37 @@ static bool CheckHitInternalNode(
     const Ray*        ray,
     Object**          objHit,
     HitInfo*          hit,
-    VecAxis           axis,
-    float             tMax)
+    Axis              axis,
+    f32               tMax)
 {
-    const float split            = node->split;
-    const float epsilonParallel  = 0.0001f;
-    const float epsilonIntersect = 0.001f;
+    const f32 split            = node->split;
+    const f32 epsilonParallel  = 0.0001f;
+    const f32 epsilonIntersect = 0.001f;
 
     const KDNode* left  = &tree->nodes->at[node->leftIndex];
     const KDNode* right = &((KDNode*)node)[1];
 
-    if (unlikely(fabsf(ray->dir.e[axis]) < epsilonParallel)) {
+    if (unlikely(fabsf(ray->dir.v[axis]) < epsilonParallel)) {
         // ray parallel to plane, check the origin to see which side ray falls on
         // TODO: is this correct when the origin is in the plane?
-        if (ray->origin.e[axis] >= split) {
+        if (ray->origin.v[axis] >= split) {
             return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
         } else {
             return CheckHitNextNode(tree, left, ray, objHit, hit, tMax);
         }
     }
 
-    float tIntersect = split * ray->cache.invDir.e[axis] - ray->cache.originDivDir.e[axis];
-    float tMaxNew    = minf(tMax, tIntersect);
+    f32 tIntersect = split * ray->cache.invDir.v[axis] - ray->cache.originDivDir.v[axis];
+    f32 tMaxNew    = minf(tMax, tIntersect);
     if (tIntersect < epsilonIntersect) {
         // ray doesn't intersect plane at valid t, check the origin to see which side ray falls on
-        if (likely(ray->origin.e[axis] > split)) {
+        if (likely(ray->origin.v[axis] > split)) {
             return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
-        } else if (likely(ray->origin.e[axis] < split)) {
+        } else if (likely(ray->origin.v[axis] < split)) {
             return CheckHitNextNode(tree, left, ray, objHit, hit, tMax);
         } else {
             // ray intersects the plane at the origin, eval the ray later and see what side it's on
-            float rayAt = Ray_At(ray, 1.0f).e[axis];
+            f32 rayAt = Ray_At(ray, 1.0f).v[axis];
             if (rayAt >= split) {
                 return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
             } else {
@@ -601,7 +584,7 @@ static bool CheckHitInternalNode(
         const KDNode* originSide;
         const KDNode* oppositeSide;
 
-        if (ray->origin.e[axis] >= split) {
+        if (ray->origin.v[axis] >= split) {
             originSide   = right;
             oppositeSide = left;
             if (CheckHitNextNode(tree, originSide, ray, objHit, hit, tMaxNew)) {

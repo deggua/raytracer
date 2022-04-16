@@ -4,22 +4,23 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "common/cext.h"
-#include "gfx/camera.h"
+#include "common/math.h"
+#include "common/random.h"
+#include "common/vec.h"
+#include "common/common.h"
+#include "common/profiling.h"
+#include "world/camera.h"
 #include "gfx/color.h"
 #include "gfx/image.h"
 #include "gfx/mesh.h"
-#include "gfx/primitives.h"
-#include "gfx/random.h"
-#include "gfx/renderer.h"
-#include "gfx/utils.h"
-#include "object/object.h"
-#include "object/scene.h"
+#include "rt/renderer.h"
+#include "world/object.h"
+#include "world/scene.h"
 
 Material diffuse = {
     .type = MATERIAL_DIFFUSE,
     .diffuse = {
-        .albedo = COLOR_NAVY,
+        .albedo = COLOR_GREEN,
     },
 };
 
@@ -66,7 +67,7 @@ static void FillScene(Scene* scene)
 {
 #if 0
     FILE* fd   = fopen("assets/teapot.obj", "r");
-    Mesh* mesh = Mesh_New((Point3){0, 1, 0}, 2.5f, &diffuse);
+    Mesh* mesh = Mesh_New((point3){0, 1, 0}, 2.5f, &diffuse);
 #endif
 
 #if 1
@@ -74,16 +75,16 @@ static void FillScene(Scene* scene)
     Mesh* mesh = Mesh_New();
     Mesh_Import_OBJ(mesh, fd);
 
-    Mesh_Set_Origin(mesh, (Point3){0, 7, 10});
+    Mesh_Set_Origin(mesh, (point3){0, 7, 10});
     Mesh_Set_Scale(mesh, 1.0f / 10.0f);
     Mesh_Set_Material(mesh, &diffuse);
     Mesh_AddToScene(mesh, scene);
 
-    Mesh_Set_Origin(mesh, (Point3){0, 7, 0});
+    Mesh_Set_Origin(mesh, (point3){0, 7, 0});
     Mesh_Set_Material(mesh, &glass);
     Mesh_AddToScene(mesh, scene);
 
-    Mesh_Set_Origin(mesh, (Point3){0, 7, -10});
+    Mesh_Set_Origin(mesh, (point3){0, 7, -10});
     Mesh_Set_Material(mesh, &metal);
     Mesh_AddToScene(mesh, scene);
 
@@ -94,21 +95,21 @@ static void FillScene(Scene* scene)
     Object obj;
     obj.material       = &ground;
     obj.surface.type   = SURFACE_SPHERE;
-    obj.surface.sphere = Sphere_Make((Point3){0, -1000, 0}, 1000.0f);
+    obj.surface.sphere = Sphere_Make((point3){0, -1000, 0}, 1000.0f);
     Scene_Add_Object(scene, &obj);
 }
 
 int main(void)
 {
-    const Point3 lookFrom    = (Point3){20, 14, 20};
-    const Point3 lookAt      = (Point3){0, 6, 0};
-    const Vec3   vup         = (Vec3){0, 1, 0};
-    const float  focusDist   = 10.0f;
-    const float  aperature   = 0.0f;
-    const float  aspectRatio = 16.0f / 9.0f;
-    const float  vFov        = 40.0f;
-    const float  timeStart   = 0.0f;
-    const float  timeEnd     = 1.0f;
+    const point3 lookFrom    = (point3){20, 14, 20};
+    const point3 lookAt      = (point3){0, 6, 0};
+    const vec3   vup         = (vec3){0, 1, 0};
+    const f32    focusDist   = 10.0f;
+    const f32    aperature   = 0.0f;
+    const f32    aspectRatio = 16.0f / 9.0f;
+    const f32    vFov        = 40.0f;
+    const f32    timeStart   = 0.0f;
+    const f32    timeEnd     = 1.0f;
 
     const size_t imageHeight = 720;
     const size_t imageWidth  = imageHeight * aspectRatio;
@@ -116,7 +117,7 @@ int main(void)
     const size_t numThreads = 4;
 
     signal(SIGINT, InterruptHandler);
-    Random_Seed(__builtin_readcyclecounter());
+    RNG_Seed(__builtin_readcyclecounter());
 
     Image* img = Image_New(imageWidth, imageHeight);
     g_img      = img;

@@ -1,8 +1,9 @@
 #include "gfx/color.h"
 
-#include "gfx/utils.h"
+#include "common/math.h"
 
-RGB RGB_Brighten(RGB rgb, float scalar) {
+RGB RGB_Brighten(RGB rgb, f32 scalar)
+{
     return (RGB){
         .r = clampf(rgb.r * scalar, 0, 255),
         .g = clampf(rgb.g * scalar, 0, 255),
@@ -10,9 +11,10 @@ RGB RGB_Brighten(RGB rgb, float scalar) {
     };
 }
 
-RGB RGB_Blend(RGB color1, RGB color2, float weight) {
-    const float weightColor1 = 1.0f - weight;
-    const float weightColor2 = weight;
+RGB RGB_Blend(RGB color1, RGB color2, f32 weight)
+{
+    const f32 weightColor1 = 1.0f - weight;
+    const f32 weightColor2 = weight;
     return (RGB){
         .r = weightColor1 * color1.r + weightColor2 * color2.r,
         .g = weightColor1 * color1.g + weightColor2 * color2.g,
@@ -20,34 +22,58 @@ RGB RGB_Blend(RGB color1, RGB color2, float weight) {
     };
 }
 
-RGB RGB_FromFloat(float red, float green, float blue) {
+RGB RGB_FromColor(Color color)
+{
     return (RGB){
-        .r = 255 * red,
-        .g = 255 * green,
-        .b = 255 * blue,
+        .r = 255 * color.r,
+        .g = 255 * color.g,
+        .b = 255 * color.b,
     };
 }
 
-Color Color_Brighten(Color color, float scalar) {
-    return vmul(color, scalar);
-}
-
-Color Color_Blend(Color color1, Color color2, float weight) {
-    return vadd(vmul(color1, 1.0f - weight), vmul(color2, weight));
-}
-
-Color Color_FromRGB(RGB rgb) {
+Color Color_Brighten(Color color, f32 scalar)
+{
     return (Color){
-        .x = rgb.r / 255.0f,
-        .y = rgb.g / 255.0f,
-        .z = rgb.b / 255.0f,
+        .vec3 = vmul(color.vec3, scalar),
     };
 }
 
-Color Color_Tint(Color color1, Color color2) {
+Color Color_Blend(Color color1, Color color2, f32 blend)
+{
     return (Color){
-        .x = color1.x * color2.x,
-        .y = color1.y * color2.y,
-        .z = color1.z * color2.z,
+        .vec3 = vadd(vmul(color1.vec3, blend), vmul(color2.vec3, 1.0f - blend)),
     };
+}
+
+Color Color_FromRGB(RGB rgb)
+{
+    return (Color){
+        .r = rgb.r / 255.0f,
+        .g = rgb.g / 255.0f,
+        .b = rgb.b / 255.0f,
+    };
+}
+
+Color Color_Tint(Color color1, Color color2)
+{
+    return (Color){
+        .vec3 = vmul(color1.vec3, color2.vec3),
+    };
+}
+
+Color Color_Desaturate(Color color, f32 desaturation)
+{
+    const Color luminance = {
+        .r = 0.299f,
+        .g = 0.587f,
+        .b = 0.114f,
+    };
+
+    Color greyscale = {
+        .r = vdot(color.vec3, luminance.vec3),
+        .g = vdot(color.vec3, luminance.vec3),
+        .b = vdot(color.vec3, luminance.vec3),
+    };
+
+    return Color_Blend(color, greyscale, desaturation);
 }

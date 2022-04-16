@@ -8,47 +8,41 @@ CC_FLAGS_RELEASE_MODE = -ggdb3 -Ofast -flto -Wl,-O3
 CC_FLAGS_DEBUG = $(CC_FLAGS_DEBUG_MODE) $(CC_FLAGS)
 CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)
 CC_FLAGS_SANITIZE = $(CC_FLAGS_DEBUG) -fsanitize=address
-CC_FLAGS_PROFILE = $(CC_FLAGS_RELEASE) -pg
+CC_FLAGS_PROFILE = $(CC_FLAGS_RELEASE) -pg -a
 
 SRCS = src/main.c
-SRCS += src/gfx/camera.c src/gfx/color.c src/gfx/image.c src/gfx/primitives.c src/gfx/random.c src/gfx/renderer.c src/gfx/mesh.c
-SRCS += src/object/object.c src/object/surfaces.c src/object/materials.c src/object/scene.c src/object/kdtree.c
-SRCS += src/common/memory_arena.c
+SRCS += $(wildcard src/common/*.c)
+SRCS += $(wildcard src/gfx/*.c)
+SRCS += $(wildcard src/rt/*.c)
+SRCS += $(wildcard src/rt/accelerators/*.c)
+SRCS += $(wildcard src/world/*.c)
 
 BIN_DIR = bin
-RELEASE_DIR := $(BIN_DIR)/release
-DEBUG_DIR := $(BIN_DIR)/debug
-SANITIZE_DIR := $(BIN_DIR)/san
-PROFILE_DIR := $(BIN_DIR)/profile
+DEBUG_FNAME 	:= rtdbg.out
+RELEASE_FNAME 	:= rt.out
+SANITIZE_FNAME 	:= rtsan.out
+PROFILE_FNAME 	:= rtprof.out
 
-ELF_FILENAME = rt.out
+all: debug release
 
-DEBUG_OUTPUT := $(DEBUG_DIR)/$(ELF_FILENAME)
-RELEASE_OUTPUT := $(RELEASE_DIR)/$(ELF_FILENAME)
-SANITIZE_OUTPUT := $(SANITIZE_DIR)/$(ELF_FILENAME)
-PROFILE_OUTPUT := $(PROFILE_DIR)/$(ELF_FILENAME)
+debug: bin_dir
+	clang -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
+	chmod +x $(BIN_DIR)/$(DEBUG_FNAME)
 
-all: debug release sanitize profile
+release: bin_dir
+	clang -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
+	chmod +x $(BIN_DIR)/$(RELEASE_FNAME)
 
-debug:
-	mkdir -p $(DEBUG_DIR)
-	clang -o $(DEBUG_OUTPUT) $(CC_FLAGS_DEBUG) $(SRCS)
-	chmod +x $(DEBUG_OUTPUT)
+sanitize: bin_dir
+	clang -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
+	chmod +x $(BIN_DIR)/$(SANITIZE_FNAME)
 
-release:
-	mkdir -p $(RELEASE_DIR)
-	clang -o $(RELEASE_OUTPUT) $(CC_FLAGS_RELEASE) $(SRCS)
-	chmod +x $(RELEASE_OUTPUT)
-
-sanitize:
-	mkdir -p $(SANITIZE_DIR)
-	clang -o $(SANITIZE_OUTPUT) $(CC_FLAGS_SANITIZE) $(SRCS)
-	chmod +x $(SANITIZE_OUTPUT)
-
-profile:
-	mkdir -p $(PROFILE_DIR)
-	clang -o $(PROFILE_OUTPUT) $(CC_FLAGS_PROFILE) $(SRCS)
-	chmod +x $(PROFILE_OUTPUT)
+profile: bin_dir
+	clang -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
+	chmod +x $(BIN_DIR)/$(PROFILE_FNAME)
 
 clean:
 	rm -rf $(BIN_DIR)
+
+bin_dir:
+	mkdir -p $(BIN_DIR)

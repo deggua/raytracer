@@ -1,18 +1,20 @@
 #include <stdio.h>
 
-#include "object/materials.h"
-#include "object/scene.h"
-#include "object/surfaces.h"
+#include "common/common.h"
+#include "common/vec.h"
+#include "rt/materials.h"
+#include "rt/surfaces.h"
+#include "world/scene.h"
 
 #define TEMPLATE_TYPE Triangle
-#include "common/vector.h"
+#include "templates/vector.h"
 
-#define TEMPLATE_TYPE Point3
-#include "common/vector.h"
+#define TEMPLATE_TYPE point3
+#include "templates/vector.h"
 
 typedef struct Mesh {
-    Point3    origin;
-    float     scale;
+    point3    origin;
+    f32       scale;
     Material* material;
     Vector(Triangle) * polys;
 } Mesh;
@@ -62,12 +64,12 @@ void Mesh_AddToScene(Mesh* mesh, Scene* scene)
 
 bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd)
 {
-    Vector(Point3)* vertices = Vector_New(Point3)();
+    Vector(point3)* vertices = Vector_New(point3)();
     fseek(fd, 0, SEEK_SET);
     while (!feof(fd)) {
-        Point3 tmp;
+        point3 tmp;
         if (fscanf(fd, "v %f %f %f\n", &tmp.x, &tmp.y, &tmp.z) == 3) {
-            Vector_Push(Point3)(vertices, &tmp);
+            Vector_Push(point3)(vertices, &tmp);
         } else {
             fscanf(fd, "%*s\n");
         }
@@ -89,7 +91,7 @@ bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd)
     }
     printf("Found %zu tris\n", mesh->polys->length);
 
-    Vector_Delete(Point3)(vertices);
+    Vector_Delete(point3)(vertices);
 
     return true;
 }
@@ -99,12 +101,12 @@ void Mesh_Set_Material(Mesh* mesh, Material* material)
     mesh->material = material;
 }
 
-void Mesh_Set_Origin(Mesh* mesh, Point3 origin)
+void Mesh_Set_Origin(Mesh* mesh, point3 origin)
 {
     mesh->origin = origin;
 }
 
-void Mesh_Set_Scale(Mesh* mesh, float scale)
+void Mesh_Set_Scale(Mesh* mesh, f32 scale)
 {
     mesh->scale = scale;
 }

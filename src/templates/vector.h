@@ -14,27 +14,31 @@
 
 // Include Parameters:
 //  The type of the elements the vector should contain:
-//      #define TEMPLATE_TYPE                 T
+//      #define TEMPLATE_TYPE                   T
+//
+//  The name to use to reference the type specific macros:
+//      #define TEMPLATE_NAME                   CustomName
+//      default: TEMPLATE_TYPE
 //
 //  The initial length the vector should allocate to:
 //      Default: 16 elements
-//      #define TEMPLATE_INIT_CAPACITY         16
+//      #define TEMPLATE_INIT_CAPACITY          16
 //
 //  The growth function the vector should use when it needs to expand:
 //      Default: 2 * old_size
-//      #define TEMPLATE_GROW(old_size)        (2 * old_size)
+//      #define TEMPLATE_GROW(old_size)         (2 * old_size)
 //
 //  An allocator function (obeying ISO C's malloc/calloc semantics):
 //      Default: malloc
-//      #define TEMPLATE_MALLOC(bytes)        malloc(bytes)
+//      #define TEMPLATE_MALLOC(bytes)          malloc(bytes)
 //
 //  A reallocator function (obeying ISO C's realloc semantics):
 //      Default: realloc
-//      #define TEMPLATE_REALLOC(ptr, bytes)  realloc(ptr, bytes)
+//      #define TEMPLATE_REALLOC(ptr, bytes)    realloc(ptr, bytes)
 //
 //  A free function (obeying ISO C's free semantics):
 //      Default: free
-//      #define TEMPLATE_FREE(ptr)            free(ptr)
+//      #define TEMPLATE_FREE(ptr)              free(ptr)
 
 // Functions:
 //  The vector type
@@ -55,24 +59,24 @@
 
 // Copy an element to the end of the vector
 //  Returns true if operation succeeded, false otherwise
-//  bool Vector_Push(T)(Vector(T)* vec, const T* element)
+//  bool Vector_Push(T)(Vector(T)* vec, T* element)
 #    define Vector_Push(T) CONCAT2(Vector_Push, T)
 
 // Copy multiple elements to the end of the vector in order
 //  Returns true if operation succeeded, false otherwise
-//  bool Vector_PushMany(T)(Vector(T)* vec, const T* element, size_t length)
+//  bool Vector_PushMany(T)(Vector(T)* vec, T* element, size_t length)
 #    define Vector_PushMany(T) CONCAT2(Vector_PushMany, T)
 
 // Copy an element to a particular index in the vector
 //  The index specified must be a valid index in the vector, or just past the last element in the vector
 //  Returns true if operation succeeded, false otherwise
-//  bool Vector_Insert(T)(Vector(T)* vec, size_t index, const T* element)
+//  bool Vector_Insert(T)(Vector(T)* vec, size_t index, T* element)
 #    define Vector_Insert(T) CONCAT2(Vector_Insert, T)
 
 // Copy multiple elements into the vector, starting at a particular index in the vector
 //  The index specified must be a valid index in the vector, or just past the last element in the vector
 //  Returns true if operation succeeded, false otherwise
-//  bool Vector_Insert(T)(Vector(T)* vec, size_t index, const T* element, size_t length)
+//  bool Vector_Insert(T)(Vector(T)* vec, size_t index, T* element, size_t length)
 #    define Vector_InsertMany(T) CONCAT2(Vector_InsertMany, T)
 
 // Remove an element from the vector
@@ -115,6 +119,10 @@
 #    error "Vector requires a type specialization"
 #endif
 
+#if !defined(TEMPLATE_NAME)
+#    define TEMPLATE_NAME TEMPLATE_TYPE
+#endif
+
 #if !defined(TEMPLATE_INIT_CAPACITY)
 #    define TEMPLATE_INIT_CAPACITY 16
 #endif
@@ -152,8 +160,8 @@
 #endif
 
 // useful macros internally
-
 #define T                    TEMPLATE_TYPE
+#define Tn                   TEMPLATE_NAME
 #define vector_init_capacity TEMPLATE_INIT_CAPACITY
 #define vector_grow          TEMPLATE_GROW
 #define malloc               TEMPLATE_MALLOC
@@ -161,25 +169,25 @@
 #define free                 TEMPLATE_FREE
 
 #ifndef max
-#    define DEFD_MAX
+#    define DEF_MAX
 #    define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
 // data types
 
-typedef struct Vector(T)
+typedef struct Vector(Tn)
 {
     T*     at;
     size_t length;
     size_t capacity;
 }
-Vector(T);
+Vector(Tn);
 
 // functions
 
-static Vector(T) * Vector_New(T)(void)
+static Vector(Tn) * Vector_New(Tn)(void)
 {
-    Vector(T)* vec = malloc(sizeof(Vector(T)));
+    Vector(Tn)* vec = malloc(sizeof(Vector(Tn)));
     if (vec == NULL) {
         return NULL;
     }
@@ -197,13 +205,13 @@ static Vector(T) * Vector_New(T)(void)
     return vec;
 }
 
-static void Vector_Delete(T)(Vector(T) * vec)
+static void Vector_Delete(Tn)(Vector(Tn) * vec)
 {
     free(vec->at);
     free(vec);
 }
 
-static bool Vector_GrowTo(T)(Vector(T) * vec, size_t length)
+static bool Vector_GrowTo(Tn)(Vector(Tn) * vec, size_t length)
 {
     T* newBuffer = realloc(vec->at, sizeof(T) * length);
     if (newBuffer == NULL) {
@@ -216,16 +224,16 @@ static bool Vector_GrowTo(T)(Vector(T) * vec, size_t length)
     return true;
 }
 
-static bool Vector_Reserve(T)(Vector(T) * vec, size_t length)
+static bool Vector_Reserve(Tn)(Vector(Tn) * vec, size_t length)
 {
     if (vec->capacity >= length) {
         return true;
     }
 
-    return Vector_GrowTo(T)(vec, length);
+    return Vector_GrowTo(Tn)(vec, length);
 }
 
-static bool Vector_PushMany(T)(Vector(T) * vec, const T elems[], size_t length)
+static bool Vector_PushMany(Tn)(Vector(Tn) * vec, const T elems[], size_t length)
 {
     // check if we need to grow the vector
     if (vec->capacity < vec->length + length) {
@@ -236,27 +244,27 @@ static bool Vector_PushMany(T)(Vector(T) * vec, const T elems[], size_t length)
             newCapacity = max(vec->length + length, vector_grow(vec->capacity));
         }
 
-        if (!Vector_GrowTo(T)(vec, newCapacity)) {
+        if (!Vector_GrowTo(Tn)(vec, newCapacity)) {
             return false;
         }
     }
 
     for (size_t ii = 0; ii < length; ++ii) {
-        vec->at[vec->length + ii] = elems[ii];
+        vec->at[vec->length + ii] = (T)elems[ii];
     }
     vec->length += length;
 
     return true;
 }
 
-static bool Vector_Push(T)(Vector(T) * vec, const T* elem)
+static bool Vector_Push(Tn)(Vector(Tn) * vec, const T* elem)
 {
-    return Vector_PushMany(T)(vec, elem, 1);
+    return Vector_PushMany(Tn)(vec, elem, 1);
 }
 
-static ssize_t Vector_PushEmpty(T)(Vector(T) * vec)
+static ssize_t Vector_PushEmpty(Tn)(Vector(Tn) * vec)
 {
-    if (Vector_Reserve(T)(vec, vec->length + 1)) {
+    if (Vector_Reserve(Tn)(vec, vec->length + 1)) {
         vec->length += 1;
         return vec->length - 1;
     } else {
@@ -264,14 +272,14 @@ static ssize_t Vector_PushEmpty(T)(Vector(T) * vec)
     }
 }
 
-static bool Vector_InsertMany(T)(Vector(T) * vec, size_t index, const T elems[], size_t length)
+static bool Vector_InsertMany(Tn)(Vector(Tn) * vec, size_t index, const T elems[], size_t length)
 {
     if (length == 0) {
         // nop
         return true;
     } else if (index == vec->length) {
         // equivalent to a push many
-        return Vector_PushMany(T)(vec, elems, length);
+        return Vector_PushMany(Tn)(vec, elems, length);
     } else if (index > vec->length) {
         // can't insert past the end of the vector
         return false;
@@ -286,7 +294,7 @@ static bool Vector_InsertMany(T)(Vector(T) * vec, size_t index, const T elems[],
             newCapacity = max(vec->length + length, vector_grow(vec->capacity));
         }
 
-        if (!Vector_GrowTo(T)(vec, newCapacity)) {
+        if (!Vector_GrowTo(Tn)(vec, newCapacity)) {
             return false;
         }
     }
@@ -298,23 +306,23 @@ static bool Vector_InsertMany(T)(Vector(T) * vec, size_t index, const T elems[],
 
     // copy elements from elems to their new position starting at the end of their section in the vector
     for (size_t ii = index + length - 1; ii > index; --ii) {
-        vec->at[ii] = elems[ii - index];
+        vec->at[ii] = (T)elems[ii - index];
     }
 
     // copy first element in elems to index
-    vec->at[index] = elems[0];
+    vec->at[index] = (T)elems[0];
 
     vec->length += length;
 
     return true;
 }
 
-static bool Vector_Insert(T)(Vector(T) * vec, size_t index, const T* elem)
+static bool Vector_Insert(Tn)(Vector(Tn) * vec, size_t index, const T* elem)
 {
-    return Vector_InsertMany(T)(vec, index, elem, 1);
+    return Vector_InsertMany(Tn)(vec, index, elem, 1);
 }
 
-static bool Vector_Shrink(T)(Vector(T) * vec)
+static bool Vector_Shrink(Tn)(Vector(Tn) * vec)
 {
     // nop if it's already shrunk to size
     if (vec->capacity == vec->length) {
@@ -342,7 +350,7 @@ static bool Vector_Shrink(T)(Vector(T) * vec)
     return true;
 }
 
-static bool Vector_Clear(T)(Vector(T) * vec)
+static bool Vector_Clear(Tn)(Vector(Tn) * vec)
 {
     free(vec->at);
     vec->at = NULL;
@@ -353,7 +361,7 @@ static bool Vector_Clear(T)(Vector(T) * vec)
     return true;
 }
 
-static void Vector_RemoveRange(T)(Vector(T) * vec, size_t start, size_t stop)
+static void Vector_RemoveRange(Tn)(Vector(Tn) * vec, size_t start, size_t stop)
 {
     if (start > vec->length - 1 || stop > vec->length || stop - start == 0) {
         // nop
@@ -367,26 +375,31 @@ static void Vector_RemoveRange(T)(Vector(T) * vec, size_t start, size_t stop)
     vec->length -= stop - start;
 }
 
-static void Vector_Remove(T)(Vector(T) * vec, size_t index)
+// Remove an element from the vector
+//  The index specified must be a valid index in the vector
+//  void Vector_Remove(T)(Vector(T)* vec, size_t index)
+static void Vector_Remove(Tn)(Vector(Tn) * vec, size_t index)
 {
-    Vector_RemoveRange(T)(vec, index, index + 1);
+    Vector_RemoveRange(Tn)(vec, index, index + 1);
 }
 
 // cleanup macros
 #undef T
+#undef Tn
 #undef vector_init_capacity
 #undef vector_grow
 #undef malloc
 #undef realloc
 #undef free
-#ifdef DEFD_MAX
+#ifdef DEF_MAX
 #    undef max
-#    undef DEFD_MAX
+#    undef DEF_MAX
 #endif
 
 #undef DEFAULT_ALLOCATOR
 
 #undef TEMPLATE_TYPE
+#undef TEMPLATE_NAME
 #undef TEMPLATE_INIT_CAPACITY
 #undef TEMPLATE_GROW
 #undef TEMPLATE_MALLOC

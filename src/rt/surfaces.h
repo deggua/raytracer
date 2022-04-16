@@ -3,16 +3,16 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "gfx/primitives.h"
-#include "object/hitinfo.h"
-#include "surfaces.h"
+#include "common/common.h"
+#include "common/vec.h"
+#include "rt/hitinfo.h"
 
 typedef union {
     struct {
-        Point3 min;
-        Point3 max;
+        point3 min;
+        point3 max;
     };
-    Point3 bounds[2];
+    point3 bounds[2];
 } BoundingBox;
 
 typedef enum
@@ -22,12 +22,12 @@ typedef enum
 } SurfaceType;
 
 typedef struct {
-    Point3 c;
-    float  r;
+    point3 c;
+    f32    r;
 } Sphere;
 
 typedef struct {
-    Point3 v[3];
+    point3 v[3];
 } Triangle;
 
 typedef struct {
@@ -38,10 +38,10 @@ typedef struct {
     };
 } Surface;
 
-Sphere Sphere_Make(Point3 center, float radius);
+Sphere Sphere_Make(point3 center, f32 radius);
 bool   Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box);
-bool   Sphere_HitAt(const Sphere* sphere, const Ray* ray, float tMin, float tMax, HitInfo* hit);
+bool   Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
 
-Triangle Triangle_Make(Point3 v1, Point3 v2, Point3 v3);
+Triangle Triangle_Make(point3 v1, point3 v2, point3 v3);
 bool     Triangle_BoundedBy(const Triangle* tri, BoundingBox* box);
-bool     Triangle_HitAt(const Triangle* tri, const Ray* ray, float tMin, float tMax, HitInfo* hit);
+bool     Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);

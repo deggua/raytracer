@@ -1,7 +1,8 @@
 #pragma once
 
-#include "object/kdtree.h"
-#include "object/object.h"
+#include "common/common.h"
+#include "rt/accelerators/kdtree.h"
+#include "world/object.h"
 
 typedef struct Scene Scene;
 

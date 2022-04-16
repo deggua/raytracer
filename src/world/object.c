@@ -2,9 +2,10 @@
 
 #include <stdlib.h>
 
-#include "object/materials.h"
+#include "common/common.h"
+#include "rt/materials.h"
 
-bool Surface_HitAt(const Surface* surface, const Ray* ray, float tMin, float tMax, HitInfo* hit)
+bool Surface_HitAt(const Surface* surface, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
 {
     switch (surface->type) {
         case SURFACE_SPHERE: {
@@ -16,7 +17,7 @@ bool Surface_HitAt(const Surface* surface, const Ray* ray, float tMin, float tMa
         } break;
     }
 
-    __builtin_unreachable();
+    OPTIMIZE_UNREACHABLE;
 }
 
 bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
@@ -31,7 +32,7 @@ bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
         } break;
     }
 
-    __builtin_unreachable();
+    OPTIMIZE_UNREACHABLE;
 }
 
 bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
@@ -50,5 +51,5 @@ bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* 
         } break;
     }
 
-    __builtin_unreachable();
+    OPTIMIZE_UNREACHABLE;
 }

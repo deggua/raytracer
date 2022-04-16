@@ -52,7 +52,7 @@ BraceWrapping:
     SplitEmptyRecord: false
     SplitEmptyNamespace: false
 
-BreakBeforeBinaryOperators: All
+BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Custom
 BreakBeforeConceptDeclarations: true
 BreakBeforeTernaryOperators: false

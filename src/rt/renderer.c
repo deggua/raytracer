@@ -4,8 +4,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-#include "gfx/random.h"
-#include "gfx/utils.h"
+#include "common/math.h"
+#include "common/random.h"
 
 RenderCtx* Render_New(const Scene* scene, Image* img, const Camera* cam)
 {
@@ -68,7 +68,7 @@ static void* RenderThread(void* arg)
 {
     RenderThreadArg* args = arg;
 
-    Random_Seed(__builtin_readcyclecounter());
+    RNG_Seed(__builtin_readcyclecounter());
 
     Image*        img   = args->ctx->img;
     const Camera* cam   = args->ctx->cam;
@@ -89,19 +89,21 @@ static void* RenderThread(void* arg)
             Color cumColorPt = {0};
 
             for (size_t samples = 0; samples < samplesPerPixel; samples++) {
-                float horizontalFraction = (xx + Random_Float()) / (float)(imageWidth - 1);
-                float verticalFraction   = (yy + Random_Float()) / (float)(imageHeight - 1);
+                f32 horizontalFraction = (xx + RNG_Random()) / (f32)(imageWidth - 1);
+                f32 verticalFraction   = (yy + RNG_Random()) / (f32)(imageHeight - 1);
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
                 Color rayColor = RayColor(scene, &ray, maxRayDepth);
-                cumColorPt     = vadd(cumColorPt, rayColor);
+                cumColorPt     = (Color){.vec3 = vadd(cumColorPt.vec3, rayColor.vec3)};
             }
 
-            Point3 avgColorPt = vdiv(cumColorPt, samplesPerPixel);
-            RGB    avgRGB     = RGB_FromFloat(
-                sqrtf(clampf(avgColorPt.x, 0.0f, 0.999f)),
-                sqrtf(clampf(avgColorPt.y, 0.0f, 0.999f)),
-                sqrtf(clampf(avgColorPt.z, 0.0f, 0.999f)));
+            point3 avgColorPt = vdiv(cumColorPt.vec3, samplesPerPixel);
+
+            RGB avgRGB = RGB_FromColor((Color){
+                .r = sqrtf(clampf(avgColorPt.x, 0.0f, 0.999f)),
+                .g = sqrtf(clampf(avgColorPt.y, 0.0f, 0.999f)),
+                .b = sqrtf(clampf(avgColorPt.z, 0.0f, 0.999f)),
+            });
 
             Image_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
         }
