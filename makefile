@@ -3,7 +3,7 @@ CC = clang
 CC_FLAGS_FILE = compile_flags.txt
 CC_FLAGS = $(shell cat $(CC_FLAGS_FILE))
 CC_FLAGS_DEBUG_MODE = -ggdb3 -O0
-CC_FLAGS_RELEASE_MODE = -ggdb3 -Ofast -flto -Wl,-O3
+CC_FLAGS_RELEASE_MODE = -ggdb3 -Ofast -flto -Wl,-O3 -fvisibility=hidden
 
 CC_FLAGS_DEBUG = $(CC_FLAGS_DEBUG_MODE) $(CC_FLAGS)
 CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)

@@ -395,3 +395,15 @@ bool vec4_AlmostTheSame(vec4 v1, vec4 v2)
 {
     return equalf(v1.x, v2.x) && equalf(v1.y, v2.y) && equalf(v1.z, v2.z) && equalf(v1.w, v2.w);
 }
+
+/* --- Scalar --- */
+
+f32 scalar_Multiply(f32 x, f32 y)
+{
+    return x * y;
+}
+
+bool scalar_AlmostTheSame(f32 x, f32 y)
+{
+    return equalf(x, y);
+}

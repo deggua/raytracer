@@ -14,12 +14,6 @@ typedef enum
     AXIS_LAST
 } Axis;
 
-typedef enum
-{
-    VEC_EQU,
-    VEC_GT,
-} VecCompare;
-
 typedef union {
     struct {
         f32 x;
@@ -47,8 +41,6 @@ typedef union {
     f32 v[4];
 } vec4;
 
-// TODO: enable this? useful for conversion between vectors
-#if 0
 typedef union {
     m128 m128;
     vec2 vec2;
@@ -61,8 +53,7 @@ typedef union {
         f32 w;
     };
     f32 v[4];
-} vecu;
-#endif
+} vecg;
 
 typedef vec2 point2;
 typedef vec3 point3;
@@ -153,6 +144,11 @@ bool vec4_CompareMagnitudeGreaterThan(vec4 v1, f32 mag);
 bool vec4_CompareMagnitudeGreaterThanR(f32 mag, vec4 v1);
 bool vec4_AlmostTheSame(vec4 v1, vec4 v2);
 
+/* --- scalar --- */
+
+f32  scalar_Multiply(f32 x, f32 y);
+bool scalar_AlmostTheSame(f32 x, f32 y);
+
 #define VEC2_FMT      "<%.02f, %.02f>"
 #define VEC2_ARG(vec) vec.x, vec.y
 
@@ -171,131 +167,135 @@ bool vec4_AlmostTheSame(vec4 v1, vec4 v2);
         [AXIS_W] = "w-axis", \
     })[axis]
 
-#define OVERLOAD_SELECT _Generic
-#define OVERLOAD_MAP(type, func) \
-type:                            \
+#define MAP _Generic
+#define BIND(type, func) \
+type:                    \
     func
 
 /* clang-format off */
+
 #define vadd(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_Add), \
-        OVERLOAD_MAP(vec3, vec3_Add), \
-        OVERLOAD_MAP(vec4, vec4_Add) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, vec2_Add), \
+        BIND(vec3, vec3_Add), \
+        BIND(vec4, vec4_Add) \
+    )((x), (y))
 
 #define vsub(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_Subtract), \
-        OVERLOAD_MAP(vec3, vec3_Subtract), \
-        OVERLOAD_MAP(vec4, vec4_Subtract) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, vec2_Subtract), \
+        BIND(vec3, vec3_Subtract), \
+        BIND(vec4, vec4_Subtract) \
+    )((x), (y))
 
 #define vmul(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec2, vec2_MultiplyComponents), \
-                OVERLOAD_MAP(default, vec2_MultiplyScalar))), \
-        OVERLOAD_MAP(vec3, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec3, vec3_MultiplyComponents), \
-                OVERLOAD_MAP(default, vec3_MultiplyScalar))), \
-        OVERLOAD_MAP(vec4, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec4, vec4_MultiplyComponents), \
-                OVERLOAD_MAP(default, vec4_MultiplyScalar))), \
-        OVERLOAD_MAP(default, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec2, vec2_MultiplyScalarR), \
-                OVERLOAD_MAP(vec3, vec3_MultiplyScalarR), \
-                OVERLOAD_MAP(vec4, vec4_MultiplyScalarR), \
-                OVERLOAD_MAP(default, 0))) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, \
+            MAP((y), \
+                BIND(vec2, vec2_MultiplyComponents), \
+                BIND(default, vec2_MultiplyScalar))), \
+        BIND(vec3, \
+            MAP((y), \
+                BIND(vec3, vec3_MultiplyComponents), \
+                BIND(default, vec3_MultiplyScalar))), \
+        BIND(vec4, \
+            MAP((y), \
+                BIND(vec4, vec4_MultiplyComponents), \
+                BIND(default, vec4_MultiplyScalar))), \
+        BIND(default, \
+            MAP((y), \
+                BIND(vec2, vec2_MultiplyScalarR), \
+                BIND(vec3, vec3_MultiplyScalarR), \
+                BIND(vec4, vec4_MultiplyScalarR), \
+                BIND(default, scalar_Multiply))) \
+    )((x), (y))
 
 #define vdiv(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec2, vec2_DivideComponents), \
-                OVERLOAD_MAP(default, vec2_DivideScalar))), \
-        OVERLOAD_MAP(vec3, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec3, vec3_DivideComponents), \
-                OVERLOAD_MAP(default, vec3_DivideScalar))), \
-        OVERLOAD_MAP(vec4, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec4, vec4_DivideComponents), \
-                OVERLOAD_MAP(default, vec4_DivideScalar))) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, \
+            MAP((y), \
+                BIND(vec2, vec2_DivideComponents), \
+                BIND(default, vec2_DivideScalar))), \
+        BIND(vec3, \
+            MAP((y), \
+                BIND(vec3, vec3_DivideComponents), \
+                BIND(default, vec3_DivideScalar))), \
+        BIND(vec4, \
+            MAP((y), \
+                BIND(vec4, vec4_DivideComponents), \
+                BIND(default, vec4_DivideScalar))) \
+    )((x), (y))
 
 #define vdot(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_DotProduct), \
-        OVERLOAD_MAP(vec3, vec3_DotProduct), \
-        OVERLOAD_MAP(vec4, vec4_DotProduct) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, vec2_DotProduct), \
+        BIND(vec3, vec3_DotProduct), \
+        BIND(vec4, vec4_DotProduct) \
+    )((x), (y))
 
 #define vcross(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_CrossProduct), \
-        OVERLOAD_MAP(vec3, vec3_CrossProduct)\
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, vec2_CrossProduct), \
+        BIND(vec3, vec3_CrossProduct)\
+    )((x), (y))
 
 #define vmag(x) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_Magnitude), \
-        OVERLOAD_MAP(vec3, vec3_Magnitude), \
-        OVERLOAD_MAP(vec4, vec4_Magnitude) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, vec2_Magnitude), \
+        BIND(vec3, vec3_Magnitude), \
+        BIND(vec4, vec4_Magnitude) \
+    )((x), (y))
 
 #define vmag2(x) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_MagnitudeSquared), \
-        OVERLOAD_MAP(vec3, vec3_MagnitudeSquared), \
-        OVERLOAD_MAP(vec4, vec4_MagnitudeSquared) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, vec2_MagnitudeSquared), \
+        BIND(vec3, vec3_MagnitudeSquared), \
+        BIND(vec4, vec4_MagnitudeSquared) \
+    )((x), (y))
 
 #define vnorm(x) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_Normalize), \
-        OVERLOAD_MAP(vec3, vec3_Normalize), \
-        OVERLOAD_MAP(vec4, vec4_Normalize) \
-    )(x)
+    MAP((x), \
+        BIND(vec2, vec2_Normalize), \
+        BIND(vec3, vec3_Normalize), \
+        BIND(vec4, vec4_Normalize) \
+    )((x))
 
+// Test for equality
+// vec, f32 := vec magnitude equality
+// vec, vec := vec component equality
 #define vequ(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec2, vec2_AlmostTheSame), \
-                OVERLOAD_MAP(default, vec2_CompareMagnitudeEqual))), \
-        OVERLOAD_MAP(vec3, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec3, vec3_AlmostTheSame), \
-                OVERLOAD_MAP(default, vec3_CompareMagnitudeEqual))), \
-        OVERLOAD_MAP(vec4, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec4, vec4_AlmostTheSame), \
-                OVERLOAD_MAP(default, vec4_CompareMagnitudeEqual))), \
-        OVERLOAD_MAP(default, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec2, vec2_CompareMagnitudeEqualR), \
-                OVERLOAD_MAP(vec3, vec3_CompareMagnitudeEqualR), \
-                OVERLOAD_MAP(vec4, vec4_CompareMagnitudeEqualR), \
-                OVERLOAD_MAP(default, 0))) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, \
+            MAP((y), \
+                BIND(vec2, vec2_AlmostTheSame), \
+                BIND(default, vec2_CompareMagnitudeEqual))), \
+        BIND(vec3, \
+            MAP((y), \
+                BIND(vec3, vec3_AlmostTheSame), \
+                BIND(default, vec3_CompareMagnitudeEqual))), \
+        BIND(vec4, \
+            MAP((y), \
+                BIND(vec4, vec4_AlmostTheSame), \
+                BIND(default, vec4_CompareMagnitudeEqual))), \
+        BIND(default, \
+            MAP((y), \
+                BIND(vec2, vec2_CompareMagnitudeEqualR), \
+                BIND(vec3, vec3_CompareMagnitudeEqualR), \
+                BIND(vec4, vec4_CompareMagnitudeEqualR), \
+                BIND(default, scalar_AlmostTheSame))) \
+    )((x), (y))
 
 #define vgt(x, y) \
-    OVERLOAD_SELECT((x), \
-        OVERLOAD_MAP(vec2, vec2_CompareMagnitudeGreaterThan), \
-        OVERLOAD_MAP(vec3, vec3_CompareMagnitudeGreaterThan), \
-        OVERLOAD_MAP(vec4, vec4_CompareMagnitudeGreaterThan), \
-        OVERLOAD_MAP(default, \
-            OVERLOAD_SELECT((y), \
-                OVERLOAD_MAP(vec2, vec2_CompareMagnitudeGreaterThanR), \
-                OVERLOAD_MAP(vec3, vec3_CompareMagnitudeGreaterThanR), \
-                OVERLOAD_MAP(vec4, vec4_CompareMagnitudeGreaterThanR))) \
-    )(x, y)
+    MAP((x), \
+        BIND(vec2, vec2_CompareMagnitudeGreaterThan), \
+        BIND(vec3, vec3_CompareMagnitudeGreaterThan), \
+        BIND(vec4, vec4_CompareMagnitudeGreaterThan), \
+        BIND(default, \
+            MAP((y), \
+                BIND(vec2, vec2_CompareMagnitudeGreaterThanR), \
+                BIND(vec3, vec3_CompareMagnitudeGreaterThanR), \
+                BIND(vec4, vec4_CompareMagnitudeGreaterThanR))) \
+    )((x), (y))
 
 #define vneq(x, y)  (!vequ((x), (y)))
 #define vlteq(x, y) (!vgt((x), (y)))

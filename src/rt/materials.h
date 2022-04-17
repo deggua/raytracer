@@ -5,10 +5,9 @@
 #include "common/common.h"
 #include "common/vec.h"
 #include "gfx/color.h"
-#include "rt/hitinfo.h"
+#include "rt/ray.h"
 
-typedef enum
-{
+typedef enum {
     MATERIAL_DIFFUSE,
     MATERIAL_METAL,
     MATERIAL_DIELECTRIC,

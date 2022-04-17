@@ -2,20 +2,20 @@
 
 Ray Ray_Make(point3 origin, vec3 dir, f32 time)
 {
-    return (Ray){
+    return (Ray) {
         .origin = origin,
         .dir    = dir,
         .time   = time,
-        .cache = {
+        .cache  = {
             .invDir = {
-                .x = 1.0f / dir.x,
-                .y = 1.0f / dir.y,
-                .z = 1.0f / dir.z,
+                1.0f / dir.x,
+                1.0f / dir.y,
+                1.0f / dir.z,
             },
             .originDivDir = {
-                .x = origin.x / dir.x,
-                .y = origin.y / dir.y,
-                .z = origin.z / dir.z,
+                origin.x / dir.x,
+                origin.y / dir.y,
+                origin.z / dir.z,
             },
         },
     };
@@ -24,4 +24,10 @@ Ray Ray_Make(point3 origin, vec3 dir, f32 time)
 point3 Ray_At(const Ray* ray, f32 dist)
 {
     return vadd(ray->origin, vmul(ray->dir, dist));
+}
+
+void HitInfo_SetFaceNormal(HitInfo* hit, const Ray* ray, vec3 outwardNormal)
+{
+    hit->frontFace  = vdot(ray->dir, outwardNormal) < 0;
+    hit->unitNormal = hit->frontFace ? outwardNormal : vmul(outwardNormal, -1.0f);
 }

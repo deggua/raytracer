@@ -8,13 +8,12 @@
 #include "common/random.h"
 #include "common/vec.h"
 #include "gfx/color.h"
-#include "rt/hitinfo.h"
 
 /* ---- DIFFUSE ---- */
 
 Diffuse Diffuse_Make(Color albedo)
 {
-    return (Diffuse){
+    return (Diffuse) {
         .albedo = albedo,
     };
 }
@@ -39,7 +38,7 @@ bool Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit
 
 Metal Metal_Make(Color albedo, f32 fuzz)
 {
-    return (Metal){
+    return (Metal) {
         .albedo = albedo,
         .fuzz   = fuzz,
     };
@@ -64,7 +63,7 @@ bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Colo
 
 Dielectric Dielectric_Make(Color albedo, f32 refractiveIndex)
 {
-    return (Dielectric){
+    return (Dielectric) {
         .albedo         = albedo,
         .refactiveIndex = refractiveIndex,
     };
@@ -88,6 +87,7 @@ bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* 
 
     bool cannotRefract = refractionRatio * sinTheta > 1.0f;
     vec3 bounce;
+
     if (cannotRefract || reflectance(cosTheta, refractionRatio) > RNG_Random()) {
         bounce = vec3_Reflect(normRayDir, hit->unitNormal);
     } else {

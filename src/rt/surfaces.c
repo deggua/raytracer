@@ -5,11 +5,10 @@
 #include <stdlib.h>
 
 #include "common/math.h"
-#include "rt/hitinfo.h"
 
 Sphere Sphere_Make(point3 center, f32 radius)
 {
-    return (Sphere){
+    return (Sphere) {
         .c = center,
         .r = radius,
     };
@@ -19,10 +18,10 @@ bool Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box)
 {
     const point3 center  = sphere->c;
     const f32    epsilon = 0.001f;
-    const vec3   vRad    = (vec3){
-             .x = sphere->r + epsilon,
-             .y = sphere->r + epsilon,
-             .z = sphere->r + epsilon,
+    const vec3   vRad    = (vec3) {
+        .x = sphere->r + epsilon,
+        .y = sphere->r + epsilon,
+        .z = sphere->r + epsilon,
     };
 
     box->min = vsub(center, vRad);
@@ -48,6 +47,7 @@ bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitI
         f32 root2 = (-halfPolyB + sqrtf(discriminant)) / polyA;
 
         f32 tIntersect;
+
         if (tMin < root1 && root1 < tMax) {
             tIntersect = root1;
         } else if (tMin < root2 && root2 < tMax) {
@@ -71,7 +71,7 @@ bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitI
 
 Triangle Triangle_Make(point3 v1, point3 v2, point3 v3)
 {
-    return (Triangle){
+    return (Triangle) {
         .v = {v1, v2, v3},
     };
 }
@@ -105,6 +105,7 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
 
     vec3 s = vsub(ray->origin, tri->v[0]);
     f32  u = vdot(s, h) / a;
+
     if (u < 0.0f || u > 1.0f) {
         return false;
     }
@@ -117,6 +118,7 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
     }
 
     f32 t = vdot(edge2, q) / a;
+
     if (t > tMax || t < tMin) {
         return false;
     } else {

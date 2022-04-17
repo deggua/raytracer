@@ -4,31 +4,29 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "common/common.h"
 #include "common/math.h"
+#include "common/profiling.h"
 #include "common/random.h"
 #include "common/vec.h"
-#include "common/common.h"
-#include "common/profiling.h"
-#include "world/camera.h"
 #include "gfx/color.h"
 #include "gfx/image.h"
 #include "gfx/mesh.h"
 #include "rt/renderer.h"
+#include "world/camera.h"
 #include "world/object.h"
 #include "world/scene.h"
 
 Material diffuse = {
-    .type = MATERIAL_DIFFUSE,
-    .diffuse = {
-        .albedo = COLOR_GREEN,
-    },
+    .type    = MATERIAL_DIFFUSE,
+    .diffuse = {.albedo = COLOR_GREEN},
 };
 
 Material metal = {
-    .type = MATERIAL_METAL,
+    .type  = MATERIAL_METAL,
     .metal = {
         .albedo = COLOR_RED,
-        .fuzz = 0.4f,
+        .fuzz = 0.4f
     },
 };
 
@@ -65,45 +63,45 @@ static void InterruptHandler(int sig)
 
 static void FillScene(Scene* scene)
 {
-#if 0
+#    if 0
     FILE* fd   = fopen("assets/teapot.obj", "r");
-    Mesh* mesh = Mesh_New((point3){0, 1, 0}, 2.5f, &diffuse);
-#endif
+    Mesh* mesh = Mesh_New((point3) {0, 1, 0}, 2.5f, &diffuse);
+#    endif
 
-#if 1
+#    if 1
     FILE* fd   = fopen("assets/dragon.obj", "r");
     Mesh* mesh = Mesh_New();
     Mesh_Import_OBJ(mesh, fd);
 
-    Mesh_Set_Origin(mesh, (point3){0, 7, 10});
+    Mesh_Set_Origin(mesh, (point3) {{0, 7, 10}});
     Mesh_Set_Scale(mesh, 1.0f / 10.0f);
     Mesh_Set_Material(mesh, &diffuse);
     Mesh_AddToScene(mesh, scene);
 
-    Mesh_Set_Origin(mesh, (point3){0, 7, 0});
+    Mesh_Set_Origin(mesh, (point3) {{0, 7, 0}});
     Mesh_Set_Material(mesh, &glass);
     Mesh_AddToScene(mesh, scene);
 
-    Mesh_Set_Origin(mesh, (point3){0, 7, -10});
+    Mesh_Set_Origin(mesh, (point3) {.v = {0, 7, -10}});
     Mesh_Set_Material(mesh, &metal);
     Mesh_AddToScene(mesh, scene);
 
     Mesh_Delete(mesh);
-#endif
+#    endif
 
     // ground
     Object obj;
     obj.material       = &ground;
     obj.surface.type   = SURFACE_SPHERE;
-    obj.surface.sphere = Sphere_Make((point3){0, -1000, 0}, 1000.0f);
+    obj.surface.sphere = Sphere_Make((point3) {0, -1000, 0}, 1000.0f);
     Scene_Add_Object(scene, &obj);
 }
 
 int main(void)
 {
-    const point3 lookFrom    = (point3){20, 14, 20};
-    const point3 lookAt      = (point3){0, 6, 0};
-    const vec3   vup         = (vec3){0, 1, 0};
+    const point3 lookFrom    = (point3) {20, 14, 20};
+    const point3 lookAt      = (point3) {0, 6, 0};
+    const vec3   vup         = (vec3) {0, 1, 0};
     const f32    focusDist   = 10.0f;
     const f32    aperature   = 0.0f;
     const f32    aspectRatio = 16.0f / 9.0f;

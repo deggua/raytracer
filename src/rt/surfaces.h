@@ -5,7 +5,7 @@
 
 #include "common/common.h"
 #include "common/vec.h"
-#include "rt/hitinfo.h"
+#include "rt/ray.h"
 
 typedef union {
     struct {
@@ -15,8 +15,7 @@ typedef union {
     point3 bounds[2];
 } BoundingBox;
 
-typedef enum
-{
+typedef enum {
     SURFACE_SPHERE,
     SURFACE_TRIANGLE,
 } SurfaceType;

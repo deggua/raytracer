@@ -8,7 +8,7 @@
             "name": "Debug",
             "type": "gdb",
             "request": "launch",
-            "target": "./bin/debug/rt.out",
+            "target": "./bin/rtdbg.out",
             "cwd": "${workspaceRoot}",
             "valuesFormatting": "parseText"
         }

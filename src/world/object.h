@@ -3,7 +3,6 @@
 #include <stdbool.h>
 
 #include "common/common.h"
-#include "rt/hitinfo.h"
 #include "rt/materials.h"
 #include "rt/ray.h"
 #include "rt/surfaces.h"
@@ -11,8 +10,8 @@
 typedef struct {
     Material* material;
     Surface   surface; // TODO: should Object just hold a ptr to surface?, also should Surface even have the concept of
-                       // position? we could save 8 bytes per copy of object, and reduce the memory cost of having the
-                       // same mesh instantiated many times significantly, but would have a computation overhead at
+    // position? we could save 8 bytes per copy of object, and reduce the memory cost of having the
+    // same mesh instantiated many times significantly, but would have a computation overhead at
     // runtime (transform to/from object space), doing it in a pre-pass in Scene_Prepare could save us
     // from having to do that, but would require separate copies of Surface which negates the savings
     // per duplicated mesh. Logically either seems fine, but currently we have no real notion of object
