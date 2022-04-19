@@ -17,34 +17,6 @@
 #include "world/object.h"
 #include "world/scene.h"
 
-Material diffuse = {
-    .type    = MATERIAL_DIFFUSE,
-    .diffuse = {.albedo = COLOR_GREEN},
-};
-
-Material metal = {
-    .type  = MATERIAL_METAL,
-    .metal = {
-        .albedo = COLOR_RED,
-        .fuzz = 0.4f
-    },
-};
-
-Material glass = {
-    .type = MATERIAL_DIELECTRIC,
-    .dielectric = {
-        .albedo = COLOR_WHITE,
-        .refactiveIndex = 1.5f,
-    },
-};
-
-Material ground = {
-    .type = MATERIAL_DIFFUSE,
-    .diffuse = {
-        .albedo = COLOR_GREY,
-    },
-};
-
 static void ExportImage(Image* img, const char* filename)
 {
     FILE* fd = fopen(filename, "w+");
@@ -61,45 +33,62 @@ static void InterruptHandler(int sig)
     exit(EXIT_SUCCESS);
 }
 
+Material g_matMesh;
+Material g_matMesh2;
+Material g_matGround;
+
 static void FillScene(Scene* scene)
 {
-#    if 0
-    FILE* fd   = fopen("assets/teapot.obj", "r");
-    Mesh* mesh = Mesh_New((point3) {0, 1, 0}, 2.5f, &diffuse);
-#    endif
+    FILE* obj = fopen("assets/pear/obj/pear_export.obj", "r");
+    FILE* tex = fopen("assets/pear/tex/pear_diffuse.bmp", "rb");
 
-#    if 1
-    FILE* fd   = fopen("assets/dragon.obj", "r");
     Mesh* mesh = Mesh_New();
-    Mesh_Import_OBJ(mesh, fd);
+    Mesh_Import_OBJ(mesh, obj);
+    fclose(obj);
 
-    Mesh_Set_Origin(mesh, (point3) {{0, 7, 10}});
-    Mesh_Set_Scale(mesh, 1.0f / 10.0f);
-    Mesh_Set_Material(mesh, &diffuse);
+    Texture* texMesh = Texture_New();
+    Texture_Import_BMP(texMesh, tex);
+    fclose(tex);
+
+    g_matMesh.type = MATERIAL_DIELECTRIC;
+    g_matMesh.dielectric.albedo = texMesh;
+    g_matMesh.dielectric.refactiveIndex = 1.5f;
+
+    Mesh_Set_Material(mesh, &g_matMesh);
+    Mesh_Set_Origin(mesh, (point3) {0, 6, -4});
+    Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
 
-    Mesh_Set_Origin(mesh, (point3) {{0, 7, 0}});
-    Mesh_Set_Material(mesh, &glass);
-    Mesh_AddToScene(mesh, scene);
+    Texture* texMesh2 = Texture_New();
+    Texture_Import_Color(texMesh2, COLOR_GREY);
 
-    Mesh_Set_Origin(mesh, (point3) {.v = {0, 7, -10}});
-    Mesh_Set_Material(mesh, &metal);
+    g_matMesh2.type = MATERIAL_METAL;
+    g_matMesh2.metal.albedo = texMesh2;
+    g_matMesh2.metal.fuzz = 0.1f;
+
+    Mesh_Set_Material(mesh, &g_matMesh2);
+    Mesh_Set_Origin(mesh, (point3) {0, 6, 4});
+    Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
 
     Mesh_Delete(mesh);
-#    endif
+
+    Texture* texGround = Texture_New();
+    Texture_Import_Color(texGround, COLOR_NAVY);
+    g_matGround.type = MATERIAL_DIFFUSE;
+    g_matGround.diffuse.albedo = texGround;
 
     // ground
-    Object obj;
-    obj.material       = &ground;
-    obj.surface.type   = SURFACE_SPHERE;
-    obj.surface.sphere = Sphere_Make((point3) {0, -1000, 0}, 1000.0f);
-    Scene_Add_Object(scene, &obj);
+    Object worldObj;
+    worldObj.material       = &g_matGround;
+    worldObj.surface.type   = SURFACE_SPHERE;
+    worldObj.surface.sphere = Sphere_Make((point3) {0, -1000, 0}, 1000.0f);
+    Scene_Add_Object(scene, &worldObj);
 }
 
 int main(void)
 {
-    const point3 lookFrom    = (point3) {20, 14, 20};
+    const point3 lookFrom    = (point3) {-20, 15, -20};
     const point3 lookAt      = (point3) {0, 6, 0};
     const vec3   vup         = (vec3) {0, 1, 0};
     const f32    focusDist   = 10.0f;
@@ -128,7 +117,7 @@ int main(void)
 
     RenderCtx* ctx = Render_New(scene, img, cam);
 
-    TIMEIT("Scene render", Render_Do(ctx, 64, 32, numThreads));
+    TIMEIT("Scene render", Render_Do(ctx, 256, 32, numThreads));
 
     ExportImage(img, "output.bmp");
 

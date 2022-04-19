@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "common/math.h"
 
@@ -30,6 +31,20 @@ bool Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box)
     return true;
 }
 
+static vec2 Sphere_MapUV(const point3 onSphere)
+{
+    f32 theta = acosf(clampf(-onSphere.y, -0.999f, 0.999f));
+    f32 phi = atan2f(-onSphere.z, onSphere.x) + PI;
+
+    //assert(!isnanf(theta));
+    //assert(!isnanf(phi));
+
+    return (vec2) {
+        .x = phi / (2 * PI),
+        .y = theta / PI,
+    };
+}
+
 bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
 {
     vec3 dist         = vsub(ray->origin, sphere->c);
@@ -41,8 +56,6 @@ bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitI
     if (discriminant < 0.0f) {
         return false;
     } else {
-        // TODO: it doesn't seem necesarily true to me that the smallest root is going to be root1, what if polyA is
-        // negative? Prove this to myself or change the computation
         f32 root1 = (-halfPolyB - sqrtf(discriminant)) / polyA;
         f32 root2 = (-halfPolyB + sqrtf(discriminant)) / polyA;
 
@@ -58,21 +71,43 @@ bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitI
 
         hit->tIntersect = tIntersect;
         hit->position   = Ray_At(ray, tIntersect);
-
-        // hit->unitNormal = v3div(v3sub(hit->position, sphere->center), sphere->radius);
-        // TODO: I don't think we should do this here, we don't necessarily need this info at hit time, so why calculate
-        // it
         vec3 outwardNormal = vdiv(vsub(hit->position, sphere->c), sphere->r);
         HitInfo_SetFaceNormal(hit, ray, outwardNormal);
+        hit->uv = Sphere_MapUV(outwardNormal);
 
         return true;
     }
 }
 
-Triangle Triangle_Make(point3 v1, point3 v2, point3 v3)
+Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2)
+{
+    vec3 edge1 = vsub(v1, v0);
+    vec3 edge2 = vsub(v2, v0);
+    vec3 defaultNormal = vcross(edge1, edge2);
+
+    return (Triangle) {
+        .v[0] = {
+            .pos = v0,
+            .norm = defaultNormal,
+            .tex = {0.0f, 0.0f}
+        },
+        .v[1] = {
+            .pos = v1,
+            .norm = defaultNormal,
+            .tex = {0.0f, 0.0f}
+        },
+        .v[2] = {
+            .pos = v2,
+            .norm = defaultNormal,
+            .tex = {0.0f, 0.0f}
+        }
+    };
+}
+
+Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
 {
     return (Triangle) {
-        .v = {v1, v2, v3},
+        .v = {v0, v1, v2}
     };
 }
 
@@ -81,8 +116,8 @@ bool Triangle_BoundedBy(const Triangle* tri, BoundingBox* box)
     const f32 epsilon = 0.001f;
 
     for (Axis axis = AXIS_X; axis < AXIS_Z + 1; axis++) {
-        box->min.v[axis] = minf(minf(tri->v[0].v[axis], tri->v[1].v[axis]), tri->v[2].v[axis]) - epsilon;
-        box->max.v[axis] = maxf(maxf(tri->v[0].v[axis], tri->v[1].v[axis]), tri->v[2].v[axis]) + epsilon;
+        box->min.v[axis] = minf(minf(tri->v[0].pos.v[axis], tri->v[1].pos.v[axis]), tri->v[2].pos.v[axis]) - epsilon;
+        box->max.v[axis] = maxf(maxf(tri->v[0].pos.v[axis], tri->v[1].pos.v[axis]), tri->v[2].pos.v[axis]) + epsilon;
     }
 
     return true;
@@ -92,8 +127,8 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
 {
     const f32 epsilon = 0.0001f;
 
-    vec3 edge1 = vsub(tri->v[1], tri->v[0]);
-    vec3 edge2 = vsub(tri->v[2], tri->v[0]);
+    vec3 edge1 = vsub(tri->v[1].pos, tri->v[0].pos);
+    vec3 edge2 = vsub(tri->v[2].pos, tri->v[0].pos);
 
     vec3 h = vcross(ray->dir, edge2);
     f32  a = vdot(edge1, h);
@@ -103,7 +138,7 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
         return false;
     }
 
-    vec3 s = vsub(ray->origin, tri->v[0]);
+    vec3 s = vsub(ray->origin, tri->v[0].pos);
     f32  u = vdot(s, h) / a;
 
     if (u < 0.0f || u > 1.0f) {
@@ -124,8 +159,16 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
     } else {
         hit->position      = Ray_At(ray, t);
         hit->tIntersect    = t;
-        vec3 outwardNormal = vnorm(vcross(edge1, edge2));
+
+        f32 coeff = 1.0f - u - v;
+        hit->uv = vsum(vmul(tri->v[0].tex, coeff), vmul(tri->v[1].tex, u), vmul(tri->v[2].tex, v));
+        assert(hit->uv.x <= 1.0f);
+        assert(hit->uv.y <= 1.0f);
+
+        // TODO: does this need to be normalized? I don't think it should need it but maybe
+        vec3 outwardNormal = vsum(vmul(tri->v[0].norm, coeff), vmul(tri->v[1].norm, u), vmul(tri->v[2].norm, v));
         HitInfo_SetFaceNormal(hit, ray, outwardNormal);
+
         return true;
     }
 }

@@ -26,7 +26,13 @@ typedef struct {
 } Sphere;
 
 typedef struct {
-    point3 v[3];
+    point3 pos;
+    point3 norm;
+    point2 tex;
+} Vertex;
+
+typedef struct {
+    Vertex v[3];
 } Triangle;
 
 typedef struct {
@@ -41,6 +47,7 @@ Sphere Sphere_Make(point3 center, f32 radius);
 bool   Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box);
 bool   Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
 
-Triangle Triangle_Make(point3 v1, point3 v2, point3 v3);
+Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2);
+Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2);
 bool     Triangle_BoundedBy(const Triangle* tri, BoundingBox* box);
 bool     Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);

@@ -1,11 +1,10 @@
 #include "ray.h"
 
-Ray Ray_Make(point3 origin, vec3 dir, f32 time)
+Ray Ray_Make(point3 origin, vec3 dir)
 {
     return (Ray) {
         .origin = origin,
         .dir    = dir,
-        .time   = time,
         .cache  = {
             .invDir = {
                 1.0f / dir.x,

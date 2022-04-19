@@ -21,8 +21,7 @@
             OPTIMIZE_UNREACHABLE; \
     } while (0)
 
-typedef enum RTC
-{
+typedef enum RTC {
     RT_SUCCESS = 0, // Success
     RT_OOM,         // Ran out of memory
     RT_BAD_STATE,   // Reached a bad state which was unrecoverable

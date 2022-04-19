@@ -64,8 +64,7 @@ void Image_Export_PPM(const Image* img, FILE* fd)
 
 /* ---- BMP ---- */
 
-enum BMP_VALUES
-{
+enum BMP_VALUES {
     ID_BM  = 'MB',
     BI_RGB = 0,
 };
@@ -88,14 +87,14 @@ typedef struct {
     union {
         struct {
             u32     headerSize;
-            int32_t pixelWidth;
-            int32_t pixelHeight;
+            i32     pixelWidth;
+            i32     pixelHeight;
             u16     colorPlanes;
             u16     bitsPerPixel;
             u32     compressionMethod;
             u32     bitmapSize;
-            int32_t ppmHorizontal;
-            int32_t ppmVertical;
+            i32     ppmHorizontal;
+            i32     ppmVertical;
             u32     numColors;
             u32     numImportantColors;
         } attr_aligned(1) BITMAPINFOHEADER;
@@ -110,6 +109,7 @@ void Image_Export_BMP(const Image* img, FILE* fd)
     const size_t pixBytesPerRow = sizeof(BGR) * img->res.width;
 
     size_t padBytesPerRow;
+
     if (pixBytesPerRow % sizeof(u32) != 0) {
         padBytesPerRow = sizeof(u32) - pixBytesPerRow;
     } else {
@@ -141,20 +141,23 @@ void Image_Export_BMP(const Image* img, FILE* fd)
     };
 
     u8* pixelBuffer = calloc(1, rowBytes * img->res.height);
+
     if (pixelBuffer == NULL) {
         printf("Failed to allocate pixel buffer\n");
         return;
     }
 
     u8* curPixel = pixelBuffer;
+
     for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
         for (size_t xx = 0; xx < img->res.width; xx++) {
             BGR* bmpPix = (BGR*)curPixel;
             RGB  pix    = Image_GetPixel(img, xx, yy);
-            *bmpPix     = (BGR){.b = pix.b, .g = pix.g, .r = pix.r};
+            *bmpPix     = (BGR) {.b = pix.b, .g = pix.g, .r = pix.r};
 
             curPixel += sizeof(BGR);
         }
+
         curPixel += padBytesPerRow;
     }
 
@@ -163,4 +166,64 @@ void Image_Export_BMP(const Image* img, FILE* fd)
     fwrite(pixelBuffer, rowBytes * img->res.height, 1, fd);
     free(pixelBuffer);
     fflush(fd);
+}
+
+Image* Image_Import_BMP(FILE* fd)
+{
+    BMPHeader header;
+    fread(&header, sizeof(header), 1, fd);
+
+    // validate the header
+    if (header.FileHeader.id != ID_BM || header.DIBHeader.BITMAPINFOHEADER.bitsPerPixel != 24 ||
+        header.DIBHeader.BITMAPINFOHEADER.compressionMethod != BI_RGB) {
+        printf("Invaid Bitmap header\n");
+        return NULL;
+    }
+
+    // construct the image
+    const size_t height = header.DIBHeader.BITMAPINFOHEADER.pixelHeight;
+    const size_t width = header.DIBHeader.BITMAPINFOHEADER.pixelWidth;
+    Image* img = Image_New(width, height);
+
+    if (img == NULL) {
+        return NULL;
+    }
+
+    // compute the padding
+    const size_t pixBytesPerRow = sizeof(BGR) * img->res.width;
+
+    size_t padBytesPerRow;
+
+    if (pixBytesPerRow % sizeof(u32) != 0) {
+        padBytesPerRow = sizeof(u32) - pixBytesPerRow;
+    } else {
+        padBytesPerRow = 0;
+    }
+
+    const size_t rowBytes = pixBytesPerRow + padBytesPerRow;
+
+    // start reading rows of pixels into the image
+    fseek(fd, header.FileHeader.pixelArrayOffset, SEEK_SET);
+    BGR* rowPixels = malloc(rowBytes);
+
+    if (rowPixels == NULL) {
+        Image_Delete(img);
+        return NULL;
+    }
+
+    // read row by row and fill the image with each pixel in the row
+    for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
+        assert(!feof(fd));
+        fread(rowPixels, rowBytes, 1, fd);
+
+        for (size_t xx = 0; xx < img->res.width; xx++) {
+            BGR bmpPix = rowPixels[xx];
+            RGB pix = {.r = bmpPix.r, .g = bmpPix.g, .b = bmpPix.b};
+            Image_SetPixel(img, xx, yy, pix);
+        }
+    }
+
+    free(rowPixels);
+
+    return img;
 }

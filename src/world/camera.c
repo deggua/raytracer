@@ -47,7 +47,7 @@ Camera* Camera_New(
 Ray Camera_GetRay(const Camera* cam, f32 u, f32 v)
 {
     vec3 rd     = vmul(vec3_RandomInUnitDisc(), cam->lensRadius);
-    vec3 offset = (vec3){
+    vec3 offset = (vec3) {
         .x = u * rd.x,
         .y = v * rd.y,
         .z = 0,
@@ -55,9 +55,8 @@ Ray Camera_GetRay(const Camera* cam, f32 u, f32 v)
 
     point3 rayOrigin = vadd(cam->origin, offset);
     vec3   rayDir    = vsub(
-        vadd(cam->bottomLeftCorner, vadd(vmul(cam->horizontal, u), vmul(cam->vertical, v))),
-        vadd(cam->origin, offset));
-    f32 rayTime = RNG_RandomInRange(cam->timeStart, cam->timeEnd);
+                           vadd(cam->bottomLeftCorner, vadd(vmul(cam->horizontal, u), vmul(cam->vertical, v))),
+                           vadd(cam->origin, offset));
 
-    return Ray_Make(rayOrigin, rayDir, rayTime);
+    return Ray_Make(rayOrigin, rayDir);
 }

@@ -11,14 +11,14 @@
 
 /* ---- DIFFUSE ---- */
 
-Diffuse Diffuse_Make(Color albedo)
+Diffuse Diffuse_Make(Texture* tex)
 {
     return (Diffuse) {
-        .albedo = albedo,
+        .albedo = tex,
     };
 }
 
-bool Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
+bool Diffuse_Bounce(const Diffuse* diffuse, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
 {
     (void)rayIn;
 
@@ -28,18 +28,18 @@ bool Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit
         scattered = hit->unitNormal;
     }
 
-    *color  = lambert->albedo;
-    *rayOut = Ray_Make(hit->position, scattered, rayIn->time);
+    *color  = Texture_ColorAt(diffuse->albedo, hit->uv);
+    *rayOut = Ray_Make(hit->position, scattered);
 
     return true;
 }
 
 /* ---- METAL ---- */
 
-Metal Metal_Make(Color albedo, f32 fuzz)
+Metal Metal_Make(Texture* tex, f32 fuzz)
 {
     return (Metal) {
-        .albedo = albedo,
+        .albedo = tex,
         .fuzz   = fuzz,
     };
 }
@@ -51,8 +51,8 @@ bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Colo
     vec3 reflected = vec3_Reflect(vnorm(rayIn->dir), hit->unitNormal);
     vec3 fuzz      = vmul(vec3_RandomOnUnitSphere(), metal->fuzz);
 
-    *color  = metal->albedo;
-    *rayOut = Ray_Make(hit->position, vadd(reflected, fuzz), rayIn->time);
+    *color  = Texture_ColorAt(metal->albedo, hit->uv);
+    *rayOut = Ray_Make(hit->position, vadd(reflected, fuzz));
 
     // NOTE: this calculation requires the normal to point against the ray, and is to catch scattered rays entering the
     // object
@@ -61,10 +61,10 @@ bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Colo
 
 /* ---- DIELECTRIC ---- */
 
-Dielectric Dielectric_Make(Color albedo, f32 refractiveIndex)
+Dielectric Dielectric_Make(Texture* tex, f32 refractiveIndex)
 {
     return (Dielectric) {
-        .albedo         = albedo,
+        .albedo         = tex,
         .refactiveIndex = refractiveIndex,
     };
 }
@@ -78,7 +78,7 @@ static f32 reflectance(f32 cosine, f32 refractiveIndex)
 
 bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
 {
-    *color              = diel->albedo;
+    *color              = Texture_ColorAt(diel->albedo, hit->uv);
     f32 refractionRatio = hit->frontFace ? (1.0f / diel->refactiveIndex) : diel->refactiveIndex;
 
     vec3 normRayDir = vnorm(rayIn->dir);
@@ -94,7 +94,7 @@ bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* 
         bounce = vec3_Refract(normRayDir, hit->unitNormal, refractionRatio);
     }
 
-    *rayOut = Ray_Make(hit->position, bounce, rayIn->time);
+    *rayOut = Ray_Make(hit->position, bounce);
 
     return true;
 }

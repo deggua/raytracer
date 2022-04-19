@@ -5,8 +5,7 @@
 #include "common/common.h"
 #include "common/simd.h"
 
-typedef enum
-{
+typedef enum {
     AXIS_X = 0,
     AXIS_Y = 1,
     AXIS_Z = 2,
@@ -162,14 +161,14 @@ bool scalar_AlmostTheSame(f32 x, f32 y);
 #define AXIS_ARG(axis)       \
     ((const char*[]){        \
         [AXIS_X] = "x-axis", \
-        [AXIS_Y] = "y-axis", \
-        [AXIS_Z] = "z-axis", \
-        [AXIS_W] = "w-axis", \
+                   [AXIS_Y] = "y-axis", \
+                              [AXIS_Z] = "z-axis", \
+                                         [AXIS_W] = "w-axis", \
     })[axis]
 
 #define MAP _Generic
 #define BIND(type, func) \
-type:                    \
+    type:                    \
     func
 
 /* clang-format off */
@@ -179,86 +178,86 @@ type:                    \
         BIND(vec2, vec2_Add), \
         BIND(vec3, vec3_Add), \
         BIND(vec4, vec4_Add) \
-    )((x), (y))
+       )((x), (y))
 
 #define vsub(x, y) \
     MAP((x), \
         BIND(vec2, vec2_Subtract), \
         BIND(vec3, vec3_Subtract), \
         BIND(vec4, vec4_Subtract) \
-    )((x), (y))
+       )((x), (y))
 
 #define vmul(x, y) \
     MAP((x), \
         BIND(vec2, \
-            MAP((y), \
-                BIND(vec2, vec2_MultiplyComponents), \
-                BIND(default, vec2_MultiplyScalar))), \
+             MAP((y), \
+                 BIND(vec2, vec2_MultiplyComponents), \
+                 BIND(default, vec2_MultiplyScalar))), \
         BIND(vec3, \
-            MAP((y), \
-                BIND(vec3, vec3_MultiplyComponents), \
-                BIND(default, vec3_MultiplyScalar))), \
+             MAP((y), \
+                 BIND(vec3, vec3_MultiplyComponents), \
+                 BIND(default, vec3_MultiplyScalar))), \
         BIND(vec4, \
-            MAP((y), \
-                BIND(vec4, vec4_MultiplyComponents), \
-                BIND(default, vec4_MultiplyScalar))), \
+             MAP((y), \
+                 BIND(vec4, vec4_MultiplyComponents), \
+                 BIND(default, vec4_MultiplyScalar))), \
         BIND(default, \
-            MAP((y), \
-                BIND(vec2, vec2_MultiplyScalarR), \
-                BIND(vec3, vec3_MultiplyScalarR), \
-                BIND(vec4, vec4_MultiplyScalarR), \
-                BIND(default, scalar_Multiply))) \
-    )((x), (y))
+             MAP((y), \
+                 BIND(vec2, vec2_MultiplyScalarR), \
+                 BIND(vec3, vec3_MultiplyScalarR), \
+                 BIND(vec4, vec4_MultiplyScalarR), \
+                 BIND(default, scalar_Multiply))) \
+       )((x), (y))
 
 #define vdiv(x, y) \
     MAP((x), \
         BIND(vec2, \
-            MAP((y), \
-                BIND(vec2, vec2_DivideComponents), \
-                BIND(default, vec2_DivideScalar))), \
+             MAP((y), \
+                 BIND(vec2, vec2_DivideComponents), \
+                 BIND(default, vec2_DivideScalar))), \
         BIND(vec3, \
-            MAP((y), \
-                BIND(vec3, vec3_DivideComponents), \
-                BIND(default, vec3_DivideScalar))), \
+             MAP((y), \
+                 BIND(vec3, vec3_DivideComponents), \
+                 BIND(default, vec3_DivideScalar))), \
         BIND(vec4, \
-            MAP((y), \
-                BIND(vec4, vec4_DivideComponents), \
-                BIND(default, vec4_DivideScalar))) \
-    )((x), (y))
+             MAP((y), \
+                 BIND(vec4, vec4_DivideComponents), \
+                 BIND(default, vec4_DivideScalar))) \
+       )((x), (y))
 
 #define vdot(x, y) \
     MAP((x), \
         BIND(vec2, vec2_DotProduct), \
         BIND(vec3, vec3_DotProduct), \
         BIND(vec4, vec4_DotProduct) \
-    )((x), (y))
+       )((x), (y))
 
 #define vcross(x, y) \
     MAP((x), \
         BIND(vec2, vec2_CrossProduct), \
         BIND(vec3, vec3_CrossProduct)\
-    )((x), (y))
+       )((x), (y))
 
 #define vmag(x) \
     MAP((x), \
         BIND(vec2, vec2_Magnitude), \
         BIND(vec3, vec3_Magnitude), \
         BIND(vec4, vec4_Magnitude) \
-    )((x), (y))
+       )((x), (y))
 
 #define vmag2(x) \
     MAP((x), \
         BIND(vec2, vec2_MagnitudeSquared), \
         BIND(vec3, vec3_MagnitudeSquared), \
         BIND(vec4, vec4_MagnitudeSquared) \
-    )((x), (y))
+       )((x), (y))
 
 #define vnorm(x) \
     MAP((x), \
         BIND(vec2, vec2_Normalize), \
         BIND(vec3, vec3_Normalize), \
         BIND(vec4, vec4_Normalize) \
-    )((x))
+       )((x))
 
 // Test for equality
 // vec, f32 := vec magnitude equality
@@ -266,24 +265,24 @@ type:                    \
 #define vequ(x, y) \
     MAP((x), \
         BIND(vec2, \
-            MAP((y), \
-                BIND(vec2, vec2_AlmostTheSame), \
-                BIND(default, vec2_CompareMagnitudeEqual))), \
+             MAP((y), \
+                 BIND(vec2, vec2_AlmostTheSame), \
+                 BIND(default, vec2_CompareMagnitudeEqual))), \
         BIND(vec3, \
-            MAP((y), \
-                BIND(vec3, vec3_AlmostTheSame), \
-                BIND(default, vec3_CompareMagnitudeEqual))), \
+             MAP((y), \
+                 BIND(vec3, vec3_AlmostTheSame), \
+                 BIND(default, vec3_CompareMagnitudeEqual))), \
         BIND(vec4, \
-            MAP((y), \
-                BIND(vec4, vec4_AlmostTheSame), \
-                BIND(default, vec4_CompareMagnitudeEqual))), \
+             MAP((y), \
+                 BIND(vec4, vec4_AlmostTheSame), \
+                 BIND(default, vec4_CompareMagnitudeEqual))), \
         BIND(default, \
-            MAP((y), \
-                BIND(vec2, vec2_CompareMagnitudeEqualR), \
-                BIND(vec3, vec3_CompareMagnitudeEqualR), \
-                BIND(vec4, vec4_CompareMagnitudeEqualR), \
-                BIND(default, scalar_AlmostTheSame))) \
-    )((x), (y))
+             MAP((y), \
+                 BIND(vec2, vec2_CompareMagnitudeEqualR), \
+                 BIND(vec3, vec3_CompareMagnitudeEqualR), \
+                 BIND(vec4, vec4_CompareMagnitudeEqualR), \
+                 BIND(default, scalar_AlmostTheSame))) \
+       )((x), (y))
 
 #define vgt(x, y) \
     MAP((x), \
@@ -291,11 +290,11 @@ type:                    \
         BIND(vec3, vec3_CompareMagnitudeGreaterThan), \
         BIND(vec4, vec4_CompareMagnitudeGreaterThan), \
         BIND(default, \
-            MAP((y), \
-                BIND(vec2, vec2_CompareMagnitudeGreaterThanR), \
-                BIND(vec3, vec3_CompareMagnitudeGreaterThanR), \
-                BIND(vec4, vec4_CompareMagnitudeGreaterThanR))) \
-    )((x), (y))
+             MAP((y), \
+                 BIND(vec2, vec2_CompareMagnitudeGreaterThanR), \
+                 BIND(vec3, vec3_CompareMagnitudeGreaterThanR), \
+                 BIND(vec4, vec4_CompareMagnitudeGreaterThanR))) \
+       )((x), (y))
 
 #define vneq(x, y)  (!vequ((x), (y)))
 #define vlteq(x, y) (!vgt((x), (y)))

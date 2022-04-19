@@ -5,6 +5,7 @@
 #include "common/common.h"
 #include "common/vec.h"
 #include "gfx/color.h"
+#include "gfx/texture.h"
 #include "rt/ray.h"
 
 typedef enum {
@@ -14,17 +15,17 @@ typedef enum {
 } MaterialType;
 
 typedef struct {
-    Color albedo;
+    Texture* albedo;
 } Diffuse;
 
 typedef struct {
-    Color albedo;
-    f32   fuzz;
+    Texture*    albedo;
+    f32         fuzz;
 } Metal;
 
 typedef struct {
-    Color albedo;
-    f32   refactiveIndex;
+    Texture*    albedo;
+    f32         refactiveIndex;
 } Dielectric;
 
 typedef struct {
@@ -36,11 +37,11 @@ typedef struct {
     };
 } Material;
 
-Diffuse Diffuse_Make(Color albedo);
+Diffuse Diffuse_Make(Texture* tex);
 bool    Diffuse_Bounce(const Diffuse* lambert, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);
 
-Metal Metal_Make(Color albedo, f32 fuzz);
+Metal Metal_Make(Texture* tex, f32 fuzz);
 bool  Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);
 
-Dielectric Dielectric_Make(Color albedo, f32 refractiveIndex);
+Dielectric Dielectric_Make(Texture* tex, f32 refractiveIndex);
 bool       Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);
