@@ -24,7 +24,7 @@ static void ExportImage(Image* img, const char* filename)
     printf("Output image written to %s\n", filename);
 }
 
-Image*      g_img;
+Image* g_img;
 static void InterruptHandler(int sig)
 {
     (void)sig;
@@ -36,9 +36,12 @@ static void InterruptHandler(int sig)
 Material g_matMesh;
 Material g_matMesh2;
 Material g_matGround;
+Material g_matLight;
 
 static void FillScene(Scene* scene)
 {
+    /* Pear Mesh */
+#if 0
     FILE* obj = fopen("assets/pear/obj/pear_export.obj", "r");
     FILE* tex = fopen("assets/pear/tex/pear_diffuse.bmp", "rb");
 
@@ -50,35 +53,55 @@ static void FillScene(Scene* scene)
     Texture_Import_BMP(texMesh, tex);
     fclose(tex);
 
-    g_matMesh.type = MATERIAL_DIELECTRIC;
-    g_matMesh.dielectric.albedo = texMesh;
-    g_matMesh.dielectric.refactiveIndex = 1.5f;
+    g_matMesh.type = MATERIAL_DIFFUSE;
+    g_matMesh.diffuse.albedo = texMesh;
 
     Mesh_Set_Material(mesh, &g_matMesh);
     Mesh_Set_Origin(mesh, (point3) {0, 6, -4});
     Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
+#else
 
-    Texture* texMesh2 = Texture_New();
-    Texture_Import_Color(texMesh2, COLOR_GREY);
+    /* Little Dragon Mesh */
+    FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
+    Mesh* mesh = Mesh_New();
+    Mesh_Import_OBJ(mesh, littleDragon);
+    fclose(littleDragon);
 
-    g_matMesh2.type = MATERIAL_METAL;
-    g_matMesh2.metal.albedo = texMesh2;
-    g_matMesh2.metal.fuzz = 0.1f;
+    Texture* texMesh = Texture_New();
+    Texture_Import_Color(texMesh, COLOR_NAVY);
 
-    Mesh_Set_Material(mesh, &g_matMesh2);
-    Mesh_Set_Origin(mesh, (point3) {0, 6, 4});
-    Mesh_Set_Scale(mesh, 2.0f);
+    g_matMesh.type = MATERIAL_METAL;
+    g_matMesh.metal = Metal_Make(texMesh, 0.0f);
+
+    Mesh_Set_Material(mesh, &g_matMesh);
+    Mesh_Set_Origin(mesh, (point3) {0, 1, 0});
+    Mesh_Set_Scale(mesh, 1 / 10.0f);
     Mesh_AddToScene(mesh, scene);
 
     Mesh_Delete(mesh);
+#endif
 
+    /* Sphere Light */
+    Texture* texLight = Texture_New();
+    Texture_Import_Color(texLight, COLOR_WHITE);
+    g_matLight.type = MATERIAL_DIFFUSE_LIGHT;
+    g_matLight.diffuseLight.albedo = texLight;
+    g_matLight.diffuseLight.brightness = 5.0f;
+
+    Object lightObj;
+    lightObj.material         = &g_matLight;
+    lightObj.surface.type     = SURFACE_SPHERE;
+    lightObj.surface.sphere.c = (point3) {-4, 24, -4};
+    lightObj.surface.sphere.r = 4.0f;
+    Scene_Add_Object(scene, &lightObj);
+
+    /* Ground */
     Texture* texGround = Texture_New();
-    Texture_Import_Color(texGround, COLOR_NAVY);
+    Texture_Import_Color(texGround, COLOR_GREY);
     g_matGround.type = MATERIAL_DIFFUSE;
     g_matGround.diffuse.albedo = texGround;
 
-    // ground
     Object worldObj;
     worldObj.material       = &g_matGround;
     worldObj.surface.type   = SURFACE_SPHERE;
@@ -86,9 +109,9 @@ static void FillScene(Scene* scene)
     Scene_Add_Object(scene, &worldObj);
 }
 
-int main(void)
+int main(int argc, char** argv)
 {
-    const point3 lookFrom    = (point3) {-20, 15, -20};
+    const point3 lookFrom    = (point3) {20, 15, 20};
     const point3 lookAt      = (point3) {0, 6, 0};
     const vec3   vup         = (vec3) {0, 1, 0};
     const f32    focusDist   = 10.0f;
@@ -110,14 +133,23 @@ int main(void)
     g_img      = img;
 
     Camera* cam   = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
-    Scene*  scene = Scene_New(COLOR_WHITE);
+    Scene*  scene = Scene_New();
+    Scene_Set_SkyColor(scene, (Color) {0.05f, 0.05f, 0.05f});
 
     TIMEIT("Scene load", FillScene(scene));
     TIMEIT("Scene prepare", Scene_Prepare(scene));
 
     RenderCtx* ctx = Render_New(scene, img, cam);
 
-    TIMEIT("Scene render", Render_Do(ctx, 256, 32, numThreads));
+    size_t samplesPerPixel = 32;
+    size_t maxBounces = 12;
+
+    if (argc == 3) {
+        samplesPerPixel = atoll(argv[1]);
+        maxBounces = atoll(argv[2]);
+    }
+
+    TIMEIT("Scene render", Render_Do(ctx, samplesPerPixel, maxBounces, numThreads));
 
     ExportImage(img, "output.bmp");
 

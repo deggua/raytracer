@@ -20,4 +20,5 @@ typedef struct {
 
 bool Surface_BoundedBy(const Surface* surface, BoundingBox* box);
 bool Surface_HitAt(const Surface* surface, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hitInfo);
-bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut);
+bool Material_Bounce(const Material* material, const Ray* rayIn, const HitInfo* hit, Color* colorSurface,
+                     Color* colorEmitted, Ray* rayOut);

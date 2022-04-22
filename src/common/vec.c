@@ -10,7 +10,7 @@
 
 vec2 vec2_Add(vec2 v1, vec2 v2)
 {
-    return (vec2){
+    return (vec2) {
         .x = v1.x + v2.x,
         .y = v1.y + v2.y,
     };
@@ -18,7 +18,7 @@ vec2 vec2_Add(vec2 v1, vec2 v2)
 
 vec2 vec2_Subtract(vec2 v1, vec2 v2)
 {
-    return (vec2){
+    return (vec2) {
         .x = v1.x - v2.x,
         .y = v1.y - v2.y,
     };
@@ -26,7 +26,7 @@ vec2 vec2_Subtract(vec2 v1, vec2 v2)
 
 vec2 vec2_MultiplyScalar(vec2 vec, f32 scalar)
 {
-    return (vec2){
+    return (vec2) {
         .x = scalar * vec.x,
         .y = scalar * vec.y,
     };
@@ -39,7 +39,7 @@ vec2 vec2_MultiplyScalarR(f32 scalar, vec2 vec)
 
 vec2 vec2_MultiplyComponents(vec2 v1, vec2 v2)
 {
-    return (vec2){
+    return (vec2) {
         .x = v1.x * v2.x,
         .y = v1.y * v2.y,
     };
@@ -52,7 +52,7 @@ vec2 vec2_DivideScalar(vec2 vec, f32 scalar)
 
 vec2 vec2_DivideComponents(vec2 vdividend, vec2 vdivisor)
 {
-    return (vec2){
+    return (vec2) {
         .x = vdividend.x / vdivisor.x,
         .y = vdividend.y / vdivisor.y,
     };
@@ -65,7 +65,7 @@ f32 vec2_DotProduct(vec2 v1, vec2 v2)
 
 vec3 vec2_CrossProduct(vec2 v1, vec2 v2)
 {
-    return (vec3){
+    return (vec3) {
         .z = (v1.x * v2.y - v1.y * v2.x),
     };
 }
@@ -116,7 +116,7 @@ bool vec2_AlmostTheSame(vec2 v1, vec2 v2)
 
 vec3 vec3_Add(vec3 v1, vec3 v2)
 {
-    return (vec3){
+    return (vec3) {
         .x = v1.x + v2.x,
         .y = v1.y + v2.y,
         .z = v1.z + v2.z,
@@ -125,7 +125,7 @@ vec3 vec3_Add(vec3 v1, vec3 v2)
 
 vec3 vec3_Subtract(vec3 v1, vec3 v2)
 {
-    return (vec3){
+    return (vec3) {
         .x = v1.x - v2.x,
         .y = v1.y - v2.y,
         .z = v1.z - v2.z,
@@ -134,7 +134,7 @@ vec3 vec3_Subtract(vec3 v1, vec3 v2)
 
 vec3 vec3_MultiplyScalar(vec3 vec, f32 scalar)
 {
-    return (vec3){
+    return (vec3) {
         .x = scalar * vec.x,
         .y = scalar * vec.y,
         .z = scalar * vec.z,
@@ -148,7 +148,7 @@ vec3 vec3_MultiplyScalarR(f32 scalar, vec3 vec)
 
 vec3 vec3_MultiplyComponents(vec3 v1, vec3 v2)
 {
-    return (vec3){
+    return (vec3) {
         .x = v1.x * v2.x,
         .y = v1.y * v2.y,
         .z = v1.z * v2.z,
@@ -162,7 +162,7 @@ vec3 vec3_DivideScalar(vec3 vec, f32 scalar)
 
 vec3 vec3_DivideComponents(vec3 vdividend, vec3 vdivisor)
 {
-    return (vec3){
+    return (vec3) {
         .x = vdividend.x / vdivisor.x,
         .y = vdividend.y / vdivisor.y,
         .z = vdividend.z / vdivisor.z,
@@ -176,7 +176,7 @@ f32 vec3_DotProduct(vec3 v1, vec3 v2)
 
 vec3 vec3_CrossProduct(vec3 v1, vec3 v2)
 {
-    return (vec3){
+    return (vec3) {
         .x = (v1.y * v2.z - v1.z * v2.y),
         .y = (v1.z * v2.x - v1.x * v2.z),
         .z = (v1.x * v2.y - v1.y * v2.x),
@@ -227,7 +227,7 @@ bool vec3_AlmostTheSame(vec3 v1, vec3 v2)
 
 vec3 vec3_Random(f32 min, f32 max)
 {
-    return (vec3){
+    return (vec3) {
         .x = RNG_RandomInRange(min, max),
         .y = RNG_RandomInRange(min, max),
         .z = RNG_RandomInRange(min, max),
@@ -239,7 +239,7 @@ vec3 vec3_RandomInUnitDisc(void)
     vec3 vec;
 
     do {
-        vec = (vec3){
+        vec = (vec3) {
             .x = RNG_RandomInRange(-1, 1),
             .y = RNG_RandomInRange(-1, 1),
             .z = 0,
@@ -256,6 +256,7 @@ vec3 vec3_RandomInUnitDisc(void)
 vec3 vec3_RandomInUnitSphere(void)
 {
     vec3 vec;
+
     do {
         vec = vec3_Random(-1, 1);
 
@@ -270,6 +271,17 @@ vec3 vec3_RandomInUnitSphere(void)
 vec3 vec3_RandomOnUnitSphere(void)
 {
     return vec3_Normalize(vec3_RandomInUnitSphere());
+}
+
+vec3 vec3_RandomInHemisphere(vec3 normal)
+{
+    vec3 inUnitSphere = vec3_RandomInUnitSphere();
+
+    if (vdot(inUnitSphere, normal) > 0.0f) {
+        return inUnitSphere;
+    } else {
+        return vmul(-1.0f, inUnitSphere);
+    }
 }
 
 vec3 vec3_Reflect(vec3 vec, vec3 normal)
@@ -291,7 +303,7 @@ vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio)
 
 vec4 vec4_Add(vec4 v1, vec4 v2)
 {
-    return (vec4){
+    return (vec4) {
         .x = v1.x + v2.x,
         .y = v1.y + v2.y,
         .z = v1.z + v2.z,
@@ -301,7 +313,7 @@ vec4 vec4_Add(vec4 v1, vec4 v2)
 
 vec4 vec4_Subtract(vec4 v1, vec4 v2)
 {
-    return (vec4){
+    return (vec4) {
         .x = v1.x - v2.x,
         .y = v1.y - v2.y,
         .z = v1.z - v2.z,
@@ -311,7 +323,7 @@ vec4 vec4_Subtract(vec4 v1, vec4 v2)
 
 vec4 vec4_MultiplyScalar(vec4 vec, f32 scalar)
 {
-    return (vec4){
+    return (vec4) {
         .x = scalar * vec.x,
         .y = scalar * vec.y,
         .z = scalar * vec.z,
@@ -326,7 +338,7 @@ vec4 vec4_MultiplyScalarR(f32 scalar, vec4 vec)
 
 vec4 vec4_MultiplyComponents(vec4 v1, vec4 v2)
 {
-    return (vec4){
+    return (vec4) {
         .x = v1.x * v2.x,
         .y = v1.y * v2.y,
         .z = v1.z * v2.z,
@@ -341,7 +353,7 @@ vec4 vec4_DivideScalar(vec4 vec, f32 scalar)
 
 vec4 vec4_DivideComponents(vec4 vdividend, vec4 vdivisor)
 {
-    return (vec4){
+    return (vec4) {
         .x = vdividend.x / vdivisor.x,
         .y = vdividend.y / vdivisor.y,
         .z = vdividend.z / vdivisor.z,

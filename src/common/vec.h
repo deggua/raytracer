@@ -113,6 +113,7 @@ vec3 vec3_Random(f32 min, f32 max);
 vec3 vec3_RandomInUnitDisc(void); // TODO: should I make it explicit that this is a disc in the XY-plane?
 vec3 vec3_RandomInUnitSphere(void);
 vec3 vec3_RandomOnUnitSphere(void);
+vec3 vec3_RandomInHemisphere(vec3 normal);
 
 vec3 vec3_Reflect(vec3 vec, vec3 normal);
 vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio);

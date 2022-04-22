@@ -162,10 +162,6 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
 
         f32 coeff = 1.0f - u - v;
         hit->uv = vsum(vmul(tri->v[0].tex, coeff), vmul(tri->v[1].tex, u), vmul(tri->v[2].tex, v));
-        assert(hit->uv.x <= 1.0f);
-        assert(hit->uv.y <= 1.0f);
-
-        // TODO: does this need to be normalized? I don't think it should need it but maybe
         vec3 outwardNormal = vsum(vmul(tri->v[0].norm, coeff), vmul(tri->v[1].norm, u), vmul(tri->v[2].norm, v));
         HitInfo_SetFaceNormal(hit, ray, outwardNormal);
 

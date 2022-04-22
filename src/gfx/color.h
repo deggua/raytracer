@@ -21,12 +21,12 @@ typedef struct {
 } RGB;
 
 typedef union {
-    vec3 vec3;
     struct {
         f32 r;
         f32 g;
         f32 b;
     };
+    vec3 vec3;
 } Color;
 
 RGB RGB_Brighten(RGB rgb, f32 scalar);
@@ -34,6 +34,7 @@ RGB RGB_Blend(RGB color1, RGB color2, f32 weight);
 RGB RGB_FromColor(Color color);
 
 Color Color_Brighten(Color color, f32 scalar);
+Color Color_BrightenBy(Color color1, Color color2);
 Color Color_Blend(Color color1, Color color2, f32 weight);
 Color Color_FromRGB(RGB rgb);
 Color Color_Tint(Color color1, Color color2);

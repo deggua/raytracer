@@ -198,7 +198,7 @@ next_token:
                 // it isn't provided
                 vec3 edge1 = vsub(tri.v[1].pos, tri.v[0].pos);
                 vec3 edge2 = vsub(tri.v[2].pos, tri.v[0].pos);
-                vec3 defaultNormal = vcross(edge1, edge2);
+                vec3 defaultNormal = vnorm(vcross(edge1, edge2));
 
                 for (size_t ii = 0; ii < 3; ii++) {
                     if (vn[ii] >= 0) {

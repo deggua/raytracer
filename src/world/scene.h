@@ -6,7 +6,7 @@
 
 typedef struct Scene Scene;
 
-Scene* Scene_New(Color skyColor);
+Scene* Scene_New(void);
 void   Scene_Delete(Scene* scene);
 bool   Scene_Prepare(Scene* scene);
 bool   Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit);

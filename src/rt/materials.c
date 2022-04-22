@@ -11,24 +11,31 @@
 
 /* ---- DIFFUSE ---- */
 
-Diffuse Diffuse_Make(Texture* tex)
+Diffuse Diffuse_Make(const Texture* tex)
 {
     return (Diffuse) {
         .albedo = tex,
     };
 }
 
-bool Diffuse_Bounce(const Diffuse* diffuse, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
+bool Diffuse_Bounce(const Diffuse* diffuse, const Ray* rayIn, const HitInfo* hit, Color* colorSurface,
+                    Color* colorEmitted, Ray* rayOut)
 {
     (void)rayIn;
 
+#if 1
+    vec3 target = vadd(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
+    vec3 scattered = vsub(target, hit->position);
+#else
     vec3 scattered = vadd(hit->unitNormal, vec3_RandomOnUnitSphere());
+#endif
 
     if (vequ(scattered, 0.0f)) {
         scattered = hit->unitNormal;
     }
 
-    *color  = Texture_ColorAt(diffuse->albedo, hit->uv);
+    *colorSurface  = Texture_ColorAt(diffuse->albedo, hit->uv);
+    *colorEmitted = (Color) {.r = 0.0f, .g = 0.0f, .b = 0.0f};
     *rayOut = Ray_Make(hit->position, scattered);
 
     return true;
@@ -36,7 +43,7 @@ bool Diffuse_Bounce(const Diffuse* diffuse, const Ray* rayIn, const HitInfo* hit
 
 /* ---- METAL ---- */
 
-Metal Metal_Make(Texture* tex, f32 fuzz)
+Metal Metal_Make(const Texture* tex, f32 fuzz)
 {
     return (Metal) {
         .albedo = tex,
@@ -44,14 +51,16 @@ Metal Metal_Make(Texture* tex, f32 fuzz)
     };
 }
 
-bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
+bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Color* colorSurface, Color* colorEmitted,
+                  Ray* rayOut)
 {
     // TODO: do we need to do the face fix thing on the hit normal? I'm guessing we do because otherwise the reflect
     // may be be backwards, atm we always make the normal point against
     vec3 reflected = vec3_Reflect(vnorm(rayIn->dir), hit->unitNormal);
     vec3 fuzz      = vmul(vec3_RandomOnUnitSphere(), metal->fuzz);
 
-    *color  = Texture_ColorAt(metal->albedo, hit->uv);
+    *colorSurface  = Texture_ColorAt(metal->albedo, hit->uv);
+    *colorEmitted = (Color) {.r = 0.0f, .g = 0.0f, .b = 0.0f};
     *rayOut = Ray_Make(hit->position, vadd(reflected, fuzz));
 
     // NOTE: this calculation requires the normal to point against the ray, and is to catch scattered rays entering the
@@ -61,7 +70,7 @@ bool Metal_Bounce(const Metal* metal, const Ray* rayIn, const HitInfo* hit, Colo
 
 /* ---- DIELECTRIC ---- */
 
-Dielectric Dielectric_Make(Texture* tex, f32 refractiveIndex)
+Dielectric Dielectric_Make(const Texture* tex, f32 refractiveIndex)
 {
     return (Dielectric) {
         .albedo         = tex,
@@ -76,9 +85,11 @@ static f32 reflectance(f32 cosine, f32 refractiveIndex)
     return r0 + (1.0f - r0) * powf((1.0f - cosine), 5.0f);
 }
 
-bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* hit, Color* color, Ray* rayOut)
+bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* hit, Color* colorSurface,
+                       Color* colorEmitted, Ray* rayOut)
 {
-    *color              = Texture_ColorAt(diel->albedo, hit->uv);
+    *colorSurface = Texture_ColorAt(diel->albedo, hit->uv);
+    *colorEmitted = (Color) {.r = 0.0f, .g = 0.0f, .b = 0.0f};
     f32 refractionRatio = hit->frontFace ? (1.0f / diel->refactiveIndex) : diel->refactiveIndex;
 
     vec3 normRayDir = vnorm(rayIn->dir);
@@ -97,4 +108,25 @@ bool Dielectric_Bounce(const Dielectric* diel, const Ray* rayIn, const HitInfo* 
     *rayOut = Ray_Make(hit->position, bounce);
 
     return true;
+}
+
+DiffuseLight DiffuseLight_Make(const Texture* tex, f32 brightness)
+{
+    return (DiffuseLight) {
+        .albedo = tex,
+        .brightness = brightness,
+    };
+}
+
+bool DiffuseLight_Bounce(const DiffuseLight* diffuseLight, const Ray* rayIn, const HitInfo* hit,
+                         Color* colorSurface, Color* colorEmitted, Ray* rayOut)
+{
+    (void)rayIn;
+    (void)hit;
+    (void)colorSurface;
+    (void)rayOut;
+
+    *colorEmitted = Color_Brighten(Texture_ColorAt(diffuseLight->albedo, hit->uv), diffuseLight->brightness);
+
+    return false;
 }

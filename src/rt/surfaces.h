@@ -25,6 +25,8 @@ typedef struct {
     f32    r;
 } Sphere;
 
+// TODO: it would be more efficient to store a triangle as a pointer to a Mesh object
+// with indices for each vertex/vertex normal/texture coord as an index into the vector
 typedef struct {
     point3 pos;
     point3 norm;

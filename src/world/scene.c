@@ -15,35 +15,39 @@
 
 typedef struct Scene {
     Color skyColor;
-    Vector(Object) * objects;
-    Vector(Object) * unboundObjs;
-    Vector(Object) * kdObjects;
+    Vector(Object)* objects;
+    Vector(Object)* unboundObjs;
+    Vector(Object)* kdObjects;
     KDTree* kdTree;
 } Scene;
 
-Scene* Scene_New(Color skyColor)
+Scene* Scene_New(void)
 {
     Scene* scene = malloc(sizeof(Scene));
+
     if (scene == NULL) {
         goto error_Scene;
     }
 
     scene->objects = Vector_New(Object)();
+
     if (scene->objects == NULL) {
         goto error_ObjectVector;
     }
 
     scene->unboundObjs = Vector_New(Object)();
+
     if (scene->unboundObjs == NULL) {
         goto error_UnboundObjectsVector;
     }
 
     scene->kdObjects = Vector_New(Object)();
+
     if (scene->kdObjects == NULL) {
         goto error_KdObjects;
     }
 
-    scene->skyColor = skyColor;
+    scene->skyColor = (Color) {.r = 0.0f, .g = 0.0f, .b = 0.0f};
     return scene;
 
 error_KdObjects:
@@ -79,6 +83,7 @@ static bool Scene_ClosestHitInArray(const Object objs[], size_t len, const Ray* 
 
         HitInfo curHit;
         bool    hitDetected = Surface_HitAt(&obj->surface, ray, 0.001f, INF, &curHit);
+
         if (hitDetected && (curHit.tIntersect < closestHit.tIntersect)) {
             // store the nearest intersection if the ray hits multiple objects
             closestHit       = curHit;
@@ -116,6 +121,7 @@ bool Scene_Prepare(Scene* scene)
         // TODO: this is because I messed up the API between KDTree and Scene, I should add a Surface_Bounded() function
         // to check whether it is bounded or not
         BoundingBox ignore;
+
         if (Surface_BoundedBy(&scene->objects->at[ii].surface, &ignore)) {
             Vector_Push(Object)(scene->kdObjects, &scene->objects->at[ii]);
         } else {

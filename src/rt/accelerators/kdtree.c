@@ -21,7 +21,7 @@ static const size_t MinLeafLoad = 4;
 // The number of positions to compute the SAH along each axis. Large values result in a finer resolution SAH search
 // which can yield a better tree at the cost of time to construct the tree.
 // Range: [2, INF)
-static const size_t NumBuckets = 64;
+static const size_t NumBuckets = 32;
 
 // The cost of a triangle intersection. Should be > 1, and is only relevant in relation to the TraversalCost
 // Range: (1, INF)
@@ -39,7 +39,7 @@ static const f32 EmptyBonus = 0.5f;
 // These shouldn't be tuned directly, instead change their relative parameter above
 static const f32 TraversalCost        = 1.0f;
 static const f32 LeftNodeRelativeCost = 1.0f + (1.0f - RightNodeRelativeCost);
-
+;
 /* --- TODOs --- */
 // Structural changes:
 // TODO: benchmark code with and without pointer indirection to object array (store Object copies vs copies of ptrs to
@@ -86,12 +86,17 @@ typedef struct {
 } KDLeaf;
 static_assert(sizeof(KDLeaf) == 8, "sizeof(KDLeaf) != 8");
 
-typedef struct {
+typedef union KDNode KDNode;
+
+typedef struct KDInteral {
     struct {
         KDNodeType    : 2;
         u32 leftIndex : 30;
     };
     f32 split;
+    // KDNode right[0];
+    // this isn't legal C syntax, but you can imagine this exists, where the right child is
+    // immediately after the parent
 } KDInternal;
 static_assert(sizeof(KDInternal) == 8, "sizeof(KDInternal) != 8");
 
@@ -115,7 +120,7 @@ typedef struct KDTree {
     ssize_t     rootIndex;
 } KDTree;
 
-static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr)* vec, BoundingBox container);
+static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr)* vec, BoundingBox container, size_t depth);
 
 static ssize_t BuildParentNode(
     KDTree* tree,
@@ -124,7 +129,8 @@ static ssize_t BuildParentNode(
     const Vector(KDBBPtr)* rightVec,
     BoundingBox rightContainer,
     f32         partition,
-    Axis        axis)
+    Axis        axis,
+    size_t      depth)
 {
     ssize_t parentIndex = Vector_PushEmpty(KDNode)(tree->nodes);
 
@@ -134,13 +140,13 @@ static ssize_t BuildParentNode(
 
     // construct right node after parent, causes the next node to be at the index immediately after
     // parent's index (ie if you have the KDNode* to parent, parent + 1 == right child)
-    ssize_t rightNode = BuildNode(tree, rightVec, rightContainer);
+    ssize_t rightNode = BuildNode(tree, rightVec, rightContainer, depth);
 
     if (rightNode < 0) {
         goto error_gteq;
     }
 
-    ssize_t leftNode = BuildNode(tree, leftVec, leftContainer);
+    ssize_t leftNode = BuildNode(tree, leftVec, leftContainer, depth);
 
     if (leftNode < 0) {
         goto error_lt;
@@ -265,9 +271,19 @@ static f32 ComputeSplitSAH(const Vector(KDBBPtr)* vec, f32 split, Axis axis, Bou
     return TraversalCost + (1.0f - emptyBonus) * (leftCost + rightCost);
 }
 
-static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr)* vec, BoundingBox container)
+static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr)* vec, BoundingBox container, size_t depth)
 {
-    if (vec->length <= MinLeafLoad) {
+    const ssize_t maxVecLen = (1 << 30) - 1;
+
+    // some safeguards on blowing the number range we have available in nodes for indices into the objPtr
+    // vector or the nodes vector
+    if (maxVecLen - (ssize_t)tree->objPtrs->length < (ssize_t)vec->length ||
+        maxVecLen < (ssize_t)(tree->nodes->length)) {
+        printf("Generated too many objPtr copies in the tree->objPtrs vector\n");
+        assert(false);
+    }
+
+    if (vec->length <= MinLeafLoad || depth == 0 ) {
         return BuildLeafNode(tree, vec);
     }
 
@@ -341,7 +357,7 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr)* vec, BoundingBox c
         }
 
         BoundingBoxPair pair = SplitBox(container, bestSplit, bestAxis);
-        ssize_t nodeIndex    = BuildParentNode(tree, leftVec, pair.left, rightVec, pair.right, bestSplit, bestAxis);
+        ssize_t nodeIndex    = BuildParentNode(tree, leftVec, pair.left, rightVec, pair.right, bestSplit, bestAxis, depth - 1);
 
         if (nodeIndex < 0) {
             goto error_BuildParent;
@@ -384,7 +400,8 @@ static ssize_t BuildKDTree(KDTree* tree, const Vector(KDBB) * boxes)
         }
     }
 
-    ssize_t rootIndex = BuildNode(tree, vec, tree->worldBox);
+    size_t maxDepth = (size_t)(8 + 1.8f * log2(boxes->length));
+    ssize_t rootIndex = BuildNode(tree, vec, tree->worldBox, maxDepth);
 
     if (rootIndex < 0) {
         goto error_Root;

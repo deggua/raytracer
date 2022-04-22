@@ -10,6 +10,7 @@
 RenderCtx* Render_New(const Scene* scene, Image* img, const Camera* cam)
 {
     RenderCtx* ctx = malloc(sizeof(*ctx));
+
     if (ctx == NULL) {
         return NULL;
     }
@@ -40,12 +41,13 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
 
     if (Scene_ClosestHit(scene, ray, &objHit, &hit)) {
         Ray   bouncedRay;
-        Color bouncedColor;
+        Color surfaceColor;
+        Color emittedColor;
 
-        if (Material_Bounce(objHit->material, ray, &hit, &bouncedColor, &bouncedRay)) {
-            return Color_Tint(bouncedColor, RayColor(scene, &bouncedRay, depth - 1));
+        if (Material_Bounce(objHit->material, ray, &hit, &surfaceColor, &emittedColor, &bouncedRay)) {
+            return Color_BrightenBy(emittedColor, Color_Tint(surfaceColor, RayColor(scene, &bouncedRay, depth - 1)));
         } else {
-            return COLOR_BLACK;
+            return emittedColor;
         }
     }
 
@@ -94,12 +96,12 @@ static void* RenderThread(void* arg)
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
                 Color rayColor = RayColor(scene, &ray, maxRayDepth);
-                cumColorPt     = (Color){.vec3 = vadd(cumColorPt.vec3, rayColor.vec3)};
+                cumColorPt     = (Color) {.vec3 = vadd(cumColorPt.vec3, rayColor.vec3)};
             }
 
             point3 avgColorPt = vdiv(cumColorPt.vec3, samplesPerPixel);
 
-            RGB avgRGB = RGB_FromColor((Color){
+            RGB avgRGB = RGB_FromColor((Color) {
                 .r = sqrtf(clampf(avgColorPt.x, 0.0f, 0.999f)),
                 .g = sqrtf(clampf(avgColorPt.y, 0.0f, 0.999f)),
                 .b = sqrtf(clampf(avgColorPt.z, 0.0f, 0.999f)),
@@ -107,6 +109,7 @@ static void* RenderThread(void* arg)
 
             Image_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
         }
+
         // TODO: figure out a better way to print progress
         printf("\rFinished line %03zd of %zu", yy, imageHeight);
     }

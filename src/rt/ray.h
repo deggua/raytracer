@@ -16,8 +16,8 @@ typedef struct {
     point3  position;
     // TODO: consider making this not a unit normal by default if, more often than not, it doesn't matter
     vec3    unitNormal;
-    f32     tIntersect;
     vec2    uv;
+    f32     tIntersect;
     bool    frontFace;
 } HitInfo;
 
