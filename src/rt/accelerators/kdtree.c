@@ -86,17 +86,13 @@ typedef struct {
 } KDLeaf;
 static_assert(sizeof(KDLeaf) == 8, "sizeof(KDLeaf) != 8");
 
-typedef union KDNode KDNode;
-
-typedef struct KDInteral {
+typedef struct {
     struct {
         KDNodeType    : 2;
         u32 leftIndex : 30;
     };
     f32 split;
-    // KDNode right[0];
-    // this isn't legal C syntax, but you can imagine this exists, where the right child is
-    // immediately after the parent
+    u8  right[];
 } KDInternal;
 static_assert(sizeof(KDInternal) == 8, "sizeof(KDInternal) != 8");
 
@@ -588,7 +584,7 @@ static bool CheckHitInternalNode(
     const f32 epsilonIntersect = 0.001f;
 
     const KDNode* left  = &tree->nodes->at[node->leftIndex];
-    const KDNode* right = &((KDNode*)node)[1];
+    const KDNode* right = (KDNode*)node->right;
 
     if (unlikely(fabsf(ray->dir.v[axis]) < epsilonParallel)) {
         // ray parallel to plane, check the origin to see which side ray falls on
