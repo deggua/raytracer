@@ -181,7 +181,7 @@ Vector(Tn);
 
 // functions
 
-static Vector(Tn)* Vector_New(Tn)(void)
+static inline Vector(Tn)* Vector_New(Tn)(void)
 {
     Vector(Tn)* vec = vector_malloc(sizeof(Vector(Tn)));
 
@@ -203,13 +203,13 @@ static Vector(Tn)* Vector_New(Tn)(void)
     return vec;
 }
 
-static void Vector_Delete(Tn)(Vector(Tn)* vec)
+static inline void Vector_Delete(Tn)(Vector(Tn)* vec)
 {
     vector_free(vec->at);
     vector_free(vec);
 }
 
-static bool Vector_GrowTo(Tn)(Vector(Tn)* vec, size_t length)
+static inline bool Vector_GrowTo(Tn)(Vector(Tn)* vec, size_t length)
 {
     T* newBuffer = realloc(vec->at, sizeof(T) * length);
 
@@ -223,7 +223,7 @@ static bool Vector_GrowTo(Tn)(Vector(Tn)* vec, size_t length)
     return true;
 }
 
-static bool Vector_Reserve(Tn)(Vector(Tn)* vec, size_t length)
+static inline bool Vector_Reserve(Tn)(Vector(Tn)* vec, size_t length)
 {
     if (vec->capacity >= length) {
         return true;
@@ -232,7 +232,7 @@ static bool Vector_Reserve(Tn)(Vector(Tn)* vec, size_t length)
     return Vector_GrowTo(Tn)(vec, length);
 }
 
-static bool Vector_PushMany(Tn)(Vector(Tn)* vec, const T elems[], size_t length)
+static inline bool Vector_PushMany(Tn)(Vector(Tn)* vec, const T elems[], size_t length)
 {
     // check if we need to grow the vector
     if (vec->capacity < vec->length + length) {
@@ -258,13 +258,13 @@ static bool Vector_PushMany(Tn)(Vector(Tn)* vec, const T elems[], size_t length)
     return true;
 }
 
-static bool Vector_Push(Tn)(Vector(Tn)* vec, const T* elem)
+static inline bool Vector_Push(Tn)(Vector(Tn)* vec, const T* elem)
 {
     return Vector_PushMany(Tn)(vec, elem, 1);
 }
 
 // TODO: improve API
-static ssize_t Vector_PushEmpty(Tn)(Vector(Tn)* vec)
+static inline ssize_t Vector_PushEmpty(Tn)(Vector(Tn)* vec)
 {
     if (Vector_Reserve(Tn)(vec, vec->length + 1)) {
         vec->length += 1;
@@ -274,7 +274,7 @@ static ssize_t Vector_PushEmpty(Tn)(Vector(Tn)* vec)
     }
 }
 
-static bool Vector_InsertMany(Tn)(Vector(Tn)* vec, size_t index, const T elems[], size_t length)
+static inline bool Vector_InsertMany(Tn)(Vector(Tn)* vec, size_t index, const T elems[], size_t length)
 {
     if (length == 0) {
         // nop
@@ -320,12 +320,12 @@ static bool Vector_InsertMany(Tn)(Vector(Tn)* vec, size_t index, const T elems[]
     return true;
 }
 
-static bool Vector_Insert(Tn)(Vector(Tn)* vec, size_t index, const T* elem)
+static inline bool Vector_Insert(Tn)(Vector(Tn)* vec, size_t index, const T* elem)
 {
     return Vector_InsertMany(Tn)(vec, index, elem, 1);
 }
 
-static bool Vector_Shrink(Tn)(Vector(Tn)* vec)
+static inline bool Vector_Shrink(Tn)(Vector(Tn)* vec)
 {
     // nop if it's already shrunk to size
     if (vec->capacity == vec->length) {
@@ -355,7 +355,7 @@ static bool Vector_Shrink(Tn)(Vector(Tn)* vec)
     return true;
 }
 
-static bool Vector_Clear(Tn)(Vector(Tn)* vec)
+static inline bool Vector_Clear(Tn)(Vector(Tn)* vec)
 {
     vector_free(vec->at);
     vec->at = NULL;
@@ -366,7 +366,7 @@ static bool Vector_Clear(Tn)(Vector(Tn)* vec)
     return true;
 }
 
-static void Vector_RemoveRange(Tn)(Vector(Tn)* vec, size_t start, size_t stop)
+static inline void Vector_RemoveRange(Tn)(Vector(Tn)* vec, size_t start, size_t stop)
 {
     if (start > vec->length - 1 || stop > vec->length || stop - start == 0) {
         // nop
@@ -383,7 +383,7 @@ static void Vector_RemoveRange(Tn)(Vector(Tn)* vec, size_t start, size_t stop)
 // Remove an element from the vector
 //  The index specified must be a valid index in the vector
 //  void Vector_Remove(T)(Vector(T)* vec, size_t index)
-static void Vector_Remove(Tn)(Vector(Tn)* vec, size_t index)
+static inline void Vector_Remove(Tn)(Vector(Tn)* vec, size_t index)
 {
     Vector_RemoveRange(Tn)(vec, index, index + 1);
 }
