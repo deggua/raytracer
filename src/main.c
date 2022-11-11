@@ -92,8 +92,8 @@ static void FillScene(Scene* scene)
     Object lightObj;
     lightObj.material         = &g_matLight;
     lightObj.surface.type     = SURFACE_SPHERE;
-    lightObj.surface.sphere.c = (point3){-4, 24, -4};
-    lightObj.surface.sphere.r = 4.0f;
+    lightObj.surface.sphere.c = (point3){4, 24, 4};
+    lightObj.surface.sphere.r = 6.0f;
     Scene_Add_Object(scene, &lightObj);
 
     /* Ground */
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 
     Camera* cam   = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
     Scene*  scene = Scene_New();
-    Scene_Set_SkyColor(scene, (Color){0.05f, 0.05f, 0.05f});
+    Scene_Set_SkyColor(scene, (Color){0.00f, 0.00f, 0.00f});
 
     TIMEIT("Scene load", FillScene(scene));
     TIMEIT("Scene prepare", Scene_Prepare(scene));

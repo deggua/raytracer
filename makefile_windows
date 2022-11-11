@@ -28,16 +28,16 @@ PROFILE_FNAME 	:= rtprof.exe
 all: debug release
 
 debug:
-	clang -o $(BIN_DIR)/windows-$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
+	clang -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
 
 release:
-	clang -o $(BIN_DIR)/windows-$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
+	clang -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
 
 sanitize:
 	clang -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
 
 profile:
-	clang -o $(BIN_DIR)/$(PROFILE_FNAME).out $(CC_FLAGS_PROFILE) $(SRCS)
+	clang -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
 
 clean:
 	rmdir /s /q $(BIN_DIR)

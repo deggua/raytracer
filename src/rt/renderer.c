@@ -112,6 +112,7 @@ static void RenderThread(void* arg)
 
         // TODO: figure out a better way to print progress
         printf("\rFinished line %03zd of %zu", yy, imageHeight);
+        fflush(stdout);
     }
 
     return;
