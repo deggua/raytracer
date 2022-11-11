@@ -1,0 +1,44 @@
+CC = clang
+
+CC_FLAGS_FILE = compile_flags.txt
+CC_FLAGS = $(shell type $(CC_FLAGS_FILE))
+CC_FLAGS_DEBUG_MODE = -g3 -O0 -fuse-ld=lld
+CC_FLAGS_RELEASE_MODE = -g3 -Ofast -fuse-ld=lld -flto -Wl,/LTCG -fvisibility=hidden
+
+CC_FLAGS_DEBUG = $(CC_FLAGS_DEBUG_MODE) $(CC_FLAGS)
+CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)
+CC_FLAGS_SANITIZE = $(CC_FLAGS_DEBUG) -fsanitize=address
+CC_FLAGS_PROFILE = $(CC_FLAGS_RELEASE) -pg -a
+
+SRCS = src/main.c
+SRCS += $(wildcard src/common/*.c)
+SRCS += $(wildcard src/gfx/*.c)
+SRCS += $(wildcard src/rt/*.c)
+SRCS += $(wildcard src/rt/accelerators/*.c)
+SRCS += $(wildcard src/world/*.c)
+
+SRCS += $(wildcard src/platform/windows/*.c)
+
+BIN_DIR = bin
+DEBUG_FNAME 	:= rtdbg.exe
+RELEASE_FNAME 	:= rt.exe
+SANITIZE_FNAME 	:= rtsan.exe
+PROFILE_FNAME 	:= rtprof.exe
+
+all: debug release
+
+debug:
+	clang -o $(BIN_DIR)/windows-$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
+
+release:
+	clang -o $(BIN_DIR)/windows-$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
+
+sanitize:
+	clang -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
+
+profile:
+	clang -o $(BIN_DIR)/$(PROFILE_FNAME).out $(CC_FLAGS_PROFILE) $(SRCS)
+
+clean:
+	rmdir /s /q $(BIN_DIR)
+	mkdir $(BIN_DIR)

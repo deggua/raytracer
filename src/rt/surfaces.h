@@ -12,6 +12,7 @@ typedef union {
         point3 min;
         point3 max;
     };
+
     point3 bounds[2];
 } BoundingBox;
 
@@ -39,6 +40,7 @@ typedef struct {
 
 typedef struct {
     SurfaceType type;
+
     union {
         Sphere   sphere;
         Triangle triangle;

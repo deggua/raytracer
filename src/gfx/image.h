@@ -11,6 +11,7 @@ typedef struct {
     struct {
         size_t width, height;
     } res;
+
     RGB pix[];
 } Image;
 

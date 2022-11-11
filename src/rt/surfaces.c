@@ -1,15 +1,15 @@
 #include "surfaces.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "common/math.h"
 
 Sphere Sphere_Make(point3 center, f32 radius)
 {
-    return (Sphere) {
+    return (Sphere){
         .c = center,
         .r = radius,
     };
@@ -19,10 +19,10 @@ bool Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box)
 {
     const point3 center  = sphere->c;
     const f32    epsilon = 0.001f;
-    const vec3   vRad    = (vec3) {
-        .x = sphere->r + epsilon,
-        .y = sphere->r + epsilon,
-        .z = sphere->r + epsilon,
+    const vec3   vRad    = (vec3){
+             .x = sphere->r + epsilon,
+             .y = sphere->r + epsilon,
+             .z = sphere->r + epsilon,
     };
 
     box->min = vsub(center, vRad);
@@ -34,12 +34,12 @@ bool Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box)
 static vec2 Sphere_MapUV(const point3 onSphere)
 {
     f32 theta = acosf(clampf(-onSphere.y, -0.999f, 0.999f));
-    f32 phi = atan2f(-onSphere.z, onSphere.x) + PI;
+    f32 phi   = atan2f(-onSphere.z, onSphere.x) + PI;
 
-    //assert(!isnanf(theta));
-    //assert(!isnanf(phi));
+    // assert(!isnanf(theta));
+    // assert(!isnanf(phi));
 
-    return (vec2) {
+    return (vec2){
         .x = phi / (2 * PI),
         .y = theta / PI,
     };
@@ -69,8 +69,8 @@ bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitI
             return false;
         }
 
-        hit->tIntersect = tIntersect;
-        hit->position   = Ray_At(ray, tIntersect);
+        hit->tIntersect    = tIntersect;
+        hit->position      = Ray_At(ray, tIntersect);
         vec3 outwardNormal = vdiv(vsub(hit->position, sphere->c), sphere->r);
         HitInfo_SetFaceNormal(hit, ray, outwardNormal);
         hit->uv = Sphere_MapUV(outwardNormal);
@@ -81,32 +81,20 @@ bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitI
 
 Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2)
 {
-    vec3 edge1 = vsub(v1, v0);
-    vec3 edge2 = vsub(v2, v0);
+    vec3 edge1         = vsub(v1, v0);
+    vec3 edge2         = vsub(v2, v0);
     vec3 defaultNormal = vcross(edge1, edge2);
 
-    return (Triangle) {
-        .v[0] = {
-            .pos = v0,
-            .norm = defaultNormal,
-            .tex = {0.0f, 0.0f}
-        },
-        .v[1] = {
-            .pos = v1,
-            .norm = defaultNormal,
-            .tex = {0.0f, 0.0f}
-        },
-        .v[2] = {
-            .pos = v2,
-            .norm = defaultNormal,
-            .tex = {0.0f, 0.0f}
-        }
+    return (Triangle){
+        .v[0] = {.pos = v0, .norm = defaultNormal, .tex = {0.0f, 0.0f}},
+        .v[1] = {.pos = v1, .norm = defaultNormal, .tex = {0.0f, 0.0f}},
+        .v[2] = {.pos = v2, .norm = defaultNormal, .tex = {0.0f, 0.0f}}
     };
 }
 
 Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
 {
-    return (Triangle) {
+    return (Triangle){
         .v = {v0, v1, v2}
     };
 }
@@ -157,11 +145,11 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
     if (t > tMax || t < tMin) {
         return false;
     } else {
-        hit->position      = Ray_At(ray, t);
-        hit->tIntersect    = t;
+        hit->position   = Ray_At(ray, t);
+        hit->tIntersect = t;
 
-        f32 coeff = 1.0f - u - v;
-        hit->uv = vsum(vmul(tri->v[0].tex, coeff), vmul(tri->v[1].tex, u), vmul(tri->v[2].tex, v));
+        f32 coeff          = 1.0f - u - v;
+        hit->uv            = vsum(vmul(tri->v[0].tex, coeff), vmul(tri->v[1].tex, u), vmul(tri->v[2].tex, v));
         vec3 outwardNormal = vsum(vmul(tri->v[0].norm, coeff), vmul(tri->v[1].norm, u), vmul(tri->v[2].norm, v));
         HitInfo_SetFaceNormal(hit, ray, outwardNormal);
 

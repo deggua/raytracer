@@ -4,6 +4,6 @@
 
 #include "common/common.h"
 
-void RNG_Seed(u64 seed);
-f32  RNG_Random(void);
-f32  RNG_RandomInRange(f32 min, f32 max);
+void Random_Seed(u64 seed);
+f32  Random_F32_Normal(void);
+f32  Random_F32_Range(f32 min, f32 max);

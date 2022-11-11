@@ -26,6 +26,7 @@ typedef union {
         f32 g;
         f32 b;
     };
+
     vec3 vec3;
 } Color;
 

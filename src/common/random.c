@@ -72,7 +72,7 @@ static void jump(void)
     s[3] = s3;
 }
 
-void RNG_Seed(u64 seed)
+void Random_Seed(u64 seed)
 {
     s[0] = (u32)seed;
     s[1] = (u32)(seed >> 32);
@@ -81,7 +81,7 @@ void RNG_Seed(u64 seed)
     jump();
 }
 
-f32 RNG_Random(void)
+f32 Random_F32_Normal(void)
 {
     u32 nextVal = next();
     f32 maxVal  = (f32)UINT32_MAX + 1.0f;
@@ -89,7 +89,7 @@ f32 RNG_Random(void)
     return result;
 }
 
-f32 RNG_RandomInRange(f32 min, f32 max)
+f32 Random_F32_Range(f32 min, f32 max)
 {
-    return min + (max - min) * RNG_Random();
+    return min + (max - min) * Random_F32_Normal();
 }

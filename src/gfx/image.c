@@ -65,15 +65,17 @@ void Image_Export_PPM(const Image* img, FILE* fd)
 /* ---- BMP ---- */
 
 enum BMP_VALUES {
-    ID_BM  = 'MB',
+    ID_BM  = 0x4D42,
     BI_RGB = 0,
 };
+
+#pragma pack(push, 1)
 
 typedef struct {
     u8 b;
     u8 g;
     u8 r;
-} attr_aligned(1) BGR;
+} BGR;
 
 typedef struct {
     struct {
@@ -82,24 +84,26 @@ typedef struct {
         u16 reserved_0x06;
         u16 reserved_0x08;
         u32 pixelArrayOffset;
-    } attr_aligned(1) FileHeader;
+    } FileHeader;
 
     union {
         struct {
-            u32     headerSize;
-            i32     pixelWidth;
-            i32     pixelHeight;
-            u16     colorPlanes;
-            u16     bitsPerPixel;
-            u32     compressionMethod;
-            u32     bitmapSize;
-            i32     ppmHorizontal;
-            i32     ppmVertical;
-            u32     numColors;
-            u32     numImportantColors;
-        } attr_aligned(1) BITMAPINFOHEADER;
-    } attr_aligned(1) DIBHeader;
-} attr_aligned(1) BMPHeader;
+            u32 headerSize;
+            i32 pixelWidth;
+            i32 pixelHeight;
+            u16 colorPlanes;
+            u16 bitsPerPixel;
+            u32 compressionMethod;
+            u32 bitmapSize;
+            i32 ppmHorizontal;
+            i32 ppmVertical;
+            u32 numColors;
+            u32 numImportantColors;
+        } BITMAPINFOHEADER;
+    } DIBHeader;
+} BMPHeader;
+
+#pragma pack(pop)
 
 static_assert(sizeof(BMPHeader) == 0x36, "Incorrect BMP header size");
 static_assert(sizeof(BGR) == 3, "Incorrect BGR pixel size");
@@ -110,8 +114,8 @@ void Image_Export_BMP(const Image* img, FILE* fd)
 
     size_t padBytesPerRow;
 
-    if (pixBytesPerRow % sizeof(u32) != 0) {
-        padBytesPerRow = sizeof(u32) - pixBytesPerRow;
+    if (pixBytesPerRow % 4 != 0) {
+        padBytesPerRow = 4 - pixBytesPerRow;
     } else {
         padBytesPerRow = 0;
     }
@@ -149,11 +153,11 @@ void Image_Export_BMP(const Image* img, FILE* fd)
 
     u8* curPixel = pixelBuffer;
 
-    for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
+    for (int64_t yy = img->res.height - 1; yy >= 0; yy--) {
         for (size_t xx = 0; xx < img->res.width; xx++) {
             BGR* bmpPix = (BGR*)curPixel;
             RGB  pix    = Image_GetPixel(img, xx, yy);
-            *bmpPix     = (BGR) {.b = pix.b, .g = pix.g, .r = pix.r};
+            *bmpPix     = (BGR){.b = pix.b, .g = pix.g, .r = pix.r};
 
             curPixel += sizeof(BGR);
         }
@@ -161,11 +165,10 @@ void Image_Export_BMP(const Image* img, FILE* fd)
         curPixel += padBytesPerRow;
     }
 
-    // fill out the header with relevant size data
     fwrite(&header, sizeof(header), 1, fd);
     fwrite(pixelBuffer, rowBytes * img->res.height, 1, fd);
-    free(pixelBuffer);
     fflush(fd);
+    free(pixelBuffer);
 }
 
 Image* Image_Import_BMP(FILE* fd)
@@ -174,16 +177,16 @@ Image* Image_Import_BMP(FILE* fd)
     fread(&header, sizeof(header), 1, fd);
 
     // validate the header
-    if (header.FileHeader.id != ID_BM || header.DIBHeader.BITMAPINFOHEADER.bitsPerPixel != 24 ||
-        header.DIBHeader.BITMAPINFOHEADER.compressionMethod != BI_RGB) {
+    if (header.FileHeader.id != ID_BM || header.DIBHeader.BITMAPINFOHEADER.bitsPerPixel != 24
+        || header.DIBHeader.BITMAPINFOHEADER.compressionMethod != BI_RGB) {
         printf("Invaid Bitmap header\n");
         return NULL;
     }
 
     // construct the image
     const size_t height = header.DIBHeader.BITMAPINFOHEADER.pixelHeight;
-    const size_t width = header.DIBHeader.BITMAPINFOHEADER.pixelWidth;
-    Image* img = Image_New(width, height);
+    const size_t width  = header.DIBHeader.BITMAPINFOHEADER.pixelWidth;
+    Image*       img    = Image_New(width, height);
 
     if (img == NULL) {
         return NULL;
@@ -212,13 +215,13 @@ Image* Image_Import_BMP(FILE* fd)
     }
 
     // read row by row and fill the image with each pixel in the row
-    for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
+    for (int64_t yy = img->res.height - 1; yy >= 0; yy--) {
         assert(!feof(fd));
         fread(rowPixels, rowBytes, 1, fd);
 
         for (size_t xx = 0; xx < img->res.width; xx++) {
             BGR bmpPix = rowPixels[xx];
-            RGB pix = {.r = bmpPix.r, .g = bmpPix.g, .b = bmpPix.b};
+            RGB pix    = {.r = bmpPix.r, .g = bmpPix.g, .b = bmpPix.b};
             Image_SetPixel(img, xx, yy, pix);
         }
     }

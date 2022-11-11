@@ -1,11 +1,11 @@
 #include "renderer.h"
 
 #include <math.h>
-#include <pthread.h>
 #include <stdlib.h>
 
 #include "common/math.h"
 #include "common/random.h"
+#include "platform/threads.h"
 
 RenderCtx* Render_New(const Scene* scene, Image* img, const Camera* cam)
 {
@@ -66,11 +66,11 @@ typedef struct {
     size_t numThreads;
 } RenderThreadArg;
 
-static void* RenderThread(void* arg)
+static void RenderThread(void* arg)
 {
     RenderThreadArg* args = arg;
 
-    RNG_Seed(__builtin_readcyclecounter());
+    Random_Seed(__builtin_readcyclecounter());
 
     Image*        img   = args->ctx->img;
     const Camera* cam   = args->ctx->cam;
@@ -86,22 +86,22 @@ static void* RenderThread(void* arg)
     const size_t imageWidth  = args->ctx->img->res.width;
 
     // compute the image
-    for (ssize_t yy = imageHeight - 1 - lineOffset; yy >= 0; yy -= numThreads) {
+    for (int64_t yy = imageHeight - 1 - lineOffset; yy >= 0; yy -= numThreads) {
         for (size_t xx = 0; xx < imageWidth; xx++) {
             Color cumColorPt = {0};
 
             for (size_t samples = 0; samples < samplesPerPixel; samples++) {
-                f32 horizontalFraction = (xx + RNG_Random()) / (f32)(imageWidth - 1);
-                f32 verticalFraction   = (yy + RNG_Random()) / (f32)(imageHeight - 1);
+                f32 horizontalFraction = (xx + Random_F32_Normal()) / (f32)(imageWidth - 1);
+                f32 verticalFraction   = (yy + Random_F32_Normal()) / (f32)(imageHeight - 1);
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
                 Color rayColor = RayColor(scene, &ray, maxRayDepth);
-                cumColorPt     = (Color) {.vec3 = vadd(cumColorPt.vec3, rayColor.vec3)};
+                cumColorPt     = (Color){.vec3 = vadd(cumColorPt.vec3, rayColor.vec3)};
             }
 
             point3 avgColorPt = vdiv(cumColorPt.vec3, samplesPerPixel);
 
-            RGB avgRGB = RGB_FromColor((Color) {
+            RGB avgRGB = RGB_FromColor((Color){
                 .r = sqrtf(clampf(avgColorPt.x, 0.0f, 0.999f)),
                 .g = sqrtf(clampf(avgColorPt.y, 0.0f, 0.999f)),
                 .b = sqrtf(clampf(avgColorPt.z, 0.0f, 0.999f)),
@@ -114,42 +114,41 @@ static void* RenderThread(void* arg)
         printf("\rFinished line %03zd of %zu", yy, imageHeight);
     }
 
-    return NULL;
+    return;
 }
 
 Image* Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads)
 {
     const size_t minStackSize = 16 * 1024 * 1024;
 
-    pthread_t*       threads    = calloc(numThreads, sizeof(*threads));
+    Thread**         threads    = calloc(numThreads, sizeof(Thread*));
     RenderThreadArg* threadArgs = calloc(numThreads, sizeof(*threadArgs));
 
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, minStackSize);
-
     for (size_t ii = 0; ii < numThreads; ii++) {
+        threads[ii] = Thread_New();
+        Thread_Set_StackSize(threads[ii], minStackSize);
+
         threadArgs[ii].ctx                          = ctx;
         threadArgs[ii].renderParams.maxRayDepth     = maxRayDepth;
         threadArgs[ii].renderParams.samplesPerPixel = samplesPerPixel;
         threadArgs[ii].numThreads                   = numThreads;
         threadArgs[ii].lineOffset                   = ii;
 
-        pthread_create(&threads[ii], NULL, RenderThread, &threadArgs[ii]);
+        Thread_Spawn(threads[ii], RenderThread, &threadArgs[ii]);
     }
 
     for (size_t ii = 0; ii < numThreads; ii++) {
-        pthread_join(threads[ii], NULL);
+        Thread_Join(threads[ii]);
     }
 
     printf("\nFinished rendering\n");
 
+    for (size_t ii = 0; ii < numThreads; ii++) {
+        Thread_Delete(threads[ii]);
+    }
+
     free(threads);
     free(threadArgs);
-
-#if 0
-    pthread_attr_destroy(&attr);
-#endif
 
     return ctx->img;
 }

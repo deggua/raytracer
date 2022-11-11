@@ -18,6 +18,7 @@ typedef union {
         f32 x;
         f32 y;
     };
+
     f32 v[2];
 } vec2;
 
@@ -27,6 +28,7 @@ typedef union {
         f32 y;
         f32 z;
     };
+
     f32 v[3];
 } vec3;
 
@@ -37,6 +39,7 @@ typedef union {
         f32 z;
         f32 w;
     };
+
     f32 v[4];
 } vec4;
 
@@ -45,12 +48,14 @@ typedef union {
     vec2 vec2;
     vec3 vec3;
     vec4 vec4;
+
     struct {
         f32 x;
         f32 y;
         f32 z;
         f32 w;
     };
+
     f32 v[4];
 } vecg;
 
@@ -162,14 +167,14 @@ bool scalar_AlmostTheSame(f32 x, f32 y);
 #define AXIS_ARG(axis)       \
     ((const char*[]){        \
         [AXIS_X] = "x-axis", \
-                   [AXIS_Y] = "y-axis", \
-                              [AXIS_Z] = "z-axis", \
-                                         [AXIS_W] = "w-axis", \
+        [AXIS_Y] = "y-axis", \
+        [AXIS_Z] = "z-axis", \
+        [AXIS_W] = "w-axis", \
     })[axis]
 
 #define MAP _Generic
 #define BIND(type, func) \
-    type:                    \
+type:                    \
     func
 
 /* clang-format off */

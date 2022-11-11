@@ -80,7 +80,7 @@ FixNamespaceComments: true
 
 IncludeBlocks: Regroup
 
-#IndentAccessModifiers: false
+IndentAccessModifiers: false
 IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentExternBlock: false
@@ -100,7 +100,10 @@ PointerAlignment: Left
 
 ReflowComments: true
 
-#ShortNamespaceLines: 0
+ShortNamespaceLines: 0
+QualifierAlignment: Left
+#QualifierOrder: ['static', 'const', 'inline', 'volatile', 'type']
+SeparateDefinitionBlocks: Always
 
 SortIncludes: true
 SortUsingDeclarations: true
@@ -123,9 +126,9 @@ SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
 SpacesInConditionalStatement: false
 SpacesInContainerLiterals: false
-#SpacesInLineCommentPrefix:
-#    Minimum: 1
-#    Maximum: 1
+SpacesInLineCommentPrefix:
+    Minimum: 1
+    Maximum: 1
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 

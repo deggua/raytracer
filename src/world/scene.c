@@ -15,9 +15,9 @@
 
 typedef struct Scene {
     Color skyColor;
-    Vector(Object)* objects;
-    Vector(Object)* unboundObjs;
-    Vector(Object)* kdObjects;
+    Vector(Object) * objects;
+    Vector(Object) * unboundObjs;
+    Vector(Object) * kdObjects;
     KDTree* kdTree;
 } Scene;
 
@@ -47,7 +47,7 @@ Scene* Scene_New(void)
         goto error_KdObjects;
     }
 
-    scene->skyColor = (Color) {.r = 0.0f, .g = 0.0f, .b = 0.0f};
+    scene->skyColor = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
     return scene;
 
 error_KdObjects:

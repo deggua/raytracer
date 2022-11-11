@@ -39,23 +39,44 @@ typedef int_least64_t i64_min;
 
 typedef union {
     f32 f32;
+
     struct {
         u32 frac : 23;
         u32 exp  : 8;
         u32 sign : 1;
     };
-    u8 u8[sizeof(f32)];
+
+    u32 u32;
+    u8  u8[sizeof(f32)];
 } f32_ieee754;
 
 typedef union {
     f64 f64;
+
     struct {
         u64 frac : 52;
         u64 exp  : 11;
         u64 sign : 1;
     };
-    u8 u8[sizeof(f64)];
+
+    u64 u64;
+    u8  u8[sizeof(f64)];
 } f64_ieee754;
+
+#if !defined(__cplusplus) && !defined(TARGET_WINDOWS)
+#    include <stdbool.h>
+
+#    undef bool
+#    undef true
+#    undef false
+
+typedef _Bool bool;
+
+enum {
+    false = 0,
+    true  = 1
+};
+#endif
 
 static_assert_decl(sizeof(f32) == 4);
 static_assert_decl(sizeof(f64) == 8);

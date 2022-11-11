@@ -20,7 +20,7 @@ typedef struct Mesh {
     point3    origin;
     f32       scale;
     Material* material;
-    Vector(Triangle)* polys;
+    Vector(Triangle) * polys;
 } Mesh;
 
 Mesh* Mesh_New(void)
@@ -89,8 +89,8 @@ bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd)
 {
     char lineBuffer[512];
 
-    Vector(point3)* vertices = Vector_New(point3)();
-    Vector(point2)* texCoords = Vector_New(point2)();
+    Vector(point3)* vertices      = Vector_New(point3)();
+    Vector(point2)* texCoords     = Vector_New(point2)();
     Vector(point3)* vertexNormals = Vector_New(point3)();
 
     // first pass gets all the vertices/texture coords/normals
@@ -123,14 +123,14 @@ bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd)
 
         if (strncmp(lineBuffer, "f ", 2) == 0) {
             // extract values
-            ssize_t vi[4] = {[0 ... 3] = -1};
-            ssize_t vn[4] = {[0 ... 3] = -1};
-            ssize_t vt[4] = {[0 ... 3] = -1};
-            size_t tc;
+            int64_t vi[4] = {[0 ... 3] = -1};
+            int64_t vn[4] = {[0 ... 3] = -1};
+            int64_t vt[4] = {[0 ... 3] = -1};
+            size_t  tc;
 
             // remove the 'f' token
             char* token = strtok(lineBuffer, " ");
-            token = strtok(NULL, " ");
+            token       = strtok(NULL, " ");
 
             for (tc = 0; token != NULL; tc++) {
                 if (sscanf(token, "%zu/%zu/%zu", &vi[tc], &vt[tc], &vn[tc]) == 3) {
@@ -152,23 +152,26 @@ next_token:
             if (tc == 4) {
                 // need to split into two triangles
                 Triangle tri[2];
-                size_t indices[2][3] = {{0, 1, 2}, {0, 2, 3}};
+                size_t   indices[2][3] = {
+                    {0, 1, 2},
+                    {0, 2, 3}
+                };
 
                 for (size_t ii = 0; ii < 2; ii++) {
                     // first pass is just the vertex positions since they must be valid
                     for (size_t jj = 0; jj < 3; jj++) {
-                        ssize_t index = indices[ii][jj];
+                        int64_t index     = indices[ii][jj];
                         tri[ii].v[jj].pos = vertices->at[vi[index] - 1];
                     }
 
                     // since a file can omit normals we need to calculate a default normal based on the edges if
                     // it isn't provided
-                    vec3 edge1 = vsub(tri[ii].v[1].pos, tri[ii].v[0].pos);
-                    vec3 edge2 = vsub(tri[ii].v[2].pos, tri[ii].v[0].pos);
+                    vec3 edge1         = vsub(tri[ii].v[1].pos, tri[ii].v[0].pos);
+                    vec3 edge2         = vsub(tri[ii].v[2].pos, tri[ii].v[0].pos);
                     vec3 defaultNormal = vcross(edge1, edge2);
 
                     for (size_t jj = 0; jj < 3; jj++) {
-                        ssize_t index = indices[ii][jj];
+                        int64_t index = indices[ii][jj];
 
                         if (vn[index] >= 0) {
                             tri[ii].v[jj].norm = vertexNormals->at[vn[index] - 1];
@@ -179,7 +182,7 @@ next_token:
                         if (vt[index] >= 0) {
                             tri[ii].v[jj].tex = texCoords->at[vt[index] - 1];
                         } else {
-                            tri[ii].v[jj].tex = (point2) {0.0f, 0.0f};
+                            tri[ii].v[jj].tex = (point2){0.0f, 0.0f};
                         }
                     }
                 }
@@ -196,8 +199,8 @@ next_token:
 
                 // since a file can omit normals we need to calculate a default normal based on the edges if
                 // it isn't provided
-                vec3 edge1 = vsub(tri.v[1].pos, tri.v[0].pos);
-                vec3 edge2 = vsub(tri.v[2].pos, tri.v[0].pos);
+                vec3 edge1         = vsub(tri.v[1].pos, tri.v[0].pos);
+                vec3 edge2         = vsub(tri.v[2].pos, tri.v[0].pos);
                 vec3 defaultNormal = vnorm(vcross(edge1, edge2));
 
                 for (size_t ii = 0; ii < 3; ii++) {
@@ -210,7 +213,7 @@ next_token:
                     if (vt[ii] >= 0) {
                         tri.v[ii].tex = texCoords->at[vt[ii] - 1];
                     } else {
-                        tri.v[ii].tex = (point2) {0.0f, 0.0f};
+                        tri.v[ii].tex = (point2){0.0f, 0.0f};
                     }
                 }
 
@@ -227,4 +230,3 @@ next_token:
 
     return true;
 }
-

@@ -17,6 +17,8 @@ SRCS += $(wildcard src/rt/*.c)
 SRCS += $(wildcard src/rt/accelerators/*.c)
 SRCS += $(wildcard src/world/*.c)
 
+SRCS += $(wildcard src/platform/linux/*.c)
+
 BIN_DIR = bin
 DEBUG_FNAME 	:= rtdbg.out
 RELEASE_FNAME 	:= rt.out
@@ -25,24 +27,22 @@ PROFILE_FNAME 	:= rtprof.out
 
 all: debug release
 
-debug: bin_dir
+debug:
 	clang -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
 	chmod +x $(BIN_DIR)/$(DEBUG_FNAME)
 
-release: bin_dir
+release:
 	clang -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
 	chmod +x $(BIN_DIR)/$(RELEASE_FNAME)
 
-sanitize: bin_dir
+sanitize:
 	clang -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
 	chmod +x $(BIN_DIR)/$(SANITIZE_FNAME)
 
-profile: bin_dir
+profile:
 	clang -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
 	chmod +x $(BIN_DIR)/$(PROFILE_FNAME)
 
 clean:
 	rm -rf $(BIN_DIR)
-
-bin_dir:
 	mkdir -p $(BIN_DIR)
