@@ -10,11 +10,13 @@
 
 f32 clampf(f32 x, f32 min, f32 max)
 {
-    if (x < min)
+    if (x < min) {
         return min;
-    if (x > max)
+    } else if (x > max) {
         return max;
-    return x;
+    } else {
+        return x;
+    }
 }
 
 f32 radiansf(f32 degrees)

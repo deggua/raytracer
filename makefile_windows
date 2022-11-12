@@ -3,7 +3,7 @@ CC = clang
 CC_FLAGS_FILE = compile_flags.txt
 CC_FLAGS = $(shell type $(CC_FLAGS_FILE))
 CC_FLAGS_DEBUG_MODE = -g3 -O0 -fuse-ld=lld
-CC_FLAGS_RELEASE_MODE = -g3 -Ofast -fuse-ld=lld -flto -Wl,/LTCG -fvisibility=hidden
+CC_FLAGS_RELEASE_MODE = -g3 -Ofast -fuse-ld=lld -flto -Wl,/LTCG -fvisibility=hidden -funsafe-math-optimizations -fno-math-errno -funroll-loops
 
 CC_FLAGS_DEBUG = $(CC_FLAGS_DEBUG_MODE) $(CC_FLAGS)
 CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)
@@ -28,16 +28,16 @@ PROFILE_FNAME 	:= rtprof.exe
 all: debug release
 
 debug:
-	clang -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
 
 release:
-	clang -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
 
 sanitize:
-	clang -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
 
 profile:
-	clang -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
 
 clean:
 	rmdir /s /q $(BIN_DIR)

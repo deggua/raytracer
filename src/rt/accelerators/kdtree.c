@@ -214,7 +214,7 @@ static BoundingBox BoxBoundingAll(const Vector(KDBB) * vec)
     };
 
     for (size_t ii = 1; ii < len; ii++) {
-        for (size_t axis = 0; axis < 3; axis++) {
+        for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
             if (kdbbs[ii].box.min.v[axis] < box.min.v[axis]) {
                 box.min.v[axis] = kdbbs[ii].box.min.v[axis];
             }
@@ -295,7 +295,7 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
     Axis bestAxis  = AXIS_X;
     f32  bestSAH   = INF;
 
-    for (Axis axis = AXIS_X; axis < AXIS_Z + 1; axis++) {
+    for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
         f32 stride = (container.max.v[axis] - container.min.v[axis]) / NumBuckets;
 
         for (f32 bucket = container.min.v[axis] + stride; bucket <= container.max.v[axis] - stride; bucket += stride) {
@@ -596,7 +596,6 @@ static bool CheckHitInternalNode(
 
     if (unlikely(fabsf(ray->dir.v[axis]) < epsilonParallel)) {
         // ray parallel to plane, check the origin to see which side ray falls on
-        // TODO: is this correct when the origin is in the plane?
         if (ray->origin.v[axis] >= split) {
             return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
         } else {

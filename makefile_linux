@@ -3,7 +3,7 @@ CC = clang
 CC_FLAGS_FILE = compile_flags.txt
 CC_FLAGS = $(shell cat $(CC_FLAGS_FILE))
 CC_FLAGS_DEBUG_MODE = -ggdb3 -O0
-CC_FLAGS_RELEASE_MODE = -ggdb3 -Ofast -flto -Wl,-O3 -fvisibility=hidden
+CC_FLAGS_RELEASE_MODE = -ggdb3 -Ofast -flto -Wl,-O3 -fvisibility=hidden -funsafe-math-optimizations -fno-math-errno -funroll-loops
 
 CC_FLAGS_DEBUG = $(CC_FLAGS_DEBUG_MODE) $(CC_FLAGS)
 CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)
@@ -28,19 +28,19 @@ PROFILE_FNAME 	:= rtprof.out
 all: debug release
 
 debug:
-	clang -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
 	chmod +x $(BIN_DIR)/$(DEBUG_FNAME)
 
 release:
-	clang -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
 	chmod +x $(BIN_DIR)/$(RELEASE_FNAME)
 
 sanitize:
-	clang -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
 	chmod +x $(BIN_DIR)/$(SANITIZE_FNAME)
 
 profile:
-	clang -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
+	$(CC) -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
 	chmod +x $(BIN_DIR)/$(PROFILE_FNAME)
 
 clean:

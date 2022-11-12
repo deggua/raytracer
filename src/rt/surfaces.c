@@ -103,7 +103,7 @@ bool Triangle_BoundedBy(const Triangle* tri, BoundingBox* box)
 {
     const f32 epsilon = 0.001f;
 
-    for (Axis axis = AXIS_X; axis < AXIS_Z + 1; axis++) {
+    for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
         box->min.v[axis] = minf(minf(tri->v[0].pos.v[axis], tri->v[1].pos.v[axis]), tri->v[2].pos.v[axis]) - epsilon;
         box->max.v[axis] = maxf(maxf(tri->v[0].pos.v[axis], tri->v[1].pos.v[axis]), tri->v[2].pos.v[axis]) + epsilon;
     }

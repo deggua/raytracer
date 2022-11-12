@@ -28,9 +28,7 @@ bool Thread_Spawn(Thread* thread, void (*entry)(void* arg), void* thread_arg)
     // should work as long as it doesn't break the ABI (e.g. returns on the stack)
     void* (*linux_entry)(void* arg) = (void* (*)(void*))entry;
 
-    pthread_create(&thread->thread, &thread->thread_attr, linux_entry, thread_arg);
-
-    if (thread->thread_handle != 0) {
+    if (pthread_create(&thread->thread, &thread->thread_attr, linux_entry, thread_arg)) {
         return false;
     }
 
@@ -44,5 +42,5 @@ void Thread_Set_StackSize(Thread* thread, size_t stack_size)
 
 void Thread_Join(Thread* thread)
 {
-    pthread_join(thread->thread);
+    pthread_join(thread->thread, NULL);
 }
