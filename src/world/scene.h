@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/common.h"
 #include "rt/accelerators/kdtree.h"
 #include "world/object.h"
 

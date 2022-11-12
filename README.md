@@ -23,3 +23,4 @@ TODO:
 * Procedural textures
 * Real-time display of render
 * Improve program structure and memory management of objects
+* Improve asset loading and storage of assets in memory

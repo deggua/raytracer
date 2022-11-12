@@ -1,4 +1,3 @@
-#include "common/common.h"
 #include "common/vec.h"
 
 f32 Noise_Perlin(point3 pt)

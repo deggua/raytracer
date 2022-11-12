@@ -2,8 +2,6 @@
 
 #include <stdbool.h>
 
-#include "common/common.h"
-
 #define PI      3.141592653589793f
 #define EPSILON 1e-8
 

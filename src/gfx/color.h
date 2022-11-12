@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 
-#include "common/common.h"
 #include "common/vec.h"
 
 #define COLOR_RED    ((const Color){.r = 0.7f, .g = 0.3f, .b = 0.3f})

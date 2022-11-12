@@ -2,8 +2,6 @@
 
 #include <stdint.h>
 
-#include "common/common.h"
-
 void Random_Seed(u64 seed);
-f32  Random_F32_Normal(void);
-f32  Random_F32_Range(f32 min, f32 max);
+f32  Random_Normal_f32(void);
+f32  Random_Range_f32(f32 min, f32 max);

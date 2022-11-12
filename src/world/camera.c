@@ -3,7 +3,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "common/common.h"
 #include "common/math.h"
 #include "common/random.h"
 #include "common/vec.h"

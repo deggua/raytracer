@@ -1,7 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "common/common.h"
 #include "rt/materials.h"
 #include "world/scene.h"
 

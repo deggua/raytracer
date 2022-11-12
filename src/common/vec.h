@@ -2,9 +2,6 @@
 
 #include <stdbool.h>
 
-#include "common/common.h"
-#include "common/simd.h"
-
 typedef enum {
     AXIS_X = 0,
     AXIS_Y = 1,
@@ -42,22 +39,6 @@ typedef union {
 
     f32 v[4];
 } vec4;
-
-typedef union {
-    m128 m128;
-    vec2 vec2;
-    vec3 vec3;
-    vec4 vec4;
-
-    struct {
-        f32 x;
-        f32 y;
-        f32 z;
-        f32 w;
-    };
-
-    f32 v[4];
-} vecg;
 
 typedef vec2 point2;
 typedef vec3 point3;

@@ -1,6 +1,6 @@
 #include "texture.h"
 
-#include <assert.h>
+#include <stdlib.h>
 
 typedef struct Texture {
     Image* image;
@@ -48,8 +48,7 @@ Color Texture_ColorAt(const Texture* tex, point2 st)
     // might need to round this down with some guarantee
     size_t xx = (size_t)(st.x * (tex->image->res.width - 1));
     size_t yy = (size_t)((1.0f - st.y) * (tex->image->res.height - 1));
-    assert(xx < tex->image->res.width);
-    assert(yy < tex->image->res.height);
+
     RGB pix = Image_GetPixel(tex->image, xx, yy);
     return Color_FromRGB(pix);
 }

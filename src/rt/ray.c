@@ -2,20 +2,14 @@
 
 Ray Ray_Make(point3 origin, vec3 dir)
 {
+    vec3 unit = {1.0f, 1.0f, 1.0f};
+
     return (Ray) {
         .origin = origin,
         .dir    = dir,
         .cache  = {
-            .invDir = {
-                1.0f / dir.x,
-                1.0f / dir.y,
-                1.0f / dir.z,
-            },
-            .originDivDir = {
-                origin.x / dir.x,
-                origin.y / dir.y,
-                origin.z / dir.z,
-            },
+            .invDir = vdiv(unit, dir),
+            .originDivDir = vdiv(origin, dir),
         },
     };
 }

@@ -3,8 +3,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "common/common.h"
-
 /* This is xoshiro128+ 1.0, our best and fastest 32-bit generator for 32-bit
    f32ing-point numbers. We suggest to use its upper bits for
    f32ing-point generation, as it is slightly faster than xoshiro128**.
@@ -81,7 +79,7 @@ void Random_Seed(u64 seed)
     jump();
 }
 
-f32 Random_F32_Normal(void)
+f32 Random_Normal_f32(void)
 {
     u32 nextVal = next();
     f32 maxVal  = (f32)UINT32_MAX + 1.0f;
@@ -89,7 +87,7 @@ f32 Random_F32_Normal(void)
     return result;
 }
 
-f32 Random_F32_Range(f32 min, f32 max)
+f32 Random_Range_f32(f32 min, f32 max)
 {
-    return min + (max - min) * Random_F32_Normal();
+    return min + (max - min) * Random_Normal_f32();
 }

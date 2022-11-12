@@ -7,8 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common/common.h"
-
 Image* Image_New(size_t width, size_t height)
 {
     Image* img      = calloc(1, sizeof(Image) + (width * height) * sizeof(RGB));

@@ -228,9 +228,9 @@ bool vec3_AlmostTheSame(vec3 v1, vec3 v2)
 vec3 vec3_Random(f32 min, f32 max)
 {
     return (vec3){
-        .x = Random_F32_Range(min, max),
-        .y = Random_F32_Range(min, max),
-        .z = Random_F32_Range(min, max),
+        .x = Random_Range_f32(min, max),
+        .y = Random_Range_f32(min, max),
+        .z = Random_Range_f32(min, max),
     };
 }
 
@@ -240,8 +240,8 @@ vec3 vec3_RandomInUnitDisc(void)
 
     do {
         vec = (vec3){
-            .x = Random_F32_Range(-1, 1),
-            .y = Random_F32_Range(-1, 1),
+            .x = Random_Range_f32(-1, 1),
+            .y = Random_Range_f32(-1, 1),
             .z = 0,
         };
 

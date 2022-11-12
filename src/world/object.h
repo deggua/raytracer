@@ -2,7 +2,6 @@
 
 #include <stdbool.h>
 
-#include "common/common.h"
 #include "rt/materials.h"
 #include "rt/ray.h"
 #include "rt/surfaces.h"

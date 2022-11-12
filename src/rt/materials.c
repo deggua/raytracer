@@ -3,7 +3,6 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "common/common.h"
 #include "common/math.h"
 #include "common/random.h"
 #include "common/vec.h"
@@ -110,7 +109,7 @@ bool Dielectric_Bounce(
     bool cannotRefract = refractionRatio * sinTheta > 1.0f;
     vec3 bounce;
 
-    if (cannotRefract || reflectance(cosTheta, refractionRatio) > Random_F32_Normal()) {
+    if (cannotRefract || reflectance(cosTheta, refractionRatio) > Random_Normal_f32()) {
         bounce = vec3_Reflect(normRayDir, hit->unitNormal);
     } else {
         bounce = vec3_Refract(normRayDir, hit->unitNormal, refractionRatio);

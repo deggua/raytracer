@@ -1,7 +1,5 @@
 #include <windows.h>
 
-#include "common/common.h"
-
 #define TIMEIT(desc, statement)                                                  \
     do {                                                                         \
         printf("Starting: " desc "\n");                                          \

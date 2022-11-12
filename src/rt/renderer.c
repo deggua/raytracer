@@ -63,7 +63,7 @@ typedef struct {
     const RenderCtx* ctx;
 
     size_t lineOffset;
-    size_t numThreads;
+    size_t lineStep;
 } RenderThreadArg;
 
 static void RenderThread(void* arg)
@@ -76,7 +76,7 @@ static void RenderThread(void* arg)
     const Camera* cam   = args->ctx->cam;
     const Scene*  scene = args->ctx->scene;
 
-    const size_t numThreads = args->numThreads;
+    const size_t lineStep   = args->lineStep;
     const size_t lineOffset = args->lineOffset;
 
     const size_t samplesPerPixel = args->renderParams.samplesPerPixel;
@@ -86,13 +86,13 @@ static void RenderThread(void* arg)
     const size_t imageWidth  = args->ctx->img->res.width;
 
     // compute the image
-    for (int64_t yy = imageHeight - 1 - lineOffset; yy >= 0; yy -= numThreads) {
+    for (int64_t yy = imageHeight - 1 - lineOffset; yy >= 0; yy -= lineStep) {
         for (size_t xx = 0; xx < imageWidth; xx++) {
             Color cumColorPt = {0};
 
             for (size_t samples = 0; samples < samplesPerPixel; samples++) {
-                f32 horizontalFraction = (xx + Random_F32_Normal()) / (f32)(imageWidth - 1);
-                f32 verticalFraction   = (yy + Random_F32_Normal()) / (f32)(imageHeight - 1);
+                f32 horizontalFraction = (xx + Random_Normal_f32()) / (f32)(imageWidth - 1);
+                f32 verticalFraction   = (yy + Random_Normal_f32()) / (f32)(imageHeight - 1);
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
                 Color rayColor = RayColor(scene, &ray, maxRayDepth);
@@ -132,7 +132,7 @@ Image* Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDept
         threadArgs[ii].ctx                          = ctx;
         threadArgs[ii].renderParams.maxRayDepth     = maxRayDepth;
         threadArgs[ii].renderParams.samplesPerPixel = samplesPerPixel;
-        threadArgs[ii].numThreads                   = numThreads;
+        threadArgs[ii].lineStep                     = numThreads;
         threadArgs[ii].lineOffset                   = ii;
 
         Thread_Spawn(threads[ii], RenderThread, &threadArgs[ii]);

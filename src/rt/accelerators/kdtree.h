@@ -2,7 +2,6 @@
 
 #include <assert.h>
 
-#include "common/common.h"
 #include "world/object.h"
 
 typedef struct KDTree KDTree;

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "common/common.h"
 #include "common/vec.h"
 #include "rt/materials.h"
 #include "rt/surfaces.h"

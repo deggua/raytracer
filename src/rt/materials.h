@@ -2,7 +2,6 @@
 
 #include <stdbool.h>
 
-#include "common/common.h"
 #include "common/vec.h"
 #include "gfx/color.h"
 #include "gfx/texture.h"

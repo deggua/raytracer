@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "common/common.h"
 #include "common/vec.h"
 #include "rt/ray.h"
 

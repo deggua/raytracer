@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 
-#include "common/common.h"
 #include "rt/materials.h"
 
 bool Surface_HitAt(const Surface* surface, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)

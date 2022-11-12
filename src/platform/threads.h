@@ -1,8 +1,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "common/common.h"
-
 typedef struct Thread Thread;
 
 Thread* Thread_New(void);
