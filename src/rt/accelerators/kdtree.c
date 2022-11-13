@@ -14,10 +14,6 @@
 // Range: [2, INF)
 static const size_t MinLeafLoad = 4;
 
-// TODO:
-// Function for determining the max tree depth
-// #define MaxTreeDepth(nprims) ((size_t)(8 + 1.3f * log2f(nprims)))
-
 // The number of positions to compute the SAH along each axis. Large values result in a finer resolution SAH search
 // which can yield a better tree at the cost of time to construct the tree.
 // Range: [2, INF)
@@ -43,18 +39,8 @@ static const f32 LeftNodeRelativeCost = 1.0f + (1.0f - RightNodeRelativeCost);
 typedef int64_t ssize_t;
 
 /* --- TODOs --- */
-// Structural changes:
-// TODO: benchmark code with and without pointer indirection to object array (store Object copies vs copies of ptrs to
-// Objects)
-// NOTE: seems like the memory overhead for having many copies of the same primitive may be prohibitive for large scenes
-// even if there is a performance improvement
-
 // Debugging modifications:
 // TODO: track avg intersection tests / ray to better determine what metaparmeter changes do to the traversal provide
-
-// Construction modifications:
-// TODO: consider adding max depth to tree (should be a function of the number of primitives in the scene)
-// TODO: consider allowing bad splits up to some threshold (apparently bad splits may yield good splits later)
 
 typedef enum {
     KD_INTERNAL_X = AXIS_X,
@@ -277,14 +263,12 @@ static f32 ComputeSplitSAH(const Vector(KDBBPtr) * vec, f32 split, Axis axis, Bo
 
 static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox container, size_t depth)
 {
-    const ssize_t maxVecLen = (1 << 30) - 1;
+    const size_t maxVecLen = (1 << 30) - 1;
 
-    // some safeguards on blowing the number range we have available in nodes for indices into the objPtr
-    // vector or the nodes vector
-    if (maxVecLen - (ssize_t)tree->objPtrs->length < (ssize_t)vec->length
-        || maxVecLen < (ssize_t)(tree->nodes->length)) {
-        printf("Generated too many objPtr copies in the tree->objPtrs vector\n");
-        assert(false);
+    // prevent blowing out the max index silently (would cause inf render time)
+    if (tree->nodes->length > maxVecLen || tree->objPtrs->length > maxVecLen) {
+        printf("Too many objects allocated to vector in %s\n", __func__);
+        exit(EXIT_FAILURE);
     }
 
     if (vec->length <= MinLeafLoad || depth == 0) {
@@ -317,15 +301,13 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
         return BuildLeafNode(tree, vec);
     } else {
         // cost of best split is better than cost of total, split them up
-        // TODO: add failure checking
+        // TODO: use updated vector template to avoid allocating vector objects on the heap
         Vector(KDBBPtr)* leftVec = Vector_New(KDBBPtr)();
-
         if (leftVec == NULL) {
             goto error_LeftVector;
         }
 
         Vector(KDBBPtr)* rightVec = Vector_New(KDBBPtr)();
-
         if (rightVec == NULL) {
             goto error_RightVector;
         }
@@ -583,8 +565,6 @@ CheckHitLeafNode(const KDTree* tree, const KDLeaf* leaf, const Ray* ray, Object*
     return false;
 }
 
-// TODO: we probably want to pass KDNode instead of KDInteral since we have to type pun to get to the right node,
-// which might be UB
 static bool CheckHitInternalNode(
     const KDTree*     tree,
     const KDInternal* node,

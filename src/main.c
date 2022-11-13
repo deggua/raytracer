@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 
     Camera* cam   = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
     Scene*  scene = Scene_New();
-    Scene_Set_SkyColor(scene, (Color){0.00f, 0.00f, 0.00f});
+    Scene_Set_SkyColor(scene, Color_FromRGB((RGB){0x87, 0xCE, 0xEB}));
 
     TIMEIT("Scene load", FillScene(scene));
     TIMEIT("Scene prepare", Scene_Prepare(scene));
