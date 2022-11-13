@@ -384,7 +384,7 @@ error_LeftVector:
     }
 }
 
-static ssize_t BuildKDTree(KDTree* tree, const Vector(KDBB) * boxes)
+static ssize_t BuildKDTree(KDTree* tree, const Vector(KDBB) * boxes, size_t maxDepth)
 {
     // we need a buffer of pointers to the objects BB's
     Vector(KDBBPtr)* vec = Vector_New(KDBBPtr)();
@@ -405,7 +405,6 @@ static ssize_t BuildKDTree(KDTree* tree, const Vector(KDBB) * boxes)
         }
     }
 
-    size_t  maxDepth  = (size_t)(8 + 1.8f * log2(boxes->length));
     ssize_t rootIndex = BuildNode(tree, vec, tree->worldBox, maxDepth);
 
     if (rootIndex < 0) {
@@ -456,6 +455,9 @@ error_VectorKDBBs:
 
 KDTree* KDTree_New(const Object objs[], size_t len)
 {
+    // NOTE: this is fine tuned
+    const size_t maxDepth = (size_t)(8.0 + 1.8 * log2(len));
+
     KDTree* tree = calloc(1, sizeof(KDTree));
 
     if (tree == NULL) {
@@ -468,7 +470,12 @@ KDTree* KDTree_New(const Object objs[], size_t len)
         goto error_NodeVector;
     }
 
-    if (!Vector_Reserve(KDNode)(tree->nodes, 2 * len - 1)) {
+    // practical limits on the number of nodes and objects due to the index being 30 bits
+    // this prevents performance penalties as a result of poor malloc implementations
+    size_t nodes_upper_bound = (1ull << 30) - 1;
+    size_t objs_upper_bound  = (1ull << 30) - 1;
+
+    if (!Vector_Reserve(KDNode)(tree->nodes, nodes_upper_bound)) {
         goto error_NodeVectorReserve;
     }
 
@@ -478,7 +485,7 @@ KDTree* KDTree_New(const Object objs[], size_t len)
         goto error_ObjVector;
     }
 
-    if (!Vector_Reserve(ObjectPtr)(tree->objPtrs, len)) {
+    if (!Vector_Reserve(ObjectPtr)(tree->objPtrs, objs_upper_bound)) {
         goto error_ObjVectorReserve;
     }
 
@@ -489,7 +496,7 @@ KDTree* KDTree_New(const Object objs[], size_t len)
     }
 
     tree->worldBox  = BoxBoundingAll(boxes);
-    tree->rootIndex = BuildKDTree(tree, boxes);
+    tree->rootIndex = BuildKDTree(tree, boxes, maxDepth);
 
     if (tree->rootIndex < 0) {
         goto error_Root;

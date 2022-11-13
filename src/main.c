@@ -64,7 +64,12 @@ static void FillScene(Scene* scene)
 
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
-    Mesh* mesh         = Mesh_New();
+    if (littleDragon == NULL) {
+        printf("Couldn't find assets/little_dragon.obj\n");
+        exit(EXIT_FAILURE);
+    }
+
+    Mesh* mesh = Mesh_New();
     Mesh_Import_OBJ(mesh, littleDragon);
     fclose(littleDragon);
 

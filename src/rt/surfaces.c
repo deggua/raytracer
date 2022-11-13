@@ -36,9 +36,6 @@ static vec2 Sphere_MapUV(const point3 onSphere)
     f32 theta = acosf(clampf(-onSphere.y, -0.999f, 0.999f));
     f32 phi   = atan2f(-onSphere.z, onSphere.x) + PI;
 
-    // assert(!isnanf(theta));
-    // assert(!isnanf(phi));
-
     return (vec2){
         .x = phi / (2 * PI),
         .y = theta / PI,

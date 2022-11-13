@@ -8,6 +8,11 @@
 
 /* --- Vec2 Functions --- */
 
+vec2 vec2_Set(f32 value)
+{
+    return (vec2){value, value};
+}
+
 vec2 vec2_Add(vec2 v1, vec2 v2)
 {
     return (vec2){
@@ -113,6 +118,11 @@ bool vec2_AlmostTheSame(vec2 v1, vec2 v2)
 }
 
 /* --- Vec3 Functions --- */
+
+vec3 vec3_Set(f32 value)
+{
+    return (vec3){value, value, value};
+}
 
 vec3 vec3_Add(vec3 v1, vec3 v2)
 {
@@ -300,6 +310,11 @@ vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio)
 }
 
 /* --- Vec4 Functions --- */
+
+vec4 vec4_Set(f32 value)
+{
+    return (vec4){value, value, value, value};
+}
 
 vec4 vec4_Add(vec4 v1, vec4 v2)
 {

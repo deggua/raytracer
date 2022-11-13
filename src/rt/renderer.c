@@ -29,9 +29,6 @@ void Render_Delete(RenderCtx* ctx)
 
 static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
 {
-    // TODO: This can be pulled out into pre-RayColor, along with computing every moving object's position
-    const Color skyColor = Scene_Get_SkyColor(scene);
-
     if (depth == 0) {
         return COLOR_BLACK;
     }
@@ -51,7 +48,7 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
         }
     }
 
-    return skyColor;
+    return Scene_Get_SkyColor(scene);
 }
 
 typedef struct {
