@@ -15,7 +15,8 @@ typedef struct ThreadArg {
 
 static DWORD Thread_EntryWrapper(LPVOID arg)
 {
-    arg->user_func(arg->user_arg);
+    ThreadArg* arg_wrapper = arg;
+    arg_wrapper->user_func(arg_wrapper->user_arg);
     free(arg);
     return 0;
 }
