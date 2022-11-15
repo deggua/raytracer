@@ -83,16 +83,16 @@ Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2)
     vec3 defaultNormal = vcross(edge1, edge2);
 
     return (Triangle){
-        .v[0] = {.pos = v0, .norm = defaultNormal, .tex = {0.0f, 0.0f}},
-        .v[1] = {.pos = v1, .norm = defaultNormal, .tex = {0.0f, 0.0f}},
-        .v[2] = {.pos = v2, .norm = defaultNormal, .tex = {0.0f, 0.0f}}
+        .vtx[0] = {.pos = v0, .norm = defaultNormal, .tex = {0.0f, 0.0f}},
+        .vtx[1] = {.pos = v1, .norm = defaultNormal, .tex = {0.0f, 0.0f}},
+        .vtx[2] = {.pos = v2, .norm = defaultNormal, .tex = {0.0f, 0.0f}}
     };
 }
 
 Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
 {
     return (Triangle){
-        .v = {v0, v1, v2}
+        .vtx = {v0, v1, v2}
     };
 }
 
@@ -101,8 +101,10 @@ bool Triangle_BoundedBy(const Triangle* tri, BoundingBox* box)
     const f32 epsilon = 0.001f;
 
     for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
-        box->min.v[axis] = minf(minf(tri->v[0].pos.v[axis], tri->v[1].pos.v[axis]), tri->v[2].pos.v[axis]) - epsilon;
-        box->max.v[axis] = maxf(maxf(tri->v[0].pos.v[axis], tri->v[1].pos.v[axis]), tri->v[2].pos.v[axis]) + epsilon;
+        box->min.elem[axis]
+            = minf(minf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis]) - epsilon;
+        box->max.elem[axis]
+            = maxf(maxf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis]) + epsilon;
     }
 
     return true;
@@ -112,8 +114,8 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
 {
     const f32 epsilon = 0.0001f;
 
-    vec3 edge1 = vsub(tri->v[1].pos, tri->v[0].pos);
-    vec3 edge2 = vsub(tri->v[2].pos, tri->v[0].pos);
+    vec3 edge1 = vsub(tri->vtx[1].pos, tri->vtx[0].pos);
+    vec3 edge2 = vsub(tri->vtx[2].pos, tri->vtx[0].pos);
 
     vec3 h = vcross(ray->dir, edge2);
     f32  a = vdot(edge1, h);
@@ -123,7 +125,7 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
         return false;
     }
 
-    vec3 s = vsub(ray->origin, tri->v[0].pos);
+    vec3 s = vsub(ray->origin, tri->vtx[0].pos);
     f32  u = vdot(s, h) / a;
 
     if (u < 0.0f || u > 1.0f) {
@@ -146,8 +148,8 @@ bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, Hit
         hit->tIntersect = t;
 
         f32 coeff          = 1.0f - u - v;
-        hit->uv            = vsum(vmul(tri->v[0].tex, coeff), vmul(tri->v[1].tex, u), vmul(tri->v[2].tex, v));
-        vec3 outwardNormal = vsum(vmul(tri->v[0].norm, coeff), vmul(tri->v[1].norm, u), vmul(tri->v[2].norm, v));
+        hit->uv            = vsum(vmul(tri->vtx[0].tex, coeff), vmul(tri->vtx[1].tex, u), vmul(tri->vtx[2].tex, v));
+        vec3 outwardNormal = vsum(vmul(tri->vtx[0].norm, coeff), vmul(tri->vtx[1].norm, u), vmul(tri->vtx[2].norm, v));
         HitInfo_SetFaceNormal(hit, ray, outwardNormal);
 
         return true;

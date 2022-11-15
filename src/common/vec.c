@@ -117,6 +117,23 @@ bool vec2_AlmostTheSame(vec2 v1, vec2 v2)
     return equalf(v1.x, v2.x) && equalf(v1.y, v2.y);
 }
 
+vec2 vec2_PolarToCartesian(vec2 polar)
+{
+    return (vec2){
+        .x = polar.r * cosf(polar.theta),
+        .y = polar.r * sinf(polar.theta),
+    };
+}
+
+vec2 vec2_CartesianToPolar(vec2 polar)
+{
+    // TODO: handle polar.x == 0.0f?
+    return (vec2){
+        .r     = vec2_Magnitude(polar),
+        .theta = atanf(polar.y / polar.x),
+    };
+}
+
 /* --- Vec3 Functions --- */
 
 vec3 vec3_Set(f32 value)
@@ -307,6 +324,24 @@ vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio)
     vec3 vecOutPerp = vec3_MultiplyScalar(vec3_Add(vec, vec3_MultiplyScalar(normal, cosTheta)), refractRatio);
     vec3 vecOutPara = vec3_MultiplyScalar(normal, -sqrtf(fabsf(1.0f - vec3_DotProduct(vecOutPerp, vecOutPerp))));
     return vec3_Add(vecOutPerp, vecOutPara);
+}
+
+vec3 vec3_SphericalToCartesian(vec3 spherical)
+{
+    return (vec3){
+        .x = spherical.rho * cosf(spherical.theta) * sinf(spherical.phi),
+        .y = spherical.rho * cosf(spherical.phi),
+        .z = spherical.rho * sinf(spherical.theta) * cosf(spherical.phi),
+    };
+}
+
+vec3 vec3_CartesianToSpherical(vec3 cartesian)
+{
+    return (vec3){
+        .rho   = vec3_Magnitude(cartesian),
+        .theta = atan2f(cartesian.z, cartesian.x),
+        .phi   = acosf(cartesian.y / vec3_Magnitude(cartesian)),
+    };
 }
 
 /* --- Vec4 Functions --- */

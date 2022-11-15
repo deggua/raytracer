@@ -10,20 +10,24 @@
 
 /* ---- DIFFUSE ---- */
 
-Diffuse Diffuse_Make(const Texture* tex)
+Material Material_Diffuse_Make(const Texture* tex)
 {
-    return (Diffuse){
-        .albedo = tex,
+    return (Material)
+    {
+        .type = MATERIAL_DIFFUSE,
+        .diffuse = {
+            .albedo = tex,
+        },
     };
 }
 
-bool Diffuse_Bounce(
-    const Diffuse* diffuse,
-    const Ray*     rayIn,
-    const HitInfo* hit,
-    Color*         colorSurface,
-    Color*         colorEmitted,
-    Ray*           rayOut)
+bool Material_Diffuse_Bounce(
+    const Material_Diffuse* diffuse,
+    const Ray*              rayIn,
+    const HitInfo*          hit,
+    Color*                  colorSurface,
+    Color*                  colorEmitted,
+    Ray*                    rayOut)
 {
     (void)rayIn;
 
@@ -43,21 +47,24 @@ bool Diffuse_Bounce(
 
 /* ---- METAL ---- */
 
-Metal Metal_Make(const Texture* tex, f32 fuzz)
+Material Material_Metal_Make(const Texture* tex, f32 fuzz)
 {
-    return (Metal){
-        .albedo = tex,
-        .fuzz   = fuzz,
+    return (Material){
+        .type = MATERIAL_METAL,
+        .metal = {
+            .albedo = tex,
+            .fuzz   = fuzz,
+        },
     };
 }
 
-bool Metal_Bounce(
-    const Metal*   metal,
-    const Ray*     rayIn,
-    const HitInfo* hit,
-    Color*         colorSurface,
-    Color*         colorEmitted,
-    Ray*           rayOut)
+bool Material_Metal_Bounce(
+    const Material_Metal* metal,
+    const Ray*            rayIn,
+    const HitInfo*        hit,
+    Color*                colorSurface,
+    Color*                colorEmitted,
+    Ray*                  rayOut)
 {
     // TODO: do we need to do the face fix thing on the hit normal? I'm guessing we do because otherwise the reflect
     // may be be backwards, atm we always make the normal point against
@@ -75,11 +82,14 @@ bool Metal_Bounce(
 
 /* ---- DIELECTRIC ---- */
 
-Dielectric Dielectric_Make(const Texture* tex, f32 refractiveIndex)
+Material Material_Dielectric_Make(const Texture* tex, f32 refractiveIndex)
 {
-    return (Dielectric){
-        .albedo         = tex,
-        .refactiveIndex = refractiveIndex,
+    return (Material){
+        .type = MATERIAL_DIELECTRIC,
+        .dielectric = {
+            .albedo         = tex,
+            .refactiveIndex = refractiveIndex,
+        },
     };
 }
 
@@ -90,13 +100,13 @@ static f32 reflectance(f32 cosine, f32 refractiveIndex)
     return r0 + (1.0f - r0) * powf((1.0f - cosine), 5.0f);
 }
 
-bool Dielectric_Bounce(
-    const Dielectric* diel,
-    const Ray*        rayIn,
-    const HitInfo*    hit,
-    Color*            colorSurface,
-    Color*            colorEmitted,
-    Ray*              rayOut)
+bool Material_Dielectric_Bounce(
+    const Material_Dielectric* diel,
+    const Ray*                 rayIn,
+    const HitInfo*             hit,
+    Color*                     colorSurface,
+    Color*                     colorEmitted,
+    Ray*                       rayOut)
 {
     *colorSurface       = Texture_ColorAt(diel->albedo, hit->uv);
     *colorEmitted       = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
@@ -120,21 +130,26 @@ bool Dielectric_Bounce(
     return true;
 }
 
-DiffuseLight DiffuseLight_Make(const Texture* tex, f32 brightness)
+/* ---- DIFFUSE LIGHT ---- */
+
+Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness)
 {
-    return (DiffuseLight){
-        .albedo     = tex,
-        .brightness = brightness,
+    return (Material){
+        .type = MATERIAL_DIFFUSE_LIGHT,
+        .diffuseLight = {
+            .albedo     = tex,
+            .brightness = brightness,
+        },
     };
 }
 
-bool DiffuseLight_Bounce(
-    const DiffuseLight* diffuseLight,
-    const Ray*          rayIn,
-    const HitInfo*      hit,
-    Color*              colorSurface,
-    Color*              colorEmitted,
-    Ray*                rayOut)
+bool Material_DiffuseLight_Bounce(
+    const Material_DiffuseLight* diffuseLight,
+    const Ray*                   rayIn,
+    const HitInfo*               hit,
+    Color*                       colorSurface,
+    Color*                       colorEmitted,
+    Ray*                         rayOut)
 {
     (void)rayIn;
     (void)hit;
@@ -144,4 +159,51 @@ bool DiffuseLight_Bounce(
     *colorEmitted = Color_Brighten(Texture_ColorAt(diffuseLight->albedo, hit->uv), diffuseLight->brightness);
 
     return false;
+}
+
+/* ---- TEST ---- */
+
+Material Material_Test_Make(const Texture* tex, f32 param)
+{
+    return (Material){
+        .type = MATERIAL_TEST,
+        .test = {
+            .albedo = tex,
+            .param = param,
+        },
+    };
+}
+
+bool Material_Test_Bounce(
+    const Material_Test* test,
+    const Ray*           rayIn,
+    const HitInfo*       hit,
+    Color*               colorSurface,
+    Color*               colorEmitted,
+    Ray*                 rayOut)
+{
+    *colorSurface = Texture_ColorAt(test->albedo, hit->uv);
+    *colorEmitted = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
+
+    f32 relativeAngle = vdot(rayIn->dir, hit->unitNormal);
+
+    const f32 transmitFactor = 0.6f;
+
+    if (fabsf(relativeAngle) + Random_Normal_f32() * vmag(rayIn->dir) > transmitFactor * 2.0f * vmag(rayIn->dir)) {
+        // if the impact was almost perpendicular let's transmit the ray through the surface
+        // TODO: do we want to apply some refractance?
+        vec3 refract = vec3_Refract(vnorm(rayIn->dir), hit->unitNormal, 2.4f);
+        vec3 scatter = vadd(refract, vec3_RandomInHemisphere(refract));
+        *rayOut      = Ray_Make(hit->position, scatter);
+    } else {
+        vec3 target    = vadd(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
+        vec3 scattered = vsub(target, hit->position);
+
+        if (vequ(scattered, 0.0f)) {
+            scattered = hit->unitNormal;
+        }
+        *rayOut = Ray_Make(hit->position, scattered);
+    }
+
+    return true;
 }

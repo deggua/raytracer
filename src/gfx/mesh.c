@@ -73,7 +73,7 @@ void Mesh_AddToScene(Mesh* mesh, Scene* scene)
         Triangle triWorldSpace = mesh->polys->at[ii];
 
         for (size_t jj = 0; jj < 3; jj++) {
-            triWorldSpace.v[jj].pos = vadd(vmul(triWorldSpace.v[jj].pos, mesh->scale), mesh->origin);
+            triWorldSpace.vtx[jj].pos = vadd(vmul(triWorldSpace.vtx[jj].pos, mesh->scale), mesh->origin);
         }
 
         obj.material         = mesh->material;
@@ -152,36 +152,36 @@ next_token:
                 // need to split into two triangles
                 Triangle tri[2];
                 size_t   indices[2][3] = {
-                    {0, 1, 2},
-                    {0, 2, 3}
+                      {0, 1, 2},
+                      {0, 2, 3}
                 };
 
                 for (size_t ii = 0; ii < 2; ii++) {
                     // first pass is just the vertex positions since they must be valid
                     for (size_t jj = 0; jj < 3; jj++) {
-                        int64_t index     = indices[ii][jj];
-                        tri[ii].v[jj].pos = vertices->at[vi[index] - 1];
+                        int64_t index       = indices[ii][jj];
+                        tri[ii].vtx[jj].pos = vertices->at[vi[index] - 1];
                     }
 
                     // since a file can omit normals we need to calculate a default normal based on the edges if
                     // it isn't provided
-                    vec3 edge1         = vsub(tri[ii].v[1].pos, tri[ii].v[0].pos);
-                    vec3 edge2         = vsub(tri[ii].v[2].pos, tri[ii].v[0].pos);
+                    vec3 edge1         = vsub(tri[ii].vtx[1].pos, tri[ii].vtx[0].pos);
+                    vec3 edge2         = vsub(tri[ii].vtx[2].pos, tri[ii].vtx[0].pos);
                     vec3 defaultNormal = vcross(edge1, edge2);
 
                     for (size_t jj = 0; jj < 3; jj++) {
                         int64_t index = indices[ii][jj];
 
                         if (vn[index] >= 0) {
-                            tri[ii].v[jj].norm = vertexNormals->at[vn[index] - 1];
+                            tri[ii].vtx[jj].norm = vertexNormals->at[vn[index] - 1];
                         } else {
-                            tri[ii].v[jj].norm = defaultNormal;
+                            tri[ii].vtx[jj].norm = defaultNormal;
                         }
 
                         if (vt[index] >= 0) {
-                            tri[ii].v[jj].tex = texCoords->at[vt[index] - 1];
+                            tri[ii].vtx[jj].tex = texCoords->at[vt[index] - 1];
                         } else {
-                            tri[ii].v[jj].tex = (point2){0.0f, 0.0f};
+                            tri[ii].vtx[jj].tex = (point2){0.0f, 0.0f};
                         }
                     }
                 }
@@ -193,26 +193,26 @@ next_token:
                 Triangle tri;
 
                 for (size_t ii = 0; ii < 3; ii++) {
-                    tri.v[ii].pos = vertices->at[vi[ii] - 1];
+                    tri.vtx[ii].pos = vertices->at[vi[ii] - 1];
                 }
 
                 // since a file can omit normals we need to calculate a default normal based on the edges if
                 // it isn't provided
-                vec3 edge1         = vsub(tri.v[1].pos, tri.v[0].pos);
-                vec3 edge2         = vsub(tri.v[2].pos, tri.v[0].pos);
+                vec3 edge1         = vsub(tri.vtx[1].pos, tri.vtx[0].pos);
+                vec3 edge2         = vsub(tri.vtx[2].pos, tri.vtx[0].pos);
                 vec3 defaultNormal = vnorm(vcross(edge1, edge2));
 
                 for (size_t ii = 0; ii < 3; ii++) {
                     if (vn[ii] >= 0) {
-                        tri.v[ii].norm = vertexNormals->at[vn[ii] - 1];
+                        tri.vtx[ii].norm = vertexNormals->at[vn[ii] - 1];
                     } else {
-                        tri.v[ii].norm = defaultNormal;
+                        tri.vtx[ii].norm = defaultNormal;
                     }
 
                     if (vt[ii] >= 0) {
-                        tri.v[ii].tex = texCoords->at[vt[ii] - 1];
+                        tri.vtx[ii].tex = texCoords->at[vt[ii] - 1];
                     } else {
-                        tri.v[ii].tex = (point2){0.0f, 0.0f};
+                        tri.vtx[ii].tex = (point2){0.0f, 0.0f};
                     }
                 }
 

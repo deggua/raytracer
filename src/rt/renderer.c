@@ -48,7 +48,7 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
         }
     }
 
-    return Scene_Get_SkyColor(scene);
+    return Scene_Get_SkyColor(scene, ray->dir);
 }
 
 typedef struct {

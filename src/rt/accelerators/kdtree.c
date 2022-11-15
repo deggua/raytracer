@@ -201,12 +201,12 @@ static BoundingBox BoxBoundingAll(const Vector(KDBB) * vec)
 
     for (size_t ii = 1; ii < len; ii++) {
         for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
-            if (kdbbs[ii].box.min.v[axis] < box.min.v[axis]) {
-                box.min.v[axis] = kdbbs[ii].box.min.v[axis];
+            if (kdbbs[ii].box.min.elem[axis] < box.min.elem[axis]) {
+                box.min.elem[axis] = kdbbs[ii].box.min.elem[axis];
             }
 
-            if (kdbbs[ii].box.max.v[axis] > box.max.v[axis]) {
-                box.max.v[axis] = kdbbs[ii].box.max.v[axis];
+            if (kdbbs[ii].box.max.elem[axis] > box.max.elem[axis]) {
+                box.max.elem[axis] = kdbbs[ii].box.max.elem[axis];
             }
         }
     }
@@ -225,8 +225,8 @@ static BoundingBoxPair SplitBox(BoundingBox box, f32 split, Axis axis)
         .left  = box,
         .right = box,
     };
-    splitBoxes.left.max.v[axis]  = split;
-    splitBoxes.right.min.v[axis] = split;
+    splitBoxes.left.max.elem[axis]  = split;
+    splitBoxes.right.min.elem[axis] = split;
 
     return splitBoxes;
 }
@@ -244,9 +244,9 @@ static f32 ComputeSplitSAH(const Vector(KDBBPtr) * vec, f32 split, Axis axis, Bo
     for (size_t ii = 0; ii < vec->length; ii++) {
         const BoundingBox* box = &kdbbs[ii]->box;
 
-        if (box->max.v[axis] < split) {
+        if (box->max.elem[axis] < split) {
             leftPrims += 1;
-        } else if (box->min.v[axis] > split) {
+        } else if (box->min.elem[axis] > split) {
             rightPrims += 1;
         } else {
             leftPrims += 1;
@@ -280,9 +280,10 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
     f32  bestSAH   = INF;
 
     for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
-        f32 stride = (container.max.v[axis] - container.min.v[axis]) / NumBuckets;
+        f32 stride = (container.max.elem[axis] - container.min.elem[axis]) / NumBuckets;
 
-        for (f32 bucket = container.min.v[axis] + stride; bucket <= container.max.v[axis] - stride; bucket += stride) {
+        for (f32 bucket = container.min.elem[axis] + stride; bucket <= container.max.elem[axis] - stride;
+             bucket += stride) {
             f32 split = bucket;
             f32 SAH   = ComputeSplitSAH(vec, split, axis, container);
 
@@ -323,11 +324,11 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
         for (size_t ii = 0; ii < vec->length; ii++) {
             const BoundingBox* box = &vec->at[ii]->box;
 
-            if (box->max.v[bestAxis] < bestSplit) {
+            if (box->max.elem[bestAxis] < bestSplit) {
                 if (!Vector_Push(KDBBPtr)(leftVec, (const KDBB**)&vec->at[ii])) {
                     goto error_Push;
                 }
-            } else if (box->min.v[bestAxis] > bestSplit) {
+            } else if (box->min.elem[bestAxis] > bestSplit) {
                 if (!Vector_Push(KDBBPtr)(rightVec, (const KDBB**)&vec->at[ii])) {
                     goto error_Push;
                 }
@@ -581,27 +582,27 @@ static bool CheckHitInternalNode(
     const KDNode* left  = &tree->nodes->at[node->leftIndex];
     const KDNode* right = (KDNode*)node->right;
 
-    if (unlikely(fabsf(ray->dir.v[axis]) < epsilonParallel)) {
+    if (unlikely(fabsf(ray->dir.elem[axis]) < epsilonParallel)) {
         // ray parallel to plane, check the origin to see which side ray falls on
-        if (ray->origin.v[axis] >= split) {
+        if (ray->origin.elem[axis] >= split) {
             return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
         } else {
             return CheckHitNextNode(tree, left, ray, objHit, hit, tMax);
         }
     }
 
-    f32 tIntersect = split * ray->cache.invDir.v[axis] - ray->cache.originDivDir.v[axis];
+    f32 tIntersect = split * ray->cache.invDir.elem[axis] - ray->cache.originDivDir.elem[axis];
     f32 tMaxNew    = minf(tMax, tIntersect);
 
     if (tIntersect < epsilonIntersect) {
         // ray doesn't intersect plane at valid t, check the origin to see which side ray falls on
-        if (likely(ray->origin.v[axis] > split)) {
+        if (likely(ray->origin.elem[axis] > split)) {
             return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
-        } else if (likely(ray->origin.v[axis] < split)) {
+        } else if (likely(ray->origin.elem[axis] < split)) {
             return CheckHitNextNode(tree, left, ray, objHit, hit, tMax);
         } else {
             // ray intersects the plane at the origin, eval the ray later and see what side it's on
-            f32 rayAt = Ray_At(ray, 1.0f).v[axis];
+            f32 rayAt = Ray_At(ray, 1.0f).elem[axis];
 
             if (rayAt >= split) {
                 return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
@@ -616,7 +617,7 @@ static bool CheckHitInternalNode(
         const KDNode* originSide;
         const KDNode* oppositeSide;
 
-        if (ray->origin.v[axis] >= split) {
+        if (ray->origin.elem[axis] >= split) {
             originSide   = right;
             oppositeSide = left;
 

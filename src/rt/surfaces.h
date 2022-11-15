@@ -34,7 +34,7 @@ typedef struct {
 } Vertex;
 
 typedef struct {
-    Vertex v[3];
+    Vertex vtx[3];
 } Triangle;
 
 typedef struct {

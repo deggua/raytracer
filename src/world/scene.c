@@ -8,19 +8,20 @@
 #include "common/vec.h"
 #include "rt/accelerators/kdtree.h"
 #include "world/object.h"
+#include "world/skybox.h"
 
 #define TEMPLATE_TYPE Object
 #include "templates/vector.h"
 
 typedef struct Scene {
-    Color skyColor;
+    Skybox* skybox;
     Vector(Object) * objects;
     Vector(Object) * unboundObjs;
     Vector(Object) * kdObjects;
     KDTree* kdTree;
 } Scene;
 
-Scene* Scene_New(void)
+Scene* Scene_New(Skybox* skybox)
 {
     Scene* scene = malloc(sizeof(Scene));
 
@@ -46,7 +47,8 @@ Scene* Scene_New(void)
         goto error_KdObjects;
     }
 
-    scene->skyColor = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
+    scene->skybox = skybox;
+
     return scene;
 
 error_KdObjects:
@@ -143,12 +145,7 @@ bool Scene_Add_Object(Scene* scene, const Object* obj)
     return Vector_Push(Object)(scene->objects, obj);
 }
 
-void Scene_Set_SkyColor(Scene* scene, Color color)
+Color Scene_Get_SkyColor(const Scene* scene, vec3 dir)
 {
-    scene->skyColor = color;
-}
-
-Color Scene_Get_SkyColor(const Scene* scene)
-{
-    return scene->skyColor;
+    return Skybox_ColorAt(scene->skybox, dir);
 }

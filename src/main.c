@@ -41,8 +41,8 @@ Material g_matLight;
 
 static void FillScene(Scene* scene)
 {
-    /* Pear Mesh */
 #if 0
+    /* Pear Mesh */
     FILE* obj = fopen("assets/pear/obj/pear_export.obj", "r");
     FILE* tex = fopen("assets/pear/tex/pear_diffuse.bmp", "rb");
 
@@ -54,14 +54,15 @@ static void FillScene(Scene* scene)
     Texture_Import_BMP(texMesh, tex);
     fclose(tex);
 
-    g_matMesh.type = MATERIAL_DIFFUSE;
+    g_matMesh.type           = MATERIAL_DIFFUSE;
     g_matMesh.diffuse.albedo = texMesh;
 
     Mesh_Set_Material(mesh, &g_matMesh);
-    Mesh_Set_Origin(mesh, (point3) {0, 6, -4});
+    Mesh_Set_Origin(mesh, (point3){0, 6, -4});
     Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
-#else
+
+#elif 1
 
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
@@ -75,10 +76,9 @@ static void FillScene(Scene* scene)
     fclose(littleDragon);
 
     Texture* texMesh = Texture_New();
-    Texture_Import_Color(texMesh, COLOR_NAVY);
+    Texture_Import_Color(texMesh, COLOR_WHITE);
 
-    g_matMesh.type  = MATERIAL_METAL;
-    g_matMesh.metal = Metal_Make(texMesh, 0.0f);
+    g_matMesh = Material_Metal_Make(texMesh, 0.0f);
 
     Mesh_Set_Material(mesh, &g_matMesh);
     Mesh_Set_Origin(mesh, (point3){0, 1, 0});
@@ -86,14 +86,31 @@ static void FillScene(Scene* scene)
     Mesh_AddToScene(mesh, scene);
 
     Mesh_Delete(mesh);
+
+#else
+    /* Shiny Sphere */
+    Texture* tex = Texture_New();
+    Texture_Import_Color(tex, COLOR_GREY);
+    g_matMesh = Material_Metal_Make(tex, 0.0f);
+
+    Object sphere = {
+        .material = &g_matMesh,
+        .surface = {
+            .type = SURFACE_SPHERE,
+            .sphere = {
+                .r = 6.0f,
+                .c = (point3){0, 6, 0},
+            },
+        },
+    };
+    Scene_Add_Object(scene, &sphere);
 #endif
 
+#if 0
     /* Sphere Light */
     Texture* texLight = Texture_New();
     Texture_Import_Color(texLight, COLOR_WHITE);
-    g_matLight.type                    = MATERIAL_DIFFUSE_LIGHT;
-    g_matLight.diffuseLight.albedo     = texLight;
-    g_matLight.diffuseLight.brightness = 5.0f;
+    g_matLight = Material_DiffuseLight_Make(texLight, 5.0f);
 
     Object lightObj;
     lightObj.material         = &g_matLight;
@@ -105,14 +122,14 @@ static void FillScene(Scene* scene)
     /* Ground */
     Texture* texGround = Texture_New();
     Texture_Import_Color(texGround, COLOR_GREY);
-    g_matGround.type           = MATERIAL_DIFFUSE;
-    g_matGround.diffuse.albedo = texGround;
+    g_matGround = Material_Diffuse_Make(texGround);
 
     Object worldObj;
     worldObj.material       = &g_matGround;
     worldObj.surface.type   = SURFACE_SPHERE;
     worldObj.surface.sphere = Sphere_Make((point3){0, -1000, 0}, 1000.0f);
     Scene_Add_Object(scene, &worldObj);
+#endif
 }
 
 int main(int argc, char** argv)
@@ -145,11 +162,29 @@ int main(int argc, char** argv)
     Random_Seed(__builtin_readcyclecounter());
 
     Image* img = Image_New(imageWidth, imageHeight);
-    g_img      = img;
+    if (img == NULL) {
+        printf("Failed to create image buffer\n");
+        exit(EXIT_FAILURE);
+    }
+    g_img = img;
 
-    Camera* cam   = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
-    Scene*  scene = Scene_New();
-    Scene_Set_SkyColor(scene, Color_FromRGB((RGB){0x87, 0xCE, 0xEB}));
+    Camera* cam = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
+    if (cam == NULL) {
+        printf("Failed to create camera\n");
+        exit(EXIT_FAILURE);
+    }
+
+    Skybox* skybox = Skybox_Import_BMP("assets/skybox");
+    if (skybox == NULL) {
+        printf("Failed to load skybox\n");
+        exit(EXIT_FAILURE);
+    }
+
+    Scene* scene = Scene_New(skybox);
+    if (scene == NULL) {
+        printf("Failed to create scene\n");
+        exit(EXIT_FAILURE);
+    }
 
     TIMEIT("Scene load", FillScene(scene));
     TIMEIT("Scene prepare", Scene_Prepare(scene));

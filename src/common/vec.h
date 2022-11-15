@@ -4,29 +4,88 @@
 
 typedef enum {
     AXIS_X = 0,
-    AXIS_Y = 1,
-    AXIS_Z = 2,
+    AXIS_U = AXIS_X,
+    AXIS_R = AXIS_X,
+
+    AXIS_Y     = 1,
+    AXIS_V     = AXIS_Y,
+    AXIS_THETA = AXIS_Y,
+
+    AXIS_Z   = 2,
+    AXIS_PHI = AXIS_Z,
+
     AXIS_W = 3,
     AXIS_LAST
 } Axis;
 
 typedef union {
     struct {
-        f32 x;
-        f32 y;
+        f32 x, y;
     };
 
-    f32 v[2];
+    struct {
+        u32 : 32;
+        f32 z;
+    };
+
+    struct {
+        f32 u, v;
+    };
+
+    struct {
+        u32 : 32;
+        f32 w;
+    };
+
+    struct {
+        f32 r, theta;
+    };
+
+    struct {
+        f32 width, height;
+    };
+
+    f32 elem[2];
 } vec2;
 
 typedef union {
     struct {
-        f32 x;
-        f32 y;
-        f32 z;
+        f32 x, y, z;
     };
 
-    f32 v[3];
+    struct {
+        f32 u, v, w;
+    };
+
+    struct {
+        f32 r, g, b;
+    };
+
+    struct {
+        f32 rho, theta, phi;
+    };
+
+    struct {
+        vec2 xy;
+        u32 : 32;
+    };
+
+    struct {
+        u32 : 32;
+        vec2 yz;
+    };
+
+    struct {
+        vec2 uv;
+        u32 : 32;
+    };
+
+    struct {
+        u32 : 32;
+        vec2 vw;
+    };
+
+    f32 elem[3];
 } vec3;
 
 typedef union {
@@ -37,7 +96,7 @@ typedef union {
         f32 w;
     };
 
-    f32 v[4];
+    f32 elems[4];
 } vec4;
 
 typedef vec2 point2;
@@ -68,6 +127,9 @@ bool vec2_CompareMagnitudeEqualR(f32 mag, vec2 v1);
 bool vec2_CompareMagnitudeGreaterThan(vec2 v1, f32 mag);
 bool vec2_CompareMagnitudeGreaterThanR(f32 mag, vec2 v1);
 bool vec2_AlmostTheSame(vec2 v1, vec2 v2);
+
+vec2 vec2_CartesianToPolar(vec2 cartesian);
+vec2 vec2_PolarToCartesian(vec2 polar);
 
 /* --- vec3 --- */
 
@@ -103,6 +165,9 @@ vec3 vec3_RandomInHemisphere(vec3 normal);
 
 vec3 vec3_Reflect(vec3 vec, vec3 normal);
 vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio);
+
+vec3 vec3_CartesianToSpherical(vec3 cartesian);
+vec3 vec3_SphericalToCartesian(vec3 spherical);
 
 /* --- vec4 --- */
 
@@ -230,14 +295,14 @@ type:                    \
         BIND(vec2, vec2_Magnitude), \
         BIND(vec3, vec3_Magnitude), \
         BIND(vec4, vec4_Magnitude) \
-       )((x), (y))
+       )((x))
 
 #define vmag2(x) \
     MAP((x), \
         BIND(vec2, vec2_MagnitudeSquared), \
         BIND(vec3, vec3_MagnitudeSquared), \
         BIND(vec4, vec4_MagnitudeSquared) \
-       )((x), (y))
+       )((x))
 
 #define vnorm(x) \
     MAP((x), \

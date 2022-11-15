@@ -44,19 +44,29 @@ bool Material_Bounce(
 {
     switch (material->type) {
         case MATERIAL_DIFFUSE: {
-            return Diffuse_Bounce(&material->diffuse, rayIn, hit, colorSurface, colorEmitted, rayOut);
+            return Material_Diffuse_Bounce(&material->diffuse, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_METAL: {
-            return Metal_Bounce(&material->metal, rayIn, hit, colorSurface, colorEmitted, rayOut);
+            return Material_Metal_Bounce(&material->metal, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_DIELECTRIC: {
-            return Dielectric_Bounce(&material->dielectric, rayIn, hit, colorSurface, colorEmitted, rayOut);
+            return Material_Dielectric_Bounce(&material->dielectric, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_DIFFUSE_LIGHT: {
-            return DiffuseLight_Bounce(&material->diffuseLight, rayIn, hit, colorSurface, colorEmitted, rayOut);
+            return Material_DiffuseLight_Bounce(
+                &material->diffuseLight,
+                rayIn,
+                hit,
+                colorSurface,
+                colorEmitted,
+                rayOut);
+        } break;
+
+        case MATERIAL_TEST: {
+            return Material_Test_Bounce(&material->test, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
     }
 

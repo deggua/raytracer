@@ -12,68 +12,87 @@ typedef enum {
     MATERIAL_METAL,
     MATERIAL_DIELECTRIC,
     MATERIAL_DIFFUSE_LIGHT,
-} MaterialType;
+    MATERIAL_TEST,
+} Material_Type;
 
 typedef struct {
     const Texture* albedo;
-} Diffuse;
+} Material_Diffuse;
 
 typedef struct {
     const Texture* albedo;
     f32            fuzz;
-} Metal;
+} Material_Metal;
 
 typedef struct {
     const Texture* albedo;
     f32            refactiveIndex;
-} Dielectric;
+} Material_Dielectric;
 
 typedef struct {
     const Texture* albedo;
     f32            brightness;
-} DiffuseLight;
+} Material_DiffuseLight;
 
 typedef struct {
-    MaterialType type;
+    const Texture* albedo;
+    f32            param;
+} Material_Test;
+
+typedef struct {
+    Material_Type type;
 
     union {
-        Diffuse      diffuse;
-        Metal        metal;
-        Dielectric   dielectric;
-        DiffuseLight diffuseLight;
+        Material_Diffuse      diffuse;
+        Material_Metal        metal;
+        Material_Dielectric   dielectric;
+        Material_DiffuseLight diffuseLight;
+        Material_Test         test;
     };
 } Material;
 
-Diffuse      Diffuse_Make(const Texture* tex);
-Metal        Metal_Make(const Texture* tex, f32 fuzz);
-Dielectric   Dielectric_Make(const Texture* tex, f32 refractiveIndex);
-DiffuseLight DiffuseLight_Make(const Texture* tex, f32 brightness);
+Material Material_Diffuse_Make(const Texture* tex);
+Material Material_Metal_Make(const Texture* tex, f32 fuzz);
+Material Material_Dielectric_Make(const Texture* tex, f32 refractiveIndex);
+Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness);
+Material Material_Test_Make(const Texture* tex, f32 param);
 
-bool Diffuse_Bounce(
-    const Diffuse* lambert,
-    const Ray*     rayIn,
-    const HitInfo* hit,
-    Color*         colorSurface,
-    Color*         colorEmitted,
-    Ray*           rayOut);
-bool Metal_Bounce(
-    const Metal*   metal,
-    const Ray*     rayIn,
-    const HitInfo* hit,
-    Color*         colorSurface,
-    Color*         colorEmitted,
-    Ray*           rayOut);
-bool Dielectric_Bounce(
-    const Dielectric* diel,
-    const Ray*        rayIn,
-    const HitInfo*    hit,
-    Color*            colorSurface,
-    Color*            colorEmitted,
-    Ray*              rayOut);
-bool DiffuseLight_Bounce(
-    const DiffuseLight* diffuseLight,
-    const Ray*          rayIn,
-    const HitInfo*      hit,
-    Color*              colorSurface,
-    Color*              colorEmitted,
-    Ray*                rayOut);
+bool Material_Diffuse_Bounce(
+    const Material_Diffuse* lambert,
+    const Ray*              rayIn,
+    const HitInfo*          hit,
+    Color*                  colorSurface,
+    Color*                  colorEmitted,
+    Ray*                    rayOut);
+
+bool Material_Metal_Bounce(
+    const Material_Metal* metal,
+    const Ray*            rayIn,
+    const HitInfo*        hit,
+    Color*                colorSurface,
+    Color*                colorEmitted,
+    Ray*                  rayOut);
+
+bool Material_Dielectric_Bounce(
+    const Material_Dielectric* diel,
+    const Ray*                 rayIn,
+    const HitInfo*             hit,
+    Color*                     colorSurface,
+    Color*                     colorEmitted,
+    Ray*                       rayOut);
+
+bool Material_DiffuseLight_Bounce(
+    const Material_DiffuseLight* diffuseLight,
+    const Ray*                   rayIn,
+    const HitInfo*               hit,
+    Color*                       colorSurface,
+    Color*                       colorEmitted,
+    Ray*                         rayOut);
+
+bool Material_Test_Bounce(
+    const Material_Test* test,
+    const Ray*           rayIn,
+    const HitInfo*       hit,
+    Color*               colorSurface,
+    Color*               colorEmitted,
+    Ray*                 rayOut);

@@ -12,32 +12,41 @@ Texture* Texture_New(void)
     return tex;
 }
 
-Texture* Texture_Import_BMP(Texture* tex, FILE* fd)
+bool Texture_Import_BMP(Texture* tex, FILE* fd)
 {
-    Image_Delete(tex->image);
-    tex->image = Image_Import_BMP(fd);
-
-    if (tex->image == NULL) {
-        return NULL;
+    Image* image = Image_Import_BMP(fd);
+    if (image == NULL) {
+        return false;
     }
 
-    return tex;
+    Image_Delete(tex->image);
+    tex->image = image;
+
+    return true;
 }
 
-Texture* Texture_Import_Color(Texture* tex, Color color)
+bool Texture_Import_Color(Texture* tex, Color color)
 {
+    Image* image = Image_New(1, 1);
+    if (image == NULL) {
+        return false;
+    }
+
     Image_Delete(tex->image);
-    tex->image = Image_New(1, 1);
+    tex->image = image;
 
     RGB rgb = RGB_FromColor(color);
     Image_SetPixel(tex->image, 0, 0, rgb);
 
-    return tex;
+    return true;
 }
 
 void Texture_Delete(Texture* tex)
 {
-    Image_Delete(tex->image);
+    if (tex->image != NULL) {
+        Image_Delete(tex->image);
+    }
+
     free(tex);
 }
 
