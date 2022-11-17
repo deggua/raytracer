@@ -1,5 +1,6 @@
 #include "random.h"
 
+#include <immintrin.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -70,24 +71,32 @@ static void jump(void)
     s[3] = s3;
 }
 
-void Random_Seed(u64 seed)
+void Random_Seed(u64 s1, u64 s2)
 {
-    s[0] = (u32)seed;
-    s[1] = (u32)(seed >> 32);
-    s[2] = (u32)seed;
-    s[3] = (u32)(seed >> 32);
+    s[0] = (u32)s1;
+    s[1] = (u32)(s1 >> 32);
+    s[2] = (u32)s2;
+    s[3] = (u32)(s2 >> 32);
     jump();
 }
 
 f32 Random_Normal_f32(void)
 {
-    u32 nextVal = next();
-    f32 maxVal  = (f32)UINT32_MAX + 1.0f;
-    f32 result  = ((f32)nextVal) / maxVal;
-    return result;
+    u32         nextVal = next();
+    f32_ieee754 conv    = {.u32 = (nextVal >> 9) | 0x3f800000};
+    return conv.f32 - 1.0f;
 }
 
 f32 Random_Range_f32(f32 min, f32 max)
 {
     return min + (max - min) * Random_Normal_f32();
+}
+
+void Random_Seed_HighEntropy(void)
+{
+    unsigned long long s1, s2;
+    while (!_rdrand64_step(&s1)) {}
+    while (!_rdrand64_step(&s2)) {}
+
+    Random_Seed((u64)s1, (u64)s2);
 }

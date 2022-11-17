@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stdint.h>
 
 #include "common/vec.h"
@@ -14,20 +15,14 @@
 #define COLOR_NAVY   ((const Color){.r = 0.1f, .g = 0.2f, .b = 0.5f})
 
 typedef struct {
-    u8_fast r;
-    u8_fast g;
-    u8_fast b;
+    u8 b;
+    u8 g;
+    u8 r;
 } RGB;
 
-typedef union {
-    struct {
-        f32 r;
-        f32 g;
-        f32 b;
-    };
+typedef vec3 Color;
 
-    vec3 vec3;
-} Color;
+static_assert(sizeof(RGB) == 3, "RGB pixel should be 3 bytes");
 
 RGB RGB_Brighten(RGB rgb, f32 scalar);
 RGB RGB_Blend(RGB color1, RGB color2, f32 weight);

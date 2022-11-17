@@ -1,6 +1,32 @@
-#include "gfx/color.h"
+#include "color.h"
+
+#include <math.h>
 
 #include "common/math.h"
+
+static inline f32 sRGBToLinear(u8 channel)
+{
+    f32 srgb = channel / 255.0f;
+
+    if (srgb < 0.04045f) {
+        return srgb / 12.92f;
+    } else {
+        return powf((srgb + 0.055f) / 1.055f, 2.4f);
+    }
+}
+
+static inline u8 LinearTosRGB(f32 channel)
+{
+    f32 linear = clampf(channel, 0.0f, 1.0f);
+
+    if (linear < 0.0031308f) {
+        f32 srgb = linear * 12.92f;
+        return (u8)(255.0f * srgb);
+    } else {
+        f32 srgb = 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
+        return (u8)(255.0f * srgb);
+    }
+}
 
 RGB RGB_Brighten(RGB rgb, f32 scalar)
 {
@@ -23,47 +49,39 @@ RGB RGB_Blend(RGB color1, RGB color2, f32 weight)
 RGB RGB_FromColor(Color color)
 {
     return (RGB){
-        .r = 255 * color.r,
-        .g = 255 * color.g,
-        .b = 255 * color.b,
+        .r = LinearTosRGB(color.r),
+        .g = LinearTosRGB(color.g),
+        .b = LinearTosRGB(color.b),
     };
 }
 
 Color Color_Brighten(Color color, f32 scalar)
 {
-    return (Color){
-        .vec3 = vmul(color.vec3, scalar),
-    };
+    return vmul(color, scalar);
 }
 
 Color Color_BrightenBy(Color color1, Color color2)
 {
-    return (Color){
-        .vec3 = vadd(color1.vec3, color2.vec3),
-    };
+    return vadd(color1, color2);
 }
 
 Color Color_Blend(Color color1, Color color2, f32 blend)
 {
-    return (Color){
-        .vec3 = vadd(color1.vec3, vmul(blend, vsub(color2.vec3, color1.vec3))),
-    };
+    return vadd(color1, vmul(blend, vsub(color2, color1)));
 }
 
 Color Color_FromRGB(RGB rgb)
 {
     return (Color){
-        .r = rgb.r / 255.0f,
-        .g = rgb.g / 255.0f,
-        .b = rgb.b / 255.0f,
+        .r = sRGBToLinear(rgb.r),
+        .g = sRGBToLinear(rgb.g),
+        .b = sRGBToLinear(rgb.b),
     };
 }
 
 Color Color_Tint(Color color1, Color color2)
 {
-    return (Color){
-        .vec3 = vmul(color1.vec3, color2.vec3),
-    };
+    return vmul(color1, color2);
 }
 
 Color Color_Desaturate(Color color, f32 desaturation)
@@ -75,9 +93,9 @@ Color Color_Desaturate(Color color, f32 desaturation)
     };
 
     Color greyscale = {
-        .r = vdot(color.vec3, luminance.vec3),
-        .g = vdot(color.vec3, luminance.vec3),
-        .b = vdot(color.vec3, luminance.vec3),
+        .r = vdot(color, luminance),
+        .g = vdot(color, luminance),
+        .b = vdot(color, luminance),
     };
 
     return Color_Blend(color, greyscale, desaturation);

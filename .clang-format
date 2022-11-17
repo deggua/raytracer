@@ -16,13 +16,13 @@ AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 
-AllowShortBlocksOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
+AllowShortLoopsOnASingleLine: true
 
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: true

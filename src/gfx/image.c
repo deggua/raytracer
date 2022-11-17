@@ -7,35 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Image* Image_New(size_t width, size_t height)
-{
-    Image* img      = calloc(1, sizeof(Image) + (width * height) * sizeof(RGB));
-    img->res.width  = width;
-    img->res.height = height;
-
-    return img;
-}
-
-void Image_Delete(Image* img)
-{
-    free(img);
-}
-
-void Image_SetPixel(Image* img, size_t xx, size_t yy, RGB color)
-{
-    img->pix[yy * img->res.width + xx] = color;
-}
-
-RGB Image_GetPixel(const Image* img, size_t xx, size_t yy)
-{
-    return img->pix[yy * img->res.width + xx];
-}
-
-// TODO:
-// Image_Resize
-// Image_Crop
-
-/* ---- PPM ---- */
+#include "gfx/color.h"
 
 #define PPM_HEADER_FMT \
     "P3\n"             \
@@ -47,33 +19,12 @@ RGB Image_GetPixel(const Image* img, size_t xx, size_t yy)
 #define PPM_RGB_FMT      "%" PRIu8 " %" PRIu8 " %" PRIu8
 #define PPM_RGB_ARG(rgb) rgb.r, rgb.g, rgb.b
 
-void Image_Export_PPM(const Image* img, FILE* fd)
-{
-    fprintf(fd, PPM_HEADER_FMT, PPM_HEADER_ARG(img));
-
-    for (size_t yy = 0; yy < img->res.height; yy++) {
-        for (size_t xx = 0; xx < img->res.width; xx++) {
-            fprintf(fd, PPM_RGB_FMT "\n", PPM_RGB_ARG(Image_GetPixel(img, xx, yy)));
-        }
-    }
-
-    fflush(fd);
-}
-
-/* ---- BMP ---- */
-
 enum BMP_VALUES {
     ID_BM  = 0x4D42,
     BI_RGB = 0,
 };
 
 #pragma pack(push, 1)
-
-typedef struct {
-    u8 b;
-    u8 g;
-    u8 r;
-} BGR;
 
 typedef struct {
     struct {
@@ -104,26 +55,160 @@ typedef struct {
 #pragma pack(pop)
 
 static_assert(sizeof(BMPHeader) == 0x36, "Incorrect BMP header size");
-static_assert(sizeof(BGR) == 3, "Incorrect BGR pixel size");
 
-void Image_Export_BMP(const Image* img, FILE* fd)
+static inline size_t GetPixelIndex(size_t width, size_t xx, size_t yy)
 {
-    const size_t pixBytesPerRow = sizeof(BGR) * img->res.width;
+    return yy * width + xx;
+}
 
-    size_t padBytesPerRow;
+/* ---- sRGB Colorspace Image ---- */
 
-    if (pixBytesPerRow % 4 != 0) {
-        padBytesPerRow = 4 - pixBytesPerRow;
-    } else {
-        padBytesPerRow = 0;
+bool ImageRGB_Load_Empty(ImageRGB* img, size_t width, size_t height)
+{
+    RGB* pixel_buffer = calloc(width * height, sizeof(RGB));
+    if (pixel_buffer == NULL) {
+        return false;
     }
 
-    const size_t rowBytes = pixBytesPerRow + padBytesPerRow;
+    img->pix        = pixel_buffer;
+    img->res.width  = width;
+    img->res.height = height;
+
+    return true;
+}
+
+bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd)
+{
+    fpos_t init_fpos;
+    if (fgetpos(fd, &init_fpos)) {
+        goto error_Return;
+    }
+
+    BMPHeader header;
+    if (fread(&header, sizeof(header), 1, fd) != 1) {
+        goto error_CleanupFile;
+    }
+
+    // validate the header
+    if (header.FileHeader.id != ID_BM || header.DIBHeader.BITMAPINFOHEADER.bitsPerPixel != 24
+        || header.DIBHeader.BITMAPINFOHEADER.compressionMethod != BI_RGB) {
+        goto error_CleanupFile;
+    }
+
+    // construct the image into a temp
+    const size_t width  = header.DIBHeader.BITMAPINFOHEADER.pixelWidth;
+    const size_t height = header.DIBHeader.BITMAPINFOHEADER.pixelHeight;
+
+    ImageRGB tmp_img;
+    if (!ImageRGB_Load_Empty(&tmp_img, width, height)) {
+        goto error_CleanupFile;
+    }
+
+    // compute the padding
+    const size_t pix_bytes_per_row = sizeof(RGB) * tmp_img.res.width;
+    const size_t pad_bytes_per_row = -pix_bytes_per_row % 4;
+    const size_t bytes_per_row     = pix_bytes_per_row + pad_bytes_per_row;
+    assert(pad_bytes_per_row < 4); // TODO: remove
+    (void)bytes_per_row;
+
+    // start reading rows of pixels into the image
+    if (fseek(fd, header.FileHeader.pixelArrayOffset, SEEK_SET)) {
+        goto error_CleanupImage;
+    }
+
+    // read row by row and fill image
+    for (i64 yy = tmp_img.res.height - 1; yy >= 0; yy--) {
+        RGB* pix_row = &tmp_img.pix[GetPixelIndex(tmp_img.res.width, 0, yy)];
+        if (fread(pix_row, sizeof(RGB), tmp_img.res.width, fd) != tmp_img.res.width) {
+            goto error_CleanupImage;
+        }
+
+        // skip past the end of row padding
+        if (fseek(fd, pad_bytes_per_row, SEEK_CUR)) {
+            goto error_CleanupImage;
+        }
+    }
+
+    // copy the temp's values to the result
+    *img = tmp_img;
+    return true;
+
+error_CleanupImage:
+    ImageRGB_Unload(&tmp_img);
+error_CleanupFile:
+    fsetpos(fd, &init_fpos);
+error_Return:
+    return false;
+}
+
+bool ImageRGB_Load_ImageColor(ImageRGB* img, const ImageColor* src)
+{
+    ImageRGB tmp_img;
+    if (!ImageRGB_Load_Empty(&tmp_img, src->res.width, src->res.height)) {
+        goto error_Return;
+    }
+
+    for (size_t yy = 0; yy < src->res.height; yy++) {
+        for (size_t xx = 0; xx < src->res.width; xx++) {
+            Color pix = ImageColor_GetPixel(src, xx, yy);
+            ImageRGB_SetPixel(&tmp_img, xx, yy, RGB_FromColor(pix));
+        }
+    }
+
+    *img = tmp_img;
+    return true;
+
+error_Return:
+    return false;
+}
+
+bool ImageRGB_Save_PPM(const ImageRGB* img, FILE* fd)
+{
+    fpos_t init_fpos;
+    if (fgetpos(fd, &init_fpos)) {
+        goto error_Return;
+    }
+
+    if (fprintf(fd, PPM_HEADER_FMT, PPM_HEADER_ARG(img)) < 0) {
+        goto error_CleanupFile;
+    }
+
+    for (size_t yy = 0; yy < img->res.height; yy++) {
+        for (size_t xx = 0; xx < img->res.width; xx++) {
+            if (fprintf(fd, PPM_RGB_FMT "\n", PPM_RGB_ARG(ImageRGB_GetPixel(img, xx, yy))) < 0) {
+                goto error_CleanupFile;
+            }
+        }
+    }
+
+    if (fflush(fd)) {
+        goto error_CleanupFile;
+    }
+
+    return true;
+
+error_CleanupFile:
+    fsetpos(fd, &init_fpos);
+error_Return:
+    return false;
+}
+
+bool ImageRGB_Save_BMP(const ImageRGB* img, FILE* fd)
+{
+    fpos_t init_fpos;
+    if (fgetpos(fd, &init_fpos)) {
+        goto error_Return;
+    }
+
+    const size_t pix_bytes_per_row = sizeof(RGB) * img->res.width;
+    const size_t pad_bytes_per_row = -pix_bytes_per_row % 4;
+    const size_t bytes_per_row     = pix_bytes_per_row + pad_bytes_per_row;
+    assert(pad_bytes_per_row < 4); // TODO: remove
 
     BMPHeader header  = {
         .FileHeader = {
             .id = ID_BM,
-            .size = sizeof(header) + rowBytes * img->res.height,
+            .size = sizeof(header) + bytes_per_row * img->res.height,
             .pixelArrayOffset = sizeof(BMPHeader),
         },
 
@@ -134,7 +219,7 @@ void Image_Export_BMP(const Image* img, FILE* fd)
             .colorPlanes        = 1,
             .bitsPerPixel       = 24,
             .compressionMethod  = BI_RGB,
-            .bitmapSize         = rowBytes * img->res.height,
+            .bitmapSize         = bytes_per_row * img->res.height,
             .ppmHorizontal      = img->res.width,
             .ppmVertical        = img->res.height,
             .numColors          = 0,
@@ -142,89 +227,109 @@ void Image_Export_BMP(const Image* img, FILE* fd)
         },
     };
 
-    u8* pixelBuffer = calloc(1, rowBytes * img->res.height);
-
-    if (pixelBuffer == NULL) {
-        printf("Failed to allocate pixel buffer\n");
-        return;
+    // write the header to the file
+    if (fwrite(&header, sizeof(header), 1, fd) != 1) {
+        goto error_CleanupFile;
     }
 
-    u8* curPixel = pixelBuffer;
-
-    for (int64_t yy = img->res.height - 1; yy >= 0; yy--) {
-        for (size_t xx = 0; xx < img->res.width; xx++) {
-            BGR* bmpPix = (BGR*)curPixel;
-            RGB  pix    = Image_GetPixel(img, xx, yy);
-            *bmpPix     = (BGR){.b = pix.b, .g = pix.g, .r = pix.r};
-
-            curPixel += sizeof(BGR);
+    // write out rows bottom to top
+    u8 padding[4] = {0};
+    for (i64 yy = img->res.height - 1; yy >= 0; yy--) {
+        // write out the row
+        RGB* pix_row = &img->pix[GetPixelIndex(img->res.width, 0, yy)];
+        if (fwrite(pix_row, sizeof(RGB), img->res.width, fd) != img->res.width) {
+            goto error_CleanupFile;
         }
 
-        curPixel += padBytesPerRow;
+        // write out the padding
+        if (fwrite(padding, sizeof(u8), pad_bytes_per_row, fd) != pad_bytes_per_row) {
+            goto error_CleanupFile;
+        }
     }
 
-    fwrite(&header, sizeof(header), 1, fd);
-    fwrite(pixelBuffer, rowBytes * img->res.height, 1, fd);
-    fflush(fd);
-    free(pixelBuffer);
+    if (fflush(fd)) {
+        goto error_CleanupFile;
+    }
+
+    return true;
+
+error_CleanupFile:
+    fsetpos(fd, &init_fpos);
+error_Return:
+    return false;
 }
 
-Image* Image_Import_BMP(FILE* fd)
+void ImageRGB_Unload(ImageRGB* img)
 {
-    BMPHeader header;
-    fread(&header, sizeof(header), 1, fd);
+    free(img->pix);
 
-    // validate the header
-    if (header.FileHeader.id != ID_BM || header.DIBHeader.BITMAPINFOHEADER.bitsPerPixel != 24
-        || header.DIBHeader.BITMAPINFOHEADER.compressionMethod != BI_RGB) {
-        printf("Invaid Bitmap header\n");
-        return NULL;
+    img->res.width  = 0;
+    img->res.height = 0;
+    img->pix        = NULL;
+}
+
+void ImageRGB_SetPixel(ImageRGB* img, size_t xx, size_t yy, RGB color)
+{
+    img->pix[GetPixelIndex(img->res.width, xx, yy)] = color;
+}
+
+RGB ImageRGB_GetPixel(const ImageRGB* img, size_t xx, size_t yy)
+{
+    return img->pix[GetPixelIndex(img->res.width, xx, yy)];
+}
+
+/* ---- Linear Colorspace Image ---- */
+
+bool ImageColor_Load_Empty(ImageColor* img, size_t width, size_t height)
+{
+    Color* pixel_buffer = calloc(width * height, sizeof(Color));
+    if (pixel_buffer == NULL) {
+        return false;
     }
 
-    // construct the image
-    const size_t height = header.DIBHeader.BITMAPINFOHEADER.pixelHeight;
-    const size_t width  = header.DIBHeader.BITMAPINFOHEADER.pixelWidth;
-    Image*       img    = Image_New(width, height);
+    img->pix        = pixel_buffer;
+    img->res.width  = width;
+    img->res.height = height;
 
-    if (img == NULL) {
-        return NULL;
+    return true;
+}
+
+bool ImageColor_Load_ImageRGB(ImageColor* img, const ImageRGB* src)
+{
+    ImageColor tmp_img;
+    if (!ImageColor_Load_Empty(&tmp_img, src->res.width, src->res.height)) {
+        goto error_Return;
     }
 
-    // compute the padding
-    const size_t pixBytesPerRow = sizeof(BGR) * img->res.width;
-
-    size_t padBytesPerRow;
-
-    if (pixBytesPerRow % sizeof(u32) != 0) {
-        padBytesPerRow = sizeof(u32) - pixBytesPerRow;
-    } else {
-        padBytesPerRow = 0;
-    }
-
-    const size_t rowBytes = pixBytesPerRow + padBytesPerRow;
-
-    // start reading rows of pixels into the image
-    fseek(fd, header.FileHeader.pixelArrayOffset, SEEK_SET);
-    BGR* rowPixels = malloc(rowBytes);
-
-    if (rowPixels == NULL) {
-        Image_Delete(img);
-        return NULL;
-    }
-
-    // read row by row and fill the image with each pixel in the row
-    for (int64_t yy = img->res.height - 1; yy >= 0; yy--) {
-        assert(!feof(fd));
-        fread(rowPixels, rowBytes, 1, fd);
-
-        for (size_t xx = 0; xx < img->res.width; xx++) {
-            BGR bmpPix = rowPixels[xx];
-            RGB pix    = {.r = bmpPix.r, .g = bmpPix.g, .b = bmpPix.b};
-            Image_SetPixel(img, xx, yy, pix);
+    for (size_t yy = 0; yy < src->res.height; yy++) {
+        for (size_t xx = 0; xx < src->res.width; xx++) {
+            RGB pix = ImageRGB_GetPixel(src, xx, yy);
+            ImageColor_SetPixel(&tmp_img, xx, yy, Color_FromRGB(pix));
         }
     }
 
-    free(rowPixels);
+    *img = tmp_img;
+    return true;
 
-    return img;
+error_Return:
+    return false;
+}
+
+void ImageColor_Unload(ImageColor* img)
+{
+    free(img->pix);
+
+    img->res.width  = 0;
+    img->res.height = 0;
+    img->pix        = NULL;
+}
+
+void ImageColor_SetPixel(ImageColor* img, size_t xx, size_t yy, Color color)
+{
+    img->pix[GetPixelIndex(img->res.width, xx, yy)] = color;
+}
+
+Color ImageColor_GetPixel(const ImageColor* img, size_t xx, size_t yy)
+{
+    return img->pix[GetPixelIndex(img->res.width, xx, yy)];
 }

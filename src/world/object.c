@@ -68,6 +68,10 @@ bool Material_Bounce(
         case MATERIAL_TEST: {
             return Material_Test_Bounce(&material->test, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
+
+        case MATERIAL_SKYBOX: {
+            return Material_Skybox_Bounce(&material->skybox, rayIn, hit, colorSurface, colorEmitted, rayOut);
+        } break;
     }
 
     OPTIMIZE_UNREACHABLE;

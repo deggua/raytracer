@@ -163,13 +163,12 @@ bool Material_DiffuseLight_Bounce(
 
 /* ---- TEST ---- */
 
-Material Material_Test_Make(const Texture* tex, f32 param)
+Material Material_Test_Make(const Texture* tex)
 {
     return (Material){
         .type = MATERIAL_TEST,
         .test = {
             .albedo = tex,
-            .param = param,
         },
     };
 }
@@ -185,25 +184,64 @@ bool Material_Test_Bounce(
     *colorSurface = Texture_ColorAt(test->albedo, hit->uv);
     *colorEmitted = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
 
-    f32 relativeAngle = vdot(rayIn->dir, hit->unitNormal);
+    vec3 normRayDir      = vnorm(rayIn->dir);
+    f32  relativeAngle01 = fabsf(vdot(normRayDir, hit->unitNormal));
 
-    const f32 transmitFactor = 0.6f;
+    const f32 transmitFactor = 0.5f;
+    const f32 scatterAmount  = 2.0f;
 
-    if (fabsf(relativeAngle) + Random_Normal_f32() * vmag(rayIn->dir) > transmitFactor * 2.0f * vmag(rayIn->dir)) {
-        // if the impact was almost perpendicular let's transmit the ray through the surface
-        // TODO: do we want to apply some refractance?
+    if (relativeAngle01 + Random_Normal_f32() > 2.0f * transmitFactor) {
+        // if the impact was almost perpendicular let's refract the ray through the surface with scattering
         vec3 refract = vec3_Refract(vnorm(rayIn->dir), hit->unitNormal, 2.4f);
         vec3 scatter = vadd(refract, vec3_RandomInHemisphere(refract));
-        *rayOut      = Ray_Make(hit->position, scatter);
-    } else {
-        vec3 target    = vadd(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
-        vec3 scattered = vsub(target, hit->position);
 
-        if (vequ(scattered, 0.0f)) {
-            scattered = hit->unitNormal;
-        }
-        *rayOut = Ray_Make(hit->position, scattered);
+        *rayOut = Ray_Make(hit->position, scatter);
+    } else {
+        // if the impact was oblique, scatter the ray proportional to the impact angle
+        // head on => high scattering
+        // oblique => low scattering
+        vec3 reflect    = vec3_Reflect(normRayDir, hit->unitNormal);
+        vec3 scattering = vmul(relativeAngle01 * relativeAngle01 * scatterAmount, vec3_RandomInHemisphere(reflect));
+        vec3 combined   = vadd(reflect, scattering);
+
+        *rayOut = Ray_Make(hit->position, combined);
     }
+
+    return true;
+}
+
+/* ---- SKYBOX ---- */
+
+Material Material_Skybox_Make(const Skybox* skybox)
+{
+    return (Material){
+        .type = MATERIAL_SKYBOX,
+        .skybox = {
+            .skybox = skybox,
+        },
+    };
+}
+
+bool Material_Skybox_Bounce(
+    const Material_Skybox* skybox,
+    const Ray*             rayIn,
+    const HitInfo*         hit,
+    Color*                 colorSurface,
+    Color*                 colorEmitted,
+    Ray*                   rayOut)
+{
+    vec3 target    = vadd(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
+    vec3 scattered = vsub(target, hit->position);
+
+    if (vequ(scattered, 0.0f)) {
+        scattered = hit->unitNormal;
+    }
+
+    Color skyboxColor = Skybox_ColorAt(skybox->skybox, rayIn->dir);
+    *colorSurface     = skyboxColor;
+    *colorEmitted     = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
+
+    *rayOut = Ray_Make(hit->position, scattered);
 
     return true;
 }

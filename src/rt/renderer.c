@@ -7,7 +7,7 @@
 #include "common/random.h"
 #include "platform/threads.h"
 
-RenderCtx* Render_New(const Scene* scene, Image* img, const Camera* cam)
+RenderCtx* Render_New(const Scene* scene, ImageRGB* img, const Camera* cam)
 {
     RenderCtx* ctx = malloc(sizeof(*ctx));
 
@@ -67,9 +67,9 @@ static void RenderThread(void* arg)
 {
     RenderThreadArg* args = arg;
 
-    Random_Seed(__builtin_readcyclecounter());
+    Random_Seed_HighEntropy();
 
-    Image*        img   = args->ctx->img;
+    ImageRGB*     img   = args->ctx->img;
     const Camera* cam   = args->ctx->cam;
     const Scene*  scene = args->ctx->scene;
 
@@ -83,7 +83,7 @@ static void RenderThread(void* arg)
     const size_t imageWidth  = args->ctx->img->res.width;
 
     // compute the image
-    for (int64_t yy = imageHeight - 1 - lineOffset; yy >= 0; yy -= lineStep) {
+    for (i64 yy = imageHeight - 1 - lineOffset; yy >= 0; yy -= lineStep) {
         for (size_t xx = 0; xx < imageWidth; xx++) {
             Color cumColorPt = {0};
 
@@ -93,18 +93,13 @@ static void RenderThread(void* arg)
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
                 Color rayColor = RayColor(scene, &ray, maxRayDepth);
-                cumColorPt     = (Color){.vec3 = vadd(cumColorPt.vec3, rayColor.vec3)};
+                cumColorPt     = vadd(cumColorPt, rayColor);
             }
 
-            point3 avgColorPt = vdiv(cumColorPt.vec3, samplesPerPixel);
+            Color avgColorPt = vdiv(cumColorPt, samplesPerPixel);
+            RGB   avgRGB     = RGB_FromColor(avgColorPt);
 
-            RGB avgRGB = RGB_FromColor((Color){
-                .r = sqrtf(clampf(avgColorPt.x, 0.0f, 0.999f)),
-                .g = sqrtf(clampf(avgColorPt.y, 0.0f, 0.999f)),
-                .b = sqrtf(clampf(avgColorPt.z, 0.0f, 0.999f)),
-            });
-
-            Image_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
+            ImageRGB_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
         }
 
         // TODO: figure out a better way to print progress
@@ -115,7 +110,7 @@ static void RenderThread(void* arg)
     return;
 }
 
-Image* Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads)
+ImageRGB* Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads)
 {
     const size_t minStackSize = 16 * 1024 * 1024;
 

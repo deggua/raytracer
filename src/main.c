@@ -16,22 +16,39 @@
 #include "world/object.h"
 #include "world/scene.h"
 
-static void ExportImage(Image* img, const char* filename)
+static bool ExportImage(ImageRGB* img, const char* filename)
 {
     FILE* fd = fopen(filename, "wb+");
-    Image_Export_BMP(img, fd);
-    // Image_Export_PPM(img, fd);
-    printf("Output image written to %s\n", filename);
+    if (fd == NULL) {
+        printf("Failed to export render: Cannot open %s\n", filename);
+        return false;
+    }
+
+    if (!ImageRGB_Save_BMP(img, fd)) {
+        fclose(fd);
+        printf("Failed to export render: Cannot write to %s\n", filename);
+        return false;
+    }
+
+    fclose(fd);
+    printf("Exported render to %s\n", filename);
+
+    return true;
 }
 
-Image* g_img;
+ImageRGB* g_img;
 
 static void InterruptHandler(int sig)
 {
     (void)sig;
+
     printf("\nExporting partial image to disk\n");
-    ExportImage(g_img, "partial.bmp");
-    exit(EXIT_SUCCESS);
+
+    if (ExportImage(g_img, "partial.bmp")) {
+        exit(EXIT_SUCCESS);
+    } else {
+        exit(EXIT_FAILURE);
+    }
 }
 
 Material g_matMesh;
@@ -39,7 +56,7 @@ Material g_matMesh2;
 Material g_matGround;
 Material g_matLight;
 
-static void FillScene(Scene* scene)
+static void FillScene(Scene* scene, Skybox* skybox)
 {
 #if 0
     /* Pear Mesh */
@@ -76,14 +93,18 @@ static void FillScene(Scene* scene)
     fclose(littleDragon);
 
     Texture* texMesh = Texture_New();
-    Texture_Import_Color(texMesh, COLOR_WHITE);
+    Texture_Import_Color(texMesh, COLOR_GREY);
 
-    g_matMesh = Material_Metal_Make(texMesh, 0.0f);
+    g_matMesh = Material_Test_Make(texMesh);
+    // g_matMesh = Material_Diffuse_Make(texMesh);
 
     Mesh_Set_Material(mesh, &g_matMesh);
     Mesh_Set_Origin(mesh, (point3){0, 1, 0});
     Mesh_Set_Scale(mesh, 1 / 10.0f);
     Mesh_AddToScene(mesh, scene);
+
+    // Mesh_Set_Origin(mesh, (point3){-15, 1, 0});
+    // Mesh_AddToScene(mesh, scene);
 
     Mesh_Delete(mesh);
 
@@ -106,29 +127,51 @@ static void FillScene(Scene* scene)
     Scene_Add_Object(scene, &sphere);
 #endif
 
-#if 0
+#if 1
     /* Sphere Light */
     Texture* texLight = Texture_New();
-    Texture_Import_Color(texLight, COLOR_WHITE);
+    // c3d7f0
+    Texture_Import_Color(texLight, Color_FromRGB((RGB){0xc3, 0xd7, 0xf0}));
     g_matLight = Material_DiffuseLight_Make(texLight, 5.0f);
 
     Object lightObj;
     lightObj.material         = &g_matLight;
     lightObj.surface.type     = SURFACE_SPHERE;
-    lightObj.surface.sphere.c = (point3){4, 24, 4};
-    lightObj.surface.sphere.r = 6.0f;
+    lightObj.surface.sphere.c = (point3){-8, 22, -8};
+    lightObj.surface.sphere.r = 4.0f;
     Scene_Add_Object(scene, &lightObj);
+#endif
 
+#if 1
     /* Ground */
-    Texture* texGround = Texture_New();
-    Texture_Import_Color(texGround, COLOR_GREY);
-    g_matGround = Material_Diffuse_Make(texGround);
+    // Texture* texGround = Texture_New();
+    // Texture_Import_Color(texGround, COLOR_GREY);
+    // g_matGround = Material_Diffuse_Make(texGround);
+    g_matGround = Material_Skybox_Make(skybox);
 
-    Object worldObj;
-    worldObj.material       = &g_matGround;
-    worldObj.surface.type   = SURFACE_SPHERE;
-    worldObj.surface.sphere = Sphere_Make((point3){0, -1000, 0}, 1000.0f);
-    Scene_Add_Object(scene, &worldObj);
+    point3 p1 = {-10000, 0, -10000};
+    point3 p2 = {-10000, 0, 10000};
+    point3 p3 = {10000, 0, -10000};
+    point3 p4 = {10000, 0, 10000};
+
+    Object worldObj1 = {
+        .material = &g_matGround,
+        .surface = {
+            .type = SURFACE_TRIANGLE,
+            .triangle = Triangle_MakeSimple(p1, p2, p3),
+        },
+    };
+
+    Object worldObj2 = {
+        .material = &g_matGround,
+        .surface = {
+            .type = SURFACE_TRIANGLE,
+            .triangle = Triangle_MakeSimple(p4, p2, p3),
+        },
+    };
+
+    Scene_Add_Object(scene, &worldObj1);
+    Scene_Add_Object(scene, &worldObj2);
 #endif
 }
 
@@ -137,7 +180,7 @@ int main(int argc, char** argv)
     const point3 lookFrom    = (point3){20, 15, 20};
     const point3 lookAt      = (point3){0, 6, 0};
     const vec3   vup         = (vec3){0, 1, 0};
-    const f32    focusDist   = 10.0f;
+    f32          focusDist   = vmag(vsub(lookFrom, lookAt));
     const f32    aperature   = 0.0f;
     const f32    aspectRatio = 16.0f / 9.0f;
     const f32    vFov        = 40.0f;
@@ -159,13 +202,17 @@ int main(int argc, char** argv)
         maxBounces = atol(argv[3]);
 
     signal(SIGINT, InterruptHandler);
-    Random_Seed(__builtin_readcyclecounter());
 
-    Image* img = Image_New(imageWidth, imageHeight);
+    ImageRGB* img = calloc(1, sizeof(ImageRGB));
     if (img == NULL) {
-        printf("Failed to create image buffer\n");
+        printf("Failed to create image container\n");
         exit(EXIT_FAILURE);
     }
+
+    if (!ImageRGB_Load_Empty(img, imageWidth, imageHeight)) {
+        printf("Failed to create image buffer\n");
+    }
+
     g_img = img;
 
     Camera* cam = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
@@ -174,7 +221,7 @@ int main(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
-    Skybox* skybox = Skybox_Import_BMP("assets/skybox");
+    Skybox* skybox = Skybox_Import_BMP("assets/skybox2");
     if (skybox == NULL) {
         printf("Failed to load skybox\n");
         exit(EXIT_FAILURE);
@@ -186,18 +233,18 @@ int main(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
-    TIMEIT("Scene load", FillScene(scene));
+    TIMEIT("Scene load", FillScene(scene, skybox));
     TIMEIT("Scene prepare", Scene_Prepare(scene));
 
     RenderCtx* ctx = Render_New(scene, img, cam);
 
     TIMEIT("Scene render", Render_Do(ctx, samplesPerPixel, maxBounces, numThreads));
 
-    ExportImage(img, "output.bmp");
+    // TODO: cleanup on exit
 
-    Image_Delete(img);
-    Scene_Delete(scene);
-    Render_Delete(ctx);
-
-    return 0;
+    if (ExportImage(img, "output.bmp")) {
+        return EXIT_SUCCESS;
+    } else {
+        return EXIT_FAILURE;
+    }
 }

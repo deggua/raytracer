@@ -6,6 +6,7 @@
 #include "gfx/color.h"
 #include "gfx/texture.h"
 #include "rt/ray.h"
+#include "world/skybox.h"
 
 typedef enum {
     MATERIAL_DIFFUSE,
@@ -13,6 +14,7 @@ typedef enum {
     MATERIAL_DIELECTRIC,
     MATERIAL_DIFFUSE_LIGHT,
     MATERIAL_TEST,
+    MATERIAL_SKYBOX,
 } Material_Type;
 
 typedef struct {
@@ -36,8 +38,11 @@ typedef struct {
 
 typedef struct {
     const Texture* albedo;
-    f32            param;
 } Material_Test;
+
+typedef struct {
+    const Skybox* skybox;
+} Material_Skybox;
 
 typedef struct {
     Material_Type type;
@@ -48,6 +53,7 @@ typedef struct {
         Material_Dielectric   dielectric;
         Material_DiffuseLight diffuseLight;
         Material_Test         test;
+        Material_Skybox       skybox;
     };
 } Material;
 
@@ -55,7 +61,8 @@ Material Material_Diffuse_Make(const Texture* tex);
 Material Material_Metal_Make(const Texture* tex, f32 fuzz);
 Material Material_Dielectric_Make(const Texture* tex, f32 refractiveIndex);
 Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness);
-Material Material_Test_Make(const Texture* tex, f32 param);
+Material Material_Test_Make(const Texture* tex);
+Material Material_Skybox_Make(const Skybox* skybox);
 
 bool Material_Diffuse_Bounce(
     const Material_Diffuse* lambert,
@@ -96,3 +103,11 @@ bool Material_Test_Bounce(
     Color*               colorSurface,
     Color*               colorEmitted,
     Ray*                 rayOut);
+
+bool Material_Skybox_Bounce(
+    const Material_Skybox* skybox,
+    const Ray*             rayIn,
+    const HitInfo*         hit,
+    Color*                 colorSurface,
+    Color*                 colorEmitted,
+    Ray*                   rayOut);
