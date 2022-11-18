@@ -107,9 +107,6 @@ bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd)
     // compute the padding
     const size_t pix_bytes_per_row = sizeof(RGB) * tmp_img.res.width;
     const size_t pad_bytes_per_row = -pix_bytes_per_row % 4;
-    const size_t bytes_per_row     = pix_bytes_per_row + pad_bytes_per_row;
-    assert(pad_bytes_per_row < 4); // TODO: remove
-    (void)bytes_per_row;
 
     // start reading rows of pixels into the image
     if (fseek(fd, header.FileHeader.pixelArrayOffset, SEEK_SET)) {
@@ -203,7 +200,6 @@ bool ImageRGB_Save_BMP(const ImageRGB* img, FILE* fd)
     const size_t pix_bytes_per_row = sizeof(RGB) * img->res.width;
     const size_t pad_bytes_per_row = -pix_bytes_per_row % 4;
     const size_t bytes_per_row     = pix_bytes_per_row + pad_bytes_per_row;
-    assert(pad_bytes_per_row < 4); // TODO: remove
 
     BMPHeader header  = {
         .FileHeader = {

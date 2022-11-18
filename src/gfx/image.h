@@ -51,3 +51,6 @@ void ImageColor_Unload(ImageColor* img);
 
 void  ImageColor_SetPixel(ImageColor* img, size_t xx, size_t yy, Color color);
 Color ImageColor_GetPixel(const ImageColor* img, size_t xx, size_t yy);
+
+// TODO: when we implement normal maps (or any other non-sRGB texture) we need
+// to provide a way to convert the colorspace linearly
