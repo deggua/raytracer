@@ -56,3 +56,8 @@ dkms.conf
 *.png
 *.jpg
 *.jpeg
+
+# Specific files
+makefile
+compile_flags.txt
+assets/little_dragon.obj
