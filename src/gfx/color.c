@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include "common/math.h"
+#include "math/math.h"
 
 static inline f32 sRGBToLinear(u8 channel)
 {

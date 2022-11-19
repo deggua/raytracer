@@ -2,9 +2,9 @@
 
 #include <stdbool.h>
 
-#include "common/vec.h"
 #include "gfx/color.h"
 #include "gfx/texture.h"
+#include "math/vec.h"
 #include "rt/ray.h"
 #include "world/skybox.h"
 

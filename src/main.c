@@ -4,12 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common/math.h"
-#include "common/random.h"
-#include "common/vec.h"
 #include "gfx/color.h"
 #include "gfx/image.h"
 #include "gfx/mesh.h"
+#include "math/math.h"
+#include "math/random.h"
+#include "math/vec.h"
 #include "platform/profiling.h"
 #include "rt/renderer.h"
 #include "world/camera.h"

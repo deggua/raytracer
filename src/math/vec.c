@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "common/math.h"
-#include "common/random.h"
+#include "math/math.h"
+#include "math/random.h"
 
 /* --- Vec2 Functions --- */
 

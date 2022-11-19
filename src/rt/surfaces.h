@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "common/vec.h"
+#include "math/vec.h"
 #include "rt/ray.h"
 
 typedef union {

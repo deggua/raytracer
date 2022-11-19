@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "common/math.h"
-#include "common/vec.h"
+#include "math/math.h"
+#include "math/vec.h"
 #include "rt/accelerators/kdtree.h"
 #include "world/object.h"
 #include "world/skybox.h"

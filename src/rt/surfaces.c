@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "common/math.h"
+#include "math/math.h"
 
 Sphere Sphere_Make(point3 center, f32 radius)
 {

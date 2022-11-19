@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/math.h"
-#include "common/vec.h"
 #include "gfx/texture.h"
+#include "math/math.h"
+#include "math/vec.h"
 
 void Skybox_Delete(Skybox* skybox)
 {

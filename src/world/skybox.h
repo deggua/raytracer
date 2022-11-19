@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/vec.h"
 #include "gfx/color.h"
 #include "gfx/texture.h"
+#include "math/vec.h"
 
 typedef struct {
     union {

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/math.h"
+#include "math/math.h"
 #include "world/object.h"
 
 /* ---  KD-Tree Metaparameters --- */

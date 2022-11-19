@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/vec.h"
+#include "math/vec.h"
 #include "rt/ray.h"
 
 typedef struct {

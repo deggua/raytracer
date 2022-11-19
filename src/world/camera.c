@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "common/math.h"
-#include "common/random.h"
-#include "common/vec.h"
+#include "math/math.h"
+#include "math/random.h"
+#include "math/vec.h"
 
 Camera* Camera_New(
     point3 lookFrom,

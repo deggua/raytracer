@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "common/math.h"
-#include "common/random.h"
+#include "math/math.h"
+#include "math/random.h"
 #include "platform/threads.h"
 
 RenderCtx* Render_New(const Scene* scene, ImageRGB* img, const Camera* cam)

@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "common/vec.h"
+#include "math/vec.h"
 
 #define COLOR_RED    ((const Color){.r = 1.0f, .g = 0.0f, .b = 0.0f})
 #define COLOR_BLUE   ((const Color){.r = 0.8f, .g = 0.8f, .b = 1.0f})

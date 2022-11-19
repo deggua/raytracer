@@ -3,10 +3,10 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "common/math.h"
-#include "common/random.h"
-#include "common/vec.h"
 #include "gfx/color.h"
+#include "math/math.h"
+#include "math/random.h"
+#include "math/vec.h"
 
 /* ---- DIFFUSE ---- */
 

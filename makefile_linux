@@ -12,6 +12,7 @@ CC_FLAGS_PROFILE = $(CC_FLAGS_RELEASE) -pg -a
 
 SRCS = src/main.c
 SRCS += $(wildcard src/common/*.c)
+SRCS += $(wildcard src/math/*.c)
 SRCS += $(wildcard src/gfx/*.c)
 SRCS += $(wildcard src/rt/*.c)
 SRCS += $(wildcard src/rt/accelerators/*.c)
