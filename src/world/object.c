@@ -57,7 +57,7 @@ bool Material_Bounce(
 
         case MATERIAL_DIFFUSE_LIGHT: {
             return Material_DiffuseLight_Bounce(
-                &material->diffuseLight,
+                &material->diffuse_light,
                 rayIn,
                 hit,
                 colorSurface,
@@ -65,12 +65,38 @@ bool Material_Bounce(
                 rayOut);
         } break;
 
-        case MATERIAL_TEST: {
-            return Material_Test_Bounce(&material->test, rayIn, hit, colorSurface, colorEmitted, rayOut);
-        } break;
-
         case MATERIAL_SKYBOX: {
             return Material_Skybox_Bounce(&material->skybox, rayIn, hit, colorSurface, colorEmitted, rayOut);
+        } break;
+
+        case MATERIAL_DISNEY_DIFFUSE: {
+            return Material_Disney_Diffuse_Bounce(
+                &material->disney_diffuse,
+                rayIn,
+                hit,
+                colorSurface,
+                colorEmitted,
+                rayOut);
+        } break;
+
+        case MATERIAL_DISNEY_METAL: {
+            assert(false);
+        } break;
+
+        case MATERIAL_DISNEY_GLASS: {
+            assert(false);
+        } break;
+
+        case MATERIAL_DISNEY_CLEARCOAT: {
+            assert(false);
+        } break;
+
+        case MATERIAL_DISNEY_SHEEN: {
+            assert(false);
+        } break;
+
+        case MATERIAL_DISNEY_BSDF: {
+            assert(false);
         } break;
     }
 

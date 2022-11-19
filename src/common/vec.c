@@ -90,6 +90,11 @@ vec2 vec2_Normalize(vec2 vec)
     return vec2_DivideScalar(vec, vec2_Magnitude(vec));
 }
 
+vec2 vec2_Lerp(vec2 v1, vec2 v2, f32 t)
+{
+    return vec2_Add(v1, vec2_MultiplyScalar(vec2_Subtract(v2, v1), t));
+}
+
 bool vec2_CompareMagnitudeEqual(vec2 v1, f32 mag)
 {
     const f32 v1mag = vec2_MagnitudeSquared(v1);
@@ -208,6 +213,11 @@ vec3 vec3_CrossProduct(vec3 v1, vec3 v2)
         .y = (v1.z * v2.x - v1.x * v2.z),
         .z = (v1.x * v2.y - v1.y * v2.x),
     };
+}
+
+vec3 vec3_Lerp(vec3 v1, vec3 v2, f32 t)
+{
+    return vec3_Add(v1, vec3_MultiplyScalar(vec3_Subtract(v2, v1), t));
 }
 
 f32 vec3_MagnitudeSquared(vec3 vec)
@@ -329,18 +339,52 @@ vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio)
 vec3 vec3_SphericalToCartesian(vec3 spherical)
 {
     return (vec3){
-        .x = spherical.rho * cosf(spherical.theta) * sinf(spherical.phi),
-        .y = spherical.rho * cosf(spherical.phi),
-        .z = spherical.rho * sinf(spherical.theta) * cosf(spherical.phi),
+        .x = spherical.rho * cosf(spherical.phi) * sinf(spherical.theta),
+        .y = spherical.rho * cosf(spherical.theta),
+        .z = spherical.rho * sinf(spherical.phi) * sinf(spherical.theta),
     };
 }
 
+// TODO: I think this is correct, but we should test
 vec3 vec3_CartesianToSpherical(vec3 cartesian)
 {
     return (vec3){
         .rho   = vec3_Magnitude(cartesian),
-        .theta = atan2f(cartesian.z, cartesian.x),
-        .phi   = acosf(cartesian.y / vec3_Magnitude(cartesian)),
+        .theta = acosf(cartesian.y / vec3_Magnitude(cartesian)),
+        .phi   = atan2f(cartesian.z, cartesian.x),
+    };
+}
+
+// Takes a vector n in a standard XYZ orthonormal basis and reorients it
+// into another basis
+vec3 vec3_Reorient(vec3 n, basis3 basis)
+{
+    return vsum(vmul(basis.x, n.x), vmul(basis.y, n.y), vmul(basis.z, n.z));
+}
+
+// Takes a vector x and creates an orthonormal basis with it as the X-basis
+// and two orthogonal basis vectors in Y and Z
+// See: https://backend.orbit.dtu.dk/ws/portalfiles/portal/126824972/onb_frisvad_jgt2012_v2.pdf
+// WARNING: bx MUST be normalized
+// TODO: should we normalize it? probably not I would imagine
+basis3 vec3_OrthonormalBasis(vec3 bx)
+{
+    vec3 by, bz;
+    if (unlikely(bx.z < -0.9999999f)) {
+        by = (vec3){0.0f, -1.0f, 0.0f};
+        bz = (vec3){-1.0f, 0.0f, 0.0f};
+    } else {
+        f32 a = 1.0f / (1.0f + bx.z);
+        f32 b = -bx.x * bx.y * a;
+
+        by = (vec3){b, 1.0f - bx.y * bx.y * a, -bx.y};
+        bz = (vec3){1.0f - bx.x * bx.x * a, b, -bx.x};
+    }
+
+    return (basis3){
+        .x = bx,
+        .y = by,
+        .z = bz,
     };
 }
 
@@ -411,6 +455,11 @@ vec4 vec4_DivideComponents(vec4 vdividend, vec4 vdivisor)
     };
 }
 
+vec4 vec4_Lerp(vec4 v1, vec4 v2, f32 t)
+{
+    return vec4_Add(v1, vec4_MultiplyScalar(vec4_Subtract(v2, v1), t));
+}
+
 f32 vec4_DotProduct(vec4 v1, vec4 v2)
 {
     return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z + v1.w * v2.w;
@@ -468,4 +517,9 @@ f32 scalar_Multiply(f32 x, f32 y)
 bool scalar_AlmostTheSame(f32 x, f32 y)
 {
     return equalf(x, y);
+}
+
+f32 scalar_Lerp(f32 a, f32 b, f32 t)
+{
+    return a + t * (b - a);
 }

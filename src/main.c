@@ -95,7 +95,7 @@ static void FillScene(Scene* scene, Skybox* skybox)
     Texture* texMesh = Texture_New();
     Texture_Import_Color(texMesh, COLOR_GREY);
 
-    g_matMesh = Material_Test_Make(texMesh);
+    g_matMesh = Material_Disney_Diffuse_Make(texMesh, 1.0f, 1.0f);
     // g_matMesh = Material_Diffuse_Make(texMesh);
 
     Mesh_Set_Material(mesh, &g_matMesh);
@@ -108,11 +108,11 @@ static void FillScene(Scene* scene, Skybox* skybox)
 
     Mesh_Delete(mesh);
 
-#else
+#elif 0
     /* Shiny Sphere */
     Texture* tex = Texture_New();
-    Texture_Import_Color(tex, COLOR_GREY);
-    g_matMesh = Material_Metal_Make(tex, 0.0f);
+    Texture_Import_Color(tex, COLOR_WHITE);
+    g_matMesh = Material_Disney_Diffuse_Make(tex, 1.0f, 0.0f);
 
     Object sphere = {
         .material = &g_matMesh,
@@ -127,7 +127,7 @@ static void FillScene(Scene* scene, Skybox* skybox)
     Scene_Add_Object(scene, &sphere);
 #endif
 
-#if 1
+#if 0
     /* Sphere Light */
     Texture* texLight = Texture_New();
     // c3d7f0
@@ -137,15 +137,16 @@ static void FillScene(Scene* scene, Skybox* skybox)
     Object lightObj;
     lightObj.material         = &g_matLight;
     lightObj.surface.type     = SURFACE_SPHERE;
-    lightObj.surface.sphere.c = (point3){-8, 22, -8};
+    lightObj.surface.sphere.c = (point3){0, 8.0f, 0};
     lightObj.surface.sphere.r = 4.0f;
     Scene_Add_Object(scene, &lightObj);
 #endif
 
-#if 1
+#if 0
     /* Ground */
-    // Texture* texGround = Texture_New();
-    // Texture_Import_Color(texGround, COLOR_GREY);
+    Texture* texGround = Texture_New();
+    Texture_Import_Color(texGround, COLOR_WHITE);
+    // g_matGround = Material_Disney_Diffuse_Make(texGround, 1.0f, 0.0f);
     // g_matGround = Material_Diffuse_Make(texGround);
     g_matGround = Material_Skybox_Make(skybox);
 

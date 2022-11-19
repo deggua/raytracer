@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "common/common.h"
+#include "common/macros.h"
 
 typedef float  f32;
 typedef double f64;

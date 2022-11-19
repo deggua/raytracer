@@ -136,7 +136,7 @@ Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness)
 {
     return (Material){
         .type = MATERIAL_DIFFUSE_LIGHT,
-        .diffuseLight = {
+        .diffuse_light = {
             .albedo     = tex,
             .brightness = brightness,
         },
@@ -159,55 +159,6 @@ bool Material_DiffuseLight_Bounce(
     *colorEmitted = Color_Brighten(Texture_ColorAt(diffuseLight->albedo, hit->uv), diffuseLight->brightness);
 
     return false;
-}
-
-/* ---- TEST ---- */
-
-Material Material_Test_Make(const Texture* tex)
-{
-    return (Material){
-        .type = MATERIAL_TEST,
-        .test = {
-            .albedo = tex,
-        },
-    };
-}
-
-bool Material_Test_Bounce(
-    const Material_Test* test,
-    const Ray*           rayIn,
-    const HitInfo*       hit,
-    Color*               colorSurface,
-    Color*               colorEmitted,
-    Ray*                 rayOut)
-{
-    *colorSurface = Texture_ColorAt(test->albedo, hit->uv);
-    *colorEmitted = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
-
-    vec3 normRayDir      = vnorm(rayIn->dir);
-    f32  relativeAngle01 = fabsf(vdot(normRayDir, hit->unitNormal));
-
-    const f32 transmitFactor = 0.5f;
-    const f32 scatterAmount  = 2.0f;
-
-    if (relativeAngle01 + Random_Normal_f32() > 2.0f * transmitFactor) {
-        // if the impact was almost perpendicular let's refract the ray through the surface with scattering
-        vec3 refract = vec3_Refract(vnorm(rayIn->dir), hit->unitNormal, 2.4f);
-        vec3 scatter = vadd(refract, vec3_RandomInHemisphere(refract));
-
-        *rayOut = Ray_Make(hit->position, scatter);
-    } else {
-        // if the impact was oblique, scatter the ray proportional to the impact angle
-        // head on => high scattering
-        // oblique => low scattering
-        vec3 reflect    = vec3_Reflect(normRayDir, hit->unitNormal);
-        vec3 scattering = vmul(relativeAngle01 * relativeAngle01 * scatterAmount, vec3_RandomInHemisphere(reflect));
-        vec3 combined   = vadd(reflect, scattering);
-
-        *rayOut = Ray_Make(hit->position, combined);
-    }
-
-    return true;
 }
 
 /* ---- SKYBOX ---- */
@@ -245,3 +196,146 @@ bool Material_Skybox_Bounce(
 
     return true;
 }
+
+/* ---- Disney Diffuse ---- */
+
+static inline vec3 HalfVector(vec3 w_in, vec3 w_out)
+{
+    return vnorm(vadd(w_in, w_out));
+}
+
+Material Material_Disney_Diffuse_Make(const Texture* albedo, f32 roughness, f32 subsurface)
+{
+    return (Material){
+        .type = MATERIAL_DISNEY_DIFFUSE,
+        .disney_diffuse = {
+            .albedo = albedo,
+            .roughness = roughness,
+            .subsurface = subsurface,
+        },
+    };
+}
+
+static inline f32 F_D90(vec3 w_out, vec3 half_vector, f32 roughness)
+{
+    return 0.5f + 2.0f * roughness * POWF(vdot(half_vector, w_out), 2);
+}
+
+static inline f32 F_D(vec3 w, vec3 shading_normal, f32 f_d90)
+{
+    return 1.0f + (f_d90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
+}
+
+static inline Color BRDF_BaseDiffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
+{
+    vec3 half_vector = HalfVector(w_in, w_out);
+    f32  f_d90       = F_D90(w_out, half_vector, roughness);
+#if 0
+    f32  attenuation = (1.0f / PI32) * F_D(w_in, shading_normal, f_d90) * F_D(w_out, shading_normal, f_d90)
+                      * fabsf(vdot(shading_normal, w_out));
+#else
+    f32 attenuation = (1.0f / PI32) * F_D(w_in, shading_normal, f_d90) * F_D(w_out, shading_normal, f_d90);
+#endif
+    return vmul(base_color, attenuation);
+}
+
+static inline f32 F_SS90(vec3 w_out, vec3 half_vector, f32 roughness)
+{
+    return roughness * POWF(vdot(half_vector, w_out), 2);
+}
+
+static inline f32 F_SS(vec3 w, vec3 shading_normal, f32 f_ss90)
+{
+    return 1.0 + (f_ss90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
+}
+
+static inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
+{
+    vec3 half_vector = HalfVector(w_in, w_out);
+    f32  f_ss90      = F_SS90(w_out, half_vector, roughness);
+
+    f32 abs_n_w_in  = fabsf(vdot(shading_normal, w_in));
+    f32 abs_n_w_out = fabsf(vdot(shading_normal, w_out));
+
+    f32 f_ss_w_in  = F_SS(w_in, shading_normal, f_ss90);
+    f32 f_ss_w_out = F_SS(w_out, shading_normal, f_ss90);
+
+#if 0
+    f32 attenuation
+        = (1.25f / PI32) * (f_ss_w_in * f_ss_w_out * (1.0f / (abs_n_w_in + abs_n_w_out) - 0.5f) + 0.5f) * abs_n_w_out;
+#else
+    f32 attenuation = (1.25f / PI32) * (f_ss_w_in * f_ss_w_out * (1.0f / (abs_n_w_in + abs_n_w_out) - 0.5f) + 0.5f);
+#endif
+
+    return vmul(base_color, attenuation);
+}
+
+static inline Color
+BRDF_Diffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness, f32 subsurface)
+{
+    Color brdf_base_diffuse = BRDF_BaseDiffuse(base_color, w_in, w_out, shading_normal, roughness);
+    Color brdf_subsurface   = BRDF_Subsurface(base_color, w_in, w_out, shading_normal, roughness);
+    return vlerp(brdf_base_diffuse, brdf_subsurface, subsurface);
+}
+
+bool Material_Disney_Diffuse_Bounce(
+    const Material_Disney_Diffuse* mat,
+    const Ray*                     ray_in,
+    const HitInfo*                 hit,
+    Color*                         surface_color,
+    Color*                         emitted_color,
+    Ray*                           ray_out)
+{
+#define UNIFORM_SAMPLING 0
+    // first generate a random vector in the hemisphere of the normal
+#if UNIFORM_SAMPLING
+    // uniform hemisphere
+    *ray_out = Ray_Make(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
+#else
+    // cosine weighted sampling
+    f32 epsilon_0 = Random_Normal_f32();
+    f32 epsilon_1 = Random_Normal_f32();
+
+    // theta = arccos(sqrt(epsilon_1))
+    //  => cos(theta) = sqrt(epsilon_1)
+    //  => sin(theta) = sqrt(1 - epsilon_1) [by sin2+cos2=1]
+    f32 phi = 2.0f * PI32 * epsilon_0;
+
+    f32 sin_theta = sqrtf(1.0f - epsilon_1);
+    f32 cos_theta = sqrtf(epsilon_1);
+
+    // this is a random vector in the Y+ hemisphere, we need it to be reoriented with the surface normal as the Y+ basis
+    vec3 cartesian_normal_space = {cosf(phi) * sin_theta, cos_theta, sinf(phi) * sin_theta};
+
+    // construct a basis with the Y+ axis in the direction of our surface normal, so that when we reorient
+    // the sampling vector it points in the hemisphere of our surface normal
+    basis3 basis = vec3_OrthonormalBasis(hit->unitNormal);
+    basis        = (basis3){.x = basis.y, .y = basis.x, .z = basis.z};
+
+    vec3 cartesian_world_space = vec3_Reorient(cartesian_normal_space, basis);
+
+    *ray_out     = Ray_Make(hit->position, cartesian_world_space);
+
+#endif
+    // TODO: once we add normal maps, etc. the shading normal won't be the same as the geometry normal
+    vec3  shading_normal = hit->unitNormal;
+    Color albedo         = Texture_ColorAt(mat->albedo, hit->uv);
+
+    vec3 w_in  = vmul(-1.0f, vnorm(ray_in->dir));
+    vec3 w_out = vnorm(ray_out->dir);
+
+    Color brdf_diffuse = BRDF_Diffuse(albedo, w_in, w_out, shading_normal, mat->roughness, mat->subsurface);
+
+#if UNIFORM_SAMPLING
+    brdf_diffuse = vmul(brdf_diffuse, 2.0f * PI32 * vdot(shading_normal, w_out));
+#else
+    brdf_diffuse = vmul(brdf_diffuse, PI32);
+#endif
+
+    *surface_color = brdf_diffuse;
+    *emitted_color = COLOR_BLACK;
+
+    return true;
+}
+
+/* ---- Disney Metal ---- */

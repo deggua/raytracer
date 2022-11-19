@@ -19,12 +19,12 @@ f32 clampf(f32 x, f32 min, f32 max)
 
 f32 radiansf(f32 degrees)
 {
-    return degrees * PI / 180.0f;
+    return degrees * PI32 / 180.0f;
 }
 
 f32 degreesf(f32 radians)
 {
-    return radians * 180.0f / PI;
+    return radians * 180.0f / PI32;
 }
 
 f32 minf(f32 x, f32 y)
@@ -53,11 +53,11 @@ bool equalf(f32 a, f32 b)
 
     if (a == b) { // shortcut, handles infinities
         return true;
-    } else if (a == 0 || b == 0 || (absA + absB < FLT_MIN)) {
+    } else if (a == 0.0f || b == 0.0f || (absA + absB < FLT_MIN)) {
         // a or b is zero or both are extremely close to it
         // relative error is less meaningful here
         return diff < (EPSILON * FLT_MIN);
     } else { // use relative error
-        return diff / minf((absA + absB), FLT_MAX) < EPSILON;
+        return (diff / minf((absA + absB), FLT_MAX)) < EPSILON;
     }
 }

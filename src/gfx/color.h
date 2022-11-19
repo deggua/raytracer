@@ -5,7 +5,7 @@
 
 #include "common/vec.h"
 
-#define COLOR_RED    ((const Color){.r = 0.7f, .g = 0.3f, .b = 0.3f})
+#define COLOR_RED    ((const Color){.r = 1.0f, .g = 0.0f, .b = 0.0f})
 #define COLOR_BLUE   ((const Color){.r = 0.8f, .g = 0.8f, .b = 1.0f})
 #define COLOR_GREY   ((const Color){.r = 0.5f, .g = 0.5f, .b = 0.5f})
 #define COLOR_WHITE  ((const Color){.r = 1.0f, .g = 1.0f, .b = 1.0f})

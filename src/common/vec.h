@@ -103,7 +103,22 @@ typedef vec2 point2;
 typedef vec3 point3;
 typedef vec4 point4;
 
+typedef struct {
+    vec2 x, y;
+} basis2;
+
+typedef struct {
+    vec3 x, y, z;
+} basis3;
+
+typedef struct {
+    vec4 x, y, z, w;
+} basis4;
+
 /* --- vec2 --- */
+
+vec2 vec2_Set(f32 t);
+
 vec2 vec2_Add(vec2 v1, vec2 v2);
 vec2 vec2_Subtract(vec2 v1, vec2 v2);
 
@@ -121,6 +136,7 @@ f32 vec2_Magnitude(vec2 vec);
 f32 vec2_MagnitudeSquared(vec2 vec);
 
 vec2 vec2_Normalize(vec2 vec);
+vec2 vec2_Lerp(vec2 v1, vec2 v2, f32 t);
 
 bool vec2_CompareMagnitudeEqual(vec2 v1, f32 mag);
 bool vec2_CompareMagnitudeEqualR(f32 mag, vec2 v1);
@@ -132,6 +148,8 @@ vec2 vec2_CartesianToPolar(vec2 cartesian);
 vec2 vec2_PolarToCartesian(vec2 polar);
 
 /* --- vec3 --- */
+
+vec3 vec3_Set(f32 t);
 
 vec3 vec3_Add(vec3 v1, vec3 v2);
 vec3 vec3_Subtract(vec3 v1, vec3 v2);
@@ -150,6 +168,7 @@ f32 vec3_Magnitude(vec3 vec);
 f32 vec3_MagnitudeSquared(vec3 vec);
 
 vec3 vec3_Normalize(vec3 vec);
+vec3 vec3_Lerp(vec3 v1, vec3 v2, f32 t);
 
 bool vec3_CompareMagnitudeEqual(vec3 v1, f32 mag);
 bool vec3_CompareMagnitudeEqualR(f32 mag, vec3 v1);
@@ -169,7 +188,12 @@ vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio);
 vec3 vec3_CartesianToSpherical(vec3 cartesian);
 vec3 vec3_SphericalToCartesian(vec3 spherical);
 
+vec3   vec3_Reorient(vec3 n, basis3 basis);
+basis3 vec3_OrthonormalBasis(vec3 bx);
+
 /* --- vec4 --- */
+
+vec4 vec4_Set(f32 t);
 
 vec4 vec4_Add(vec4 v1, vec4 v2);
 vec4 vec4_Subtract(vec4 v1, vec4 v2);
@@ -188,6 +212,7 @@ f32 vec4_Magnitude(vec4 vec);
 f32 vec4_MagnitudeSquared(vec4 vec);
 
 vec4 vec4_Normalize(vec4 vec);
+vec4 vec4_Lerp(vec4 v1, vec4 v2, f32 t);
 
 bool vec4_CompareMagnitudeEqual(vec4 v1, f32 mag);
 bool vec4_CompareMagnitudeEqualR(f32 mag, vec4 v1);
@@ -199,6 +224,7 @@ bool vec4_AlmostTheSame(vec4 v1, vec4 v2);
 
 f32  scalar_Multiply(f32 x, f32 y);
 bool scalar_AlmostTheSame(f32 x, f32 y);
+f32  scalar_Lerp(f32 a, f32 b, f32 t);
 
 #define VEC2_FMT      "<%.02f, %.02f>"
 #define VEC2_ARG(vec) vec.x, vec.y
@@ -310,6 +336,14 @@ type:                    \
         BIND(vec3, vec3_Normalize), \
         BIND(vec4, vec4_Normalize) \
        )((x))
+
+#define vlerp(a, b, t) \
+    MAP((a), \
+        BIND(vec2, vec2_Lerp), \
+        BIND(vec3, vec3_Lerp), \
+        BIND(vec4, vec4_Lerp), \
+        BIND(default, scalar_Lerp) \
+    )((a), (b), (t))
 
 // Test for equality
 // vec, f32 := vec magnitude equality

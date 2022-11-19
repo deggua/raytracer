@@ -20,5 +20,3 @@
         if (!(expr))              \
             OPTIMIZE_UNREACHABLE; \
     } while (0)
-
-#include "common/types.h"

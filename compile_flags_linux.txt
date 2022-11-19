@@ -18,4 +18,4 @@
 
 -march=native
 -mtune=native
--include config.h
+-include common.h
