@@ -17,13 +17,19 @@
 #    define NAN (__builtin_nanf(""))
 #endif
 
-#define POWF_5(base) ((base) * (base) * (base) * (base) * (base))
-#define POWF_4(base) ((base) * (base) * (base) * (base))
-#define POWF_3(base) ((base) * (base) * (base))
+// TODO: this doesn't appear to be faster than powf on -Ofast + unsafe math
+// needs more testing, but this is interesting
 #define POWF_2(base) ((base) * (base))
+#define POWF_3(base) (POWF_2((base)) * (base))
+#define POWF_4(base) (POWF_2((base)) * POWF_2((base)))
+#define POWF_5(base) (POWF_4((base)) * (base))
 
 #define POWF_(base, exp) (POWF_##exp((base)))
-#define POWF(base, exp)  (POWF_((base), exp))
+#if 0
+#    define POWF(base, exp) (POWF_((base), exp))
+#else
+#    define POWF(base, exp) (powf((base), (exp)))
+#endif
 
 f32  clampf(f32 x, f32 min, f32 max);
 f32  radiansf(f32 degrees);

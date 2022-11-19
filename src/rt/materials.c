@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "gfx/color.h"
+#include "math/distribution.h"
 #include "math/math.h"
 #include "math/random.h"
 #include "math/vec.h"
@@ -230,12 +231,7 @@ static inline Color BRDF_BaseDiffuse(Color base_color, vec3 w_in, vec3 w_out, ve
 {
     vec3 half_vector = HalfVector(w_in, w_out);
     f32  f_d90       = F_D90(w_out, half_vector, roughness);
-#if 0
-    f32  attenuation = (1.0f / PI32) * F_D(w_in, shading_normal, f_d90) * F_D(w_out, shading_normal, f_d90)
-                      * fabsf(vdot(shading_normal, w_out));
-#else
-    f32 attenuation = (1.0f / PI32) * F_D(w_in, shading_normal, f_d90) * F_D(w_out, shading_normal, f_d90);
-#endif
+    f32  attenuation = (1.0f / PI32) * F_D(w_in, shading_normal, f_d90) * F_D(w_out, shading_normal, f_d90);
     return vmul(base_color, attenuation);
 }
 
@@ -260,12 +256,7 @@ static inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec
     f32 f_ss_w_in  = F_SS(w_in, shading_normal, f_ss90);
     f32 f_ss_w_out = F_SS(w_out, shading_normal, f_ss90);
 
-#if 0
-    f32 attenuation
-        = (1.25f / PI32) * (f_ss_w_in * f_ss_w_out * (1.0f / (abs_n_w_in + abs_n_w_out) - 0.5f) + 0.5f) * abs_n_w_out;
-#else
     f32 attenuation = (1.25f / PI32) * (f_ss_w_in * f_ss_w_out * (1.0f / (abs_n_w_in + abs_n_w_out) - 0.5f) + 0.5f);
-#endif
 
     return vmul(base_color, attenuation);
 }
@@ -279,59 +270,31 @@ BRDF_Diffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 r
 }
 
 bool Material_Disney_Diffuse_Bounce(
-    const Material_Disney_Diffuse* mat,
-    const Ray*                     ray_in,
-    const HitInfo*                 hit,
-    Color*                         surface_color,
-    Color*                         emitted_color,
-    Ray*                           ray_out)
+    in Material_Disney_Diffuse* mat,
+    in Ray*                     ray_in,
+    in HitInfo*                 hit,
+    out Color*                  surface_color,
+    out Color*                  emitted_color,
+    out Ray*                    ray_out)
 {
-#define UNIFORM_SAMPLING 0
-    // first generate a random vector in the hemisphere of the normal
-#if UNIFORM_SAMPLING
-    // uniform hemisphere
-    *ray_out = Ray_Make(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
-#else
-    // cosine weighted sampling
-    f32 epsilon_0 = Random_Normal_f32();
-    f32 epsilon_1 = Random_Normal_f32();
+    // generate sample vector
+    vec3 ray_dir_out = Distribution_CosWeightedHemisphere_Sample(hit->unitNormal);
 
-    // theta = arccos(sqrt(epsilon_1))
-    //  => cos(theta) = sqrt(epsilon_1)
-    //  => sin(theta) = sqrt(1 - epsilon_1) [by sin2+cos2=1]
-    f32 phi = 2.0f * PI32 * epsilon_0;
-
-    f32 sin_theta = sqrtf(1.0f - epsilon_1);
-    f32 cos_theta = sqrtf(epsilon_1);
-
-    // this is a random vector in the Y+ hemisphere, we need it to be reoriented with the surface normal as the Y+ basis
-    vec3 cartesian_normal_space = {cosf(phi) * sin_theta, cos_theta, sinf(phi) * sin_theta};
-
-    // construct a basis with the Y+ axis in the direction of our surface normal, so that when we reorient
-    // the sampling vector it points in the hemisphere of our surface normal
-    basis3 basis = vec3_OrthonormalBasis(hit->unitNormal);
-    basis        = (basis3){.x = basis.y, .y = basis.x, .z = basis.z};
-
-    vec3 cartesian_world_space = vec3_Reorient(cartesian_normal_space, basis);
-
-    *ray_out     = Ray_Make(hit->position, cartesian_world_space);
-
-#endif
-    // TODO: once we add normal maps, etc. the shading normal won't be the same as the geometry normal
     vec3  shading_normal = hit->unitNormal;
     Color albedo         = Texture_ColorAt(mat->albedo, hit->uv);
 
+    // w_in should point from the surface to the observer
     vec3 w_in  = vmul(-1.0f, vnorm(ray_in->dir));
-    vec3 w_out = vnorm(ray_out->dir);
+    vec3 w_out = ray_dir_out;
 
     Color brdf_diffuse = BRDF_Diffuse(albedo, w_in, w_out, shading_normal, mat->roughness, mat->subsurface);
 
-#if UNIFORM_SAMPLING
-    brdf_diffuse = vmul(brdf_diffuse, 2.0f * PI32 * vdot(shading_normal, w_out));
-#else
-    brdf_diffuse = vmul(brdf_diffuse, PI32);
-#endif
+    // since we omit the cos term in the BRDF, we don't need the cos term in the PDF
+    // so we just multiply by PI32 (essentially)
+    f32 pdf      = Distribution_CosWeightedHemisphere_PDF_InvNoCos();
+    brdf_diffuse = vmul(brdf_diffuse, pdf);
 
+    *ray_out       = Ray_Make(hit->position, ray_dir_out);
     *surface_color = brdf_diffuse;
     *emitted_color = COLOR_BLACK;
 
@@ -339,3 +302,39 @@ bool Material_Disney_Diffuse_Bounce(
 }
 
 /* ---- Disney Metal ---- */
+
+Material Material_Disney_Metal_Make(in Texture* albedo, f32 roughness, f32 anistropic)
+{
+    return (Material){
+        .type = MATERIAL_DISNEY_METAL,
+        .disney_metal = {
+            .albedo = albedo,
+            .roughness = roughness,
+            .anistropic = anistropic,
+        },
+    };
+}
+
+#if 0
+// Schlick approximation of the Fresnel reflection
+// TODO: It's not obvious that base_color should be used like this to me, esp. reading the paper
+static inline Color F_m(Color base_color, vec3 half_vector, vec3 w_out)
+{
+    Color white = COLOR_WHITE;
+    return vadd(base_color, vmul(vsub(white, base_color), POWF(1.0f - fabsf(vdot(half_vector, w_out)), 5)));
+}
+
+static inline Color D_m()
+
+
+bool Material_Disney_Metal_Bounce(
+    in Material_Disney_Metal* mat,
+    in Ray*                   ray_in,
+    in HitInfo*               hit,
+    out Color*                surface_color,
+    out Color*                emitted_color,
+    out Ray*                  ray_out)
+{
+    return true;
+}
+#endif

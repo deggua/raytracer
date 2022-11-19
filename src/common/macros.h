@@ -20,3 +20,9 @@
         if (!(expr))              \
             OPTIMIZE_UNREACHABLE; \
     } while (0)
+
+// TODO: maybe there is an attribute that can emit an error/warning if
+// an out parameter isn't written to?
+#define in const
+#define out
+#define inout

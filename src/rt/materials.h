@@ -113,8 +113,6 @@ Material Material_Dielectric_Make(const Texture* tex, f32 refractiveIndex);
 Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness);
 Material Material_Skybox_Make(const Skybox* skybox);
 
-Material Material_Disney_Diffuse_Make(const Texture* albedo, f32 roughness, f32 subsurface);
-
 bool Material_Diffuse_Bounce(
     const Material_Diffuse* lambert,
     const Ray*              rayIn,
@@ -157,10 +155,21 @@ bool Material_Skybox_Bounce(
 
 /* ---- Disney Materials ---- */
 
+Material Material_Disney_Diffuse_Make(in Texture* albedo, f32 roughness, f32 subsurface);
+Material Material_Disney_Metal_Make(in Texture* albedo, f32 roughness, f32 anistropic);
+
 bool Material_Disney_Diffuse_Bounce(
-    const Material_Disney_Diffuse* mat,
-    const Ray*                     ray_in,
-    const HitInfo*                 hit,
-    Color*                         surface_color,
-    Color*                         emitted_color,
-    Ray*                           ray_out);
+    in Material_Disney_Diffuse* mat,
+    in Ray*                     ray_in,
+    in HitInfo*                 hit,
+    out Color*                  surface_color,
+    out Color*                  emitted_color,
+    out Ray*                    ray_out);
+
+bool Material_Disney_Metal_Bounce(
+    in Material_Disney_Metal* mat,
+    in Ray*                   ray_in,
+    in HitInfo*               hit,
+    out Color*                surface_color,
+    out Color*                emitted_color,
+    out Ray*                  ray_out);
