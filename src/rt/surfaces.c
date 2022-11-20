@@ -15,11 +15,11 @@ Sphere Sphere_Make(point3 center, f32 radius)
     };
 }
 
-bool Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box)
+bool Sphere_BoundedBy(in Sphere* sphere, out BoundingBox* box)
 {
-    const point3 center  = sphere->c;
-    const f32    epsilon = 0.001f;
-    const vec3   vRad    = (vec3){
+    point3 center  = sphere->c;
+    f32    epsilon = 0.001f;
+    vec3   vRad    = (vec3){
              .x = sphere->r + epsilon,
              .y = sphere->r + epsilon,
              .z = sphere->r + epsilon,
@@ -31,7 +31,7 @@ bool Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box)
     return true;
 }
 
-static vec2 Sphere_MapUV(const point3 onSphere)
+intern inline vec2 Sphere_MapUV(point3 onSphere)
 {
     f32 theta = acosf(clampf(-onSphere.y, -0.999f, 0.999f));
     f32 phi   = atan2f(-onSphere.z, onSphere.x) + PI32;
@@ -42,7 +42,7 @@ static vec2 Sphere_MapUV(const point3 onSphere)
     };
 }
 
-bool Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
+bool Sphere_HitAt(in Sphere* sphere, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit)
 {
     vec3 dist         = vsub(ray->origin, sphere->c);
     f32  polyA        = vdot(ray->dir, ray->dir);
@@ -96,9 +96,9 @@ Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
     };
 }
 
-bool Triangle_BoundedBy(const Triangle* tri, BoundingBox* box)
+bool Triangle_BoundedBy(in Triangle* tri, out BoundingBox* box)
 {
-    const f32 epsilon = 0.001f;
+    f32 epsilon = 0.001f;
 
     for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
         box->min.elem[axis]
@@ -110,9 +110,9 @@ bool Triangle_BoundedBy(const Triangle* tri, BoundingBox* box)
     return true;
 }
 
-bool Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
+bool Triangle_HitAt(in Triangle* tri, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit)
 {
-    const f32 epsilon = 0.0001f;
+    f32 epsilon = 0.0001f;
 
     vec3 edge1 = vsub(tri->vtx[1].pos, tri->vtx[0].pos);
     vec3 edge2 = vsub(tri->vtx[2].pos, tri->vtx[0].pos);

@@ -9,5 +9,6 @@
 #    define TARGET_LINUX
 #endif
 
+#include "common/config.h"
 #include "common/macros.h"
 #include "common/types.h"

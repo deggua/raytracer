@@ -18,7 +18,7 @@ void Skybox_Delete(Skybox* skybox)
     }
 }
 
-Skybox* Skybox_Import_BMP(const char* folder)
+Skybox* Skybox_Import_BMP(const char* folder_path)
 {
     Skybox* skybox = calloc(1, sizeof(*skybox));
     if (skybox == NULL) {
@@ -30,7 +30,7 @@ Skybox* Skybox_Import_BMP(const char* folder)
     static const char* filenames[] = {"xpos.bmp", "xneg.bmp", "ypos.bmp", "yneg.bmp", "zpos.bmp", "zneg.bmp"};
 
     for (size_t ii = 0; ii < lengthof(filenames); ii++) {
-        strcat(path, folder);
+        strcat(path, folder_path);
         strcat(path, "/");
         strcat(path, filenames[ii]);
 
@@ -63,7 +63,7 @@ error_load:
     return NULL;
 }
 
-Color Skybox_ColorAt(const Skybox* skybox, vec3 dir)
+Color Skybox_ColorAt(in Skybox* skybox, vec3 dir)
 {
     f32 absX = fabsf(dir.x);
     f32 absY = fabsf(dir.y);

@@ -97,7 +97,7 @@ vec2 vec2_Lerp(vec2 v1, vec2 v2, f32 t)
 
 bool vec2_CompareMagnitudeEqual(vec2 v1, f32 mag)
 {
-    const f32 v1mag = vec2_MagnitudeSquared(v1);
+    f32 v1mag = vec2_MagnitudeSquared(v1);
     return equalf(v1mag, mag * mag);
 }
 
@@ -108,7 +108,7 @@ bool vec2_CompareMagnitudeEqualR(f32 mag, vec2 v1)
 
 bool vec2_CompareMagnitudeGreaterThan(vec2 v1, f32 mag)
 {
-    const f32 v1mag = vec2_MagnitudeSquared(v1);
+    f32 v1mag = vec2_MagnitudeSquared(v1);
     return v1mag > mag;
 }
 
@@ -245,7 +245,7 @@ vec3 vec3_Normalize(vec3 vec)
 
 bool vec3_CompareMagnitudeEqual(vec3 v1, f32 mag)
 {
-    const f32 v1mag = vec3_MagnitudeSquared(v1);
+    f32 v1mag = vec3_MagnitudeSquared(v1);
     return equalf(v1mag, mag * mag);
 }
 
@@ -256,7 +256,7 @@ bool vec3_CompareMagnitudeEqualR(f32 mag, vec3 v1)
 
 bool vec3_CompareMagnitudeGreaterThan(vec3 v1, f32 mag)
 {
-    const f32 v1mag = vec3_MagnitudeSquared(v1);
+    f32 v1mag = vec3_MagnitudeSquared(v1);
     return v1mag > mag;
 }
 
@@ -272,8 +272,8 @@ bool vec3_AlmostTheSame(vec3 v1, vec3 v2)
 
 vec3 vec3_Reflect(vec3 vec, vec3 normal)
 {
-    const f32  vecDotNormal      = vec3_DotProduct(vec, normal);
-    const vec3 angleScaledNormal = vec3_MultiplyScalar(normal, 2.0f * vecDotNormal);
+    f32  vecDotNormal      = vec3_DotProduct(vec, normal);
+    vec3 angleScaledNormal = vec3_MultiplyScalar(normal, 2.0f * vecDotNormal);
     return vec3_Subtract(vec, angleScaledNormal);
 }
 
@@ -439,7 +439,7 @@ vec4 vec4_Normalize(vec4 vec)
 
 bool vec4_CompareMagnitudeEqual(vec4 v1, f32 mag)
 {
-    const f32 v1mag = vec4_MagnitudeSquared(v1);
+    f32 v1mag = vec4_MagnitudeSquared(v1);
     return equalf(v1mag, mag * mag);
 }
 
@@ -450,7 +450,7 @@ bool vec4_CompareMagnitudeEqualR(f32 mag, vec4 v1)
 
 bool vec4_CompareMagnitudeGreaterThan(vec4 v1, f32 mag)
 {
-    const f32 v1mag = vec4_MagnitudeSquared(v1);
+    f32 v1mag = vec4_MagnitudeSquared(v1);
     return v1mag > mag;
 }
 

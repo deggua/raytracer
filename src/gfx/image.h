@@ -30,27 +30,27 @@ typedef struct {
 
 /* ---- sRGB Colorspace Image ---- */
 
-bool ImageRGB_Load_Empty(ImageRGB* img, size_t width, size_t height);
-bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd);
-bool ImageRGB_Load_ImageColor(ImageRGB* img, const ImageColor* src);
+bool ImageRGB_Load_Empty(out ImageRGB* img, size_t width, size_t height);
+bool ImageRGB_Load_BMP(out ImageRGB* img, in FILE* fd);
+bool ImageRGB_Load_ImageColor(out ImageRGB* img, in ImageColor* src);
 
-bool ImageRGB_Save_PPM(const ImageRGB* img, FILE* fd);
-bool ImageRGB_Save_BMP(const ImageRGB* img, FILE* fd);
+bool ImageRGB_Save_PPM(in ImageRGB* img, out FILE* fd);
+bool ImageRGB_Save_BMP(in ImageRGB* img, out FILE* fd);
 
-void ImageRGB_Unload(ImageRGB* img);
+void ImageRGB_Unload(out ImageRGB* img);
 
-void ImageRGB_SetPixel(ImageRGB* img, size_t xx, size_t yy, RGB color);
-RGB  ImageRGB_GetPixel(const ImageRGB* img, size_t xx, size_t yy);
+void ImageRGB_SetPixel(inout ImageRGB* img, size_t xx, size_t yy, RGB color);
+RGB  ImageRGB_GetPixel(in ImageRGB* img, size_t xx, size_t yy);
 
 /* ---- Linear Colorspace Image ---- */
 
-bool ImageColor_Load_Empty(ImageColor* img, size_t width, size_t height);
-bool ImageColor_Load_ImageRGB(ImageColor* img, const ImageRGB* src);
+bool ImageColor_Load_Empty(out ImageColor* img, size_t width, size_t height);
+bool ImageColor_Load_ImageRGB(out ImageColor* img, in ImageRGB* src);
 
-void ImageColor_Unload(ImageColor* img);
+void ImageColor_Unload(out ImageColor* img);
 
-void  ImageColor_SetPixel(ImageColor* img, size_t xx, size_t yy, Color color);
-Color ImageColor_GetPixel(const ImageColor* img, size_t xx, size_t yy);
+void  ImageColor_SetPixel(inout ImageColor* img, size_t xx, size_t yy, Color color);
+Color ImageColor_GetPixel(in ImageColor* img, size_t xx, size_t yy);
 
 // TODO: when we implement normal maps (or any other non-sRGB texture) we need
-// to provide a way to convert the colorspace linearly
+// to provide a way to not do sRGB -> Linear conversion

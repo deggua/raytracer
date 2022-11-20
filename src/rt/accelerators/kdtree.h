@@ -6,6 +6,6 @@
 
 typedef struct KDTree KDTree;
 
-KDTree* KDTree_New(const Object objs[], size_t len);
-void    KDTree_Delete(KDTree* tree);
-bool    KDTree_HitAt(const KDTree* tree, const Ray* ray, Object** objHit, HitInfo* hit);
+KDTree* KDTree_New(in Object* objs, size_t len);
+void    KDTree_Delete(inout KDTree* tree);
+bool    KDTree_HitAt(in KDTree* tree, in Ray* ray, out Object** objHit, out HitInfo* hit);

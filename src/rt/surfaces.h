@@ -47,10 +47,10 @@ typedef struct {
 } Surface;
 
 Sphere Sphere_Make(point3 center, f32 radius);
-bool   Sphere_BoundedBy(const Sphere* sphere, BoundingBox* box);
-bool   Sphere_HitAt(const Sphere* sphere, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
+bool   Sphere_BoundedBy(in Sphere* sphere, out BoundingBox* box);
+bool   Sphere_HitAt(in Sphere* sphere, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit);
 
 Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2);
 Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2);
-bool     Triangle_BoundedBy(const Triangle* tri, BoundingBox* box);
-bool     Triangle_HitAt(const Triangle* tri, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
+bool     Triangle_BoundedBy(in Triangle* tri, out BoundingBox* box);
+bool     Triangle_HitAt(in Triangle* tri, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit);

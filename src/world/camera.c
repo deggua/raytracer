@@ -9,10 +9,10 @@
 
 Camera* Camera_New(point3 lookFrom, point3 lookTo, vec3 vup, f32 aspectRatio, f32 vertFov, f32 aperature, f32 focusDist)
 {
-    const f32 theta          = radiansf(vertFov);
-    const f32 hh             = tanf(theta / 2.0f);
-    const f32 viewportHeight = 2.0f * hh;
-    const f32 viewportWidth  = aspectRatio * viewportHeight;
+    f32 theta          = radiansf(vertFov);
+    f32 hh             = tanf(theta / 2.0f);
+    f32 viewportHeight = 2.0f * hh;
+    f32 viewportWidth  = aspectRatio * viewportHeight;
 
     Camera* cam = calloc(1, sizeof(*cam));
 
@@ -31,7 +31,7 @@ Camera* Camera_New(point3 lookFrom, point3 lookTo, vec3 vup, f32 aspectRatio, f3
     return cam;
 }
 
-Ray Camera_GetRay(const Camera* cam, f32 u, f32 v)
+Ray Camera_GetRay(in Camera* cam, f32 u, f32 v)
 {
     vec2 rd     = Random_InDisc(cam->lensRadius);
     vec3 offset = (vec3){

@@ -47,9 +47,9 @@ f32 maxf(f32 x, f32 y)
 
 bool equalf(f32 a, f32 b)
 {
-    const f32 absA = fabsf(a);
-    const f32 absB = fabsf(b);
-    const f32 diff = fabsf(a - b);
+    f32 absA = fabsf(a);
+    f32 absB = fabsf(b);
+    f32 diff = fabsf(a - b);
 
     if (a == b) { // shortcut, handles infinities
         return true;

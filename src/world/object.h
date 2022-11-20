@@ -17,12 +17,12 @@ typedef struct {
     // space once a mesh is converted to objects
 } Object;
 
-bool Surface_BoundedBy(const Surface* surface, BoundingBox* box);
-bool Surface_HitAt(const Surface* surface, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hitInfo);
+bool Surface_BoundedBy(in Surface* surface, out BoundingBox* box);
+bool Surface_HitAt(in Surface* surface, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hitInfo);
 bool Material_Bounce(
-    const Material* material,
-    const Ray*      rayIn,
-    const HitInfo*  hit,
-    Color*          colorSurface,
-    Color*          colorEmitted,
-    Ray*            rayOut);
+    in Material* material,
+    in Ray*      rayIn,
+    in HitInfo*  hit,
+    out Color*   colorSurface,
+    out Color*   colorEmitted,
+    out Ray*     rayOut);

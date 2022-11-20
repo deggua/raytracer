@@ -16,7 +16,7 @@
 #include "world/object.h"
 #include "world/scene.h"
 
-static bool ExportImage(ImageRGB* img, const char* filename)
+intern bool ExportImage(out ImageRGB* img, in const char* filename)
 {
     FILE* fd = fopen(filename, "wb+");
     if (fd == NULL) {
@@ -38,7 +38,7 @@ static bool ExportImage(ImageRGB* img, const char* filename)
 
 ImageRGB* g_img;
 
-static void InterruptHandler(int sig)
+intern void InterruptHandler(int sig)
 {
     (void)sig;
 
@@ -57,7 +57,7 @@ Material g_matGround;
 Material g_matLight;
 Material g_mats[16];
 
-static void FillScene(Scene* scene, Skybox* skybox)
+intern void FillScene(Scene* scene, Skybox* skybox)
 {
 #if 0
     /* Pear Mesh */
@@ -230,20 +230,21 @@ static void FillScene(Scene* scene, Skybox* skybox)
 
     Scene_Add_Object(scene, &ground);
 #endif
+    (void)skybox;
 }
 
 int main(int argc, char** argv)
 {
-    const point3 lookFrom    = (point3){20, -20, 20};
-    const point3 lookAt      = (point3){0, 0, 6};
-    const vec3   vup         = (vec3){0, 0, 1};
-    f32          focusDist   = vmag(vsub(lookFrom, lookAt));
-    const f32    aperature   = 0.0f;
-    const f32    aspectRatio = 16.0f / 9.0f;
-    const f32    vFov        = 40.0f;
+    point3 lookFrom    = (point3){20, -20, 20};
+    point3 lookAt      = (point3){0, 0, 6};
+    vec3   vup         = (vec3){0, 0, 1};
+    f32    focusDist   = vmag(vsub(lookFrom, lookAt));
+    f32    aperature   = 0.0f;
+    f32    aspectRatio = 16.0f / 9.0f;
+    f32    vFov        = 40.0f;
 
-    const size_t imageHeight = 720;
-    const size_t imageWidth  = imageHeight * aspectRatio;
+    size_t imageHeight = 720;
+    size_t imageWidth  = imageHeight * aspectRatio;
 
     size_t numThreads      = 16;
     size_t samplesPerPixel = 32;

@@ -4,7 +4,7 @@
 
 #include "math/math.h"
 
-static inline f32 sRGBToLinear(u8 channel)
+intern inline f32 sRGBToLinear(u8 channel)
 {
     f32 srgb = channel / 255.0f;
 
@@ -15,7 +15,7 @@ static inline f32 sRGBToLinear(u8 channel)
     }
 }
 
-static inline u8 LinearTosRGB(f32 channel)
+intern inline u8 LinearTosRGB(f32 channel)
 {
     f32 linear = clampf(channel, 0.0f, 1.0f);
 
@@ -86,7 +86,7 @@ Color Color_Tint(Color color1, Color color2)
 
 Color Color_Desaturate(Color color, f32 desaturation)
 {
-    const Color luminance = {
+    static const Color luminance = {
         .r = 0.299f,
         .g = 0.587f,
         .b = 0.114f,

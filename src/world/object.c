@@ -4,7 +4,7 @@
 
 #include "rt/materials.h"
 
-bool Surface_HitAt(const Surface* surface, const Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
+bool Surface_HitAt(in Surface* surface, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit)
 {
     switch (surface->type) {
         case SURFACE_SPHERE: {
@@ -19,7 +19,7 @@ bool Surface_HitAt(const Surface* surface, const Ray* ray, f32 tMin, f32 tMax, H
     OPTIMIZE_UNREACHABLE;
 }
 
-bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
+bool Surface_BoundedBy(in Surface* surface, out BoundingBox* box)
 {
     switch (surface->type) {
         case SURFACE_SPHERE: {
@@ -35,12 +35,12 @@ bool Surface_BoundedBy(const Surface* surface, BoundingBox* box)
 }
 
 bool Material_Bounce(
-    const Material* material,
-    const Ray*      rayIn,
-    const HitInfo*  hit,
-    Color*          colorSurface,
-    Color*          colorEmitted,
-    Ray*            rayOut)
+    in Material* material,
+    in Ray*      rayIn,
+    in HitInfo*  hit,
+    out Color*   colorSurface,
+    out Color*   colorEmitted,
+    out Ray*     rayOut)
 {
     switch (material->type) {
         case MATERIAL_DIFFUSE: {

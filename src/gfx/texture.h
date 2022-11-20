@@ -8,11 +8,11 @@
 typedef struct Texture Texture;
 
 Texture* Texture_New(void);
-void     Texture_Delete(Texture* tex);
+void     Texture_Delete(out Texture* tex);
 
-bool Texture_Import_BMP(Texture* tex, FILE* fd);
-bool Texture_Import_Color(Texture* tex, Color color);
+bool Texture_Import_BMP(out Texture* tex, in FILE* fd);
+bool Texture_Import_Color(out Texture* tex, Color color);
 
-void Texture_Unload(Texture* tex);
+void Texture_Unload(out Texture* tex);
 
-Color Texture_ColorAt(const Texture* tex, point2 st);
+Color Texture_ColorAt(inout Texture* tex, point2 st);

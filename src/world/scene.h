@@ -6,11 +6,11 @@
 
 typedef struct Scene Scene;
 
-Scene* Scene_New(Skybox* skybox);
-void   Scene_Delete(Scene* scene);
-bool   Scene_Prepare(Scene* scene);
-bool   Scene_ClosestHit(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit);
-bool   Scene_ClosestHitSlow(const Scene* scene, const Ray* ray, Object** objHit, HitInfo* hit);
+Scene* Scene_New(in Skybox* skybox);
+void   Scene_Delete(inout Scene* scene);
+bool   Scene_Prepare(inout Scene* scene);
+bool   Scene_ClosestHit(in Scene* scene, in Ray* ray, out Object** objHit, out HitInfo* hit);
+bool   Scene_ClosestHitSlow(in Scene* scene, in Ray* ray, out Object** objHit, out HitInfo* hit);
 
-bool  Scene_Add_Object(Scene* scene, const Object* obj);
-Color Scene_Get_SkyColor(const Scene* scene, vec3 dir);
+bool  Scene_Add_Object(inout Scene* scene, in Object* obj);
+Color Scene_Get_SkyColor(in Scene* scene, vec3 dir);

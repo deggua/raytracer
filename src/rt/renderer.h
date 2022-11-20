@@ -5,11 +5,11 @@
 #include "world/scene.h"
 
 typedef struct {
-    const Camera* cam;
-    ImageRGB*     img;
-    const Scene*  scene;
+    Camera*   cam;
+    Scene*    scene;
+    ImageRGB* img;
 } RenderCtx;
 
-RenderCtx* Render_New(const Scene* scene, ImageRGB* img, const Camera* cam);
-void       Render_Delete(RenderCtx* ctx);
-ImageRGB*  Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads);
+RenderCtx* Render_New(in Scene* scene, in ImageRGB* img, in Camera* cam);
+void       Render_Delete(out RenderCtx* ctx);
+ImageRGB*  Render_Do(in RenderCtx* ctx, size_t samples_per_pixel, size_t max_ray_depth, size_t num_threads);

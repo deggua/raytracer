@@ -21,18 +21,18 @@
 
    The state must be seeded so that it is not everywhere zero. */
 
-static inline u32 rotl(const u32 x, int k)
+intern inline u32 rotl(u32 x, int k)
 {
     return (x << k) | (x >> (32 - k));
 }
 
-static __thread u32 s[4];
+intern thread_local u32 s[4];
 
-static u32 next(void)
+intern u32 next(void)
 {
-    const u32 result = s[0] + s[3];
+    u32 result = s[0] + s[3];
 
-    const u32 t = s[1] << 9;
+    u32 t = s[1] << 9;
 
     s[2] ^= s[0];
     s[3] ^= s[1];
@@ -50,9 +50,9 @@ static u32 next(void)
    to 2^64 calls to next(); it can be used to generate 2^64
    non-overlapping subsequences for parallel computations. */
 
-static void jump(void)
+intern void jump(void)
 {
-    static const u32 JUMP[] = {0x8764000b, 0xf542d2d3, 0x6fa035c3, 0x77f2db5b};
+    static u32 JUMP[] = {0x8764000b, 0xf542d2d3, 0x6fa035c3, 0x77f2db5b};
 
     u32 s0 = 0;
     u32 s1 = 0;
@@ -173,7 +173,6 @@ vec3 Random_OnSphere(f32 radius)
     };
 }
 
-// TODO: is this more performant than the coordinate transform?
 vec3 Random_InHemisphere(vec3 facing, f32 radius)
 {
     vec3 in_sphere     = Random_InSphere(radius);
@@ -186,7 +185,6 @@ vec3 Random_InHemisphere(vec3 facing, f32 radius)
     return vmul(radius, in_hemisphere);
 }
 
-// TODO: is this more performant than the coordinate transform?
 vec3 Random_OnHemisphere(vec3 facing, f32 radius)
 {
     vec3 on_sphere     = Random_OnSphere(radius);

@@ -13,7 +13,7 @@ typedef struct ThreadArg {
     void (*user_func)(void* arg);
 } ThreadArg;
 
-static DWORD Thread_EntryWrapper(LPVOID arg)
+intern DWORD Thread_EntryWrapper(LPVOID arg)
 {
     ThreadArg* arg_wrapper = arg;
     arg_wrapper->user_func(arg_wrapper->user_arg);

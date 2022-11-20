@@ -1,5 +1,10 @@
 #pragma once
 
+#include <assert.h>
+#include <stdalign.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #define static_assert_decl(const_expr) _Static_assert(const_expr, "Assertion false: " #const_expr)
 #define static_assert_expr(const_expr) (0 * sizeof(struct { static_assert_decl(const_expr); }))
 
@@ -14,15 +19,27 @@
 #define attr_naked              __attribute__((naked))
 #define attr_aligned(alignment) __attribute__((packed, aligned(alignment)))
 
+#define in
+#define out
+#define inout
+
+#define global
+#define intern static
+#define thread_local __thread
+// TODO: should we use this?
+// #define inline __attribute__((always_inline))
+#define noinline __attribute__((noinline))
+
+// TODO: check what this does in GDB, if it doesn't trigger a breakpoint at the abort call, use int3 or equiv
+#define ABORT(msg, ...)                                                                                  \
+    do {                                                                                                 \
+        fprintf(stderr, "Aborted @ %s:%s:%d :: " msg "\n", __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
+        abort();                                                                                         \
+    } while (0)
+
 #define OPTIMIZE_UNREACHABLE __builtin_unreachable()
 #define OPTIMIZE_ASSUME(expr)     \
     do {                          \
         if (!(expr))              \
             OPTIMIZE_UNREACHABLE; \
     } while (0)
-
-// TODO: maybe there is an attribute that can emit an error/warning if
-// an out parameter isn't written to?
-#define in const
-#define out
-#define inout

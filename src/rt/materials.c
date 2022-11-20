@@ -10,7 +10,7 @@
 
 /* ---- DIFFUSE ---- */
 
-Material Material_Diffuse_Make(const Texture* tex)
+Material Material_Diffuse_Make(in Texture* tex)
 {
     return (Material)
     {
@@ -22,12 +22,12 @@ Material Material_Diffuse_Make(const Texture* tex)
 }
 
 bool Material_Diffuse_Bounce(
-    const Material_Diffuse* diffuse,
-    const Ray*              rayIn,
-    const HitInfo*          hit,
-    Color*                  colorSurface,
-    Color*                  colorEmitted,
-    Ray*                    rayOut)
+    in Material_Diffuse* diffuse,
+    in Ray*              rayIn,
+    in HitInfo*          hit,
+    out Color*           colorSurface,
+    out Color*           colorEmitted,
+    out Ray*             rayOut)
 {
     (void)rayIn;
 
@@ -47,7 +47,7 @@ bool Material_Diffuse_Bounce(
 
 /* ---- METAL ---- */
 
-Material Material_Metal_Make(const Texture* tex, f32 fuzz)
+Material Material_Metal_Make(in Texture* tex, f32 fuzz)
 {
     return (Material){
         .type = MATERIAL_METAL,
@@ -59,12 +59,12 @@ Material Material_Metal_Make(const Texture* tex, f32 fuzz)
 }
 
 bool Material_Metal_Bounce(
-    const Material_Metal* metal,
-    const Ray*            rayIn,
-    const HitInfo*        hit,
-    Color*                colorSurface,
-    Color*                colorEmitted,
-    Ray*                  rayOut)
+    in Material_Metal* metal,
+    in Ray*            rayIn,
+    in HitInfo*        hit,
+    out Color*         colorSurface,
+    out Color*         colorEmitted,
+    out Ray*           rayOut)
 {
     // TODO: do we need to do the face fix thing on the hit normal? I'm guessing we do because otherwise the reflect
     // may be be backwards, atm we always make the normal point against
@@ -82,7 +82,7 @@ bool Material_Metal_Bounce(
 
 /* ---- DIELECTRIC ---- */
 
-Material Material_Dielectric_Make(const Texture* tex, f32 refractiveIndex)
+Material Material_Dielectric_Make(in Texture* tex, f32 refractiveIndex)
 {
     return (Material){
         .type = MATERIAL_DIELECTRIC,
@@ -93,7 +93,7 @@ Material Material_Dielectric_Make(const Texture* tex, f32 refractiveIndex)
     };
 }
 
-static f32 reflectance(f32 cosine, f32 refractiveIndex)
+intern inline f32 reflectance(f32 cosine, f32 refractiveIndex)
 {
     f32 r0 = (1.0f - refractiveIndex) / (1.0f + refractiveIndex);
     r0     = r0 * r0;
@@ -101,12 +101,12 @@ static f32 reflectance(f32 cosine, f32 refractiveIndex)
 }
 
 bool Material_Dielectric_Bounce(
-    const Material_Dielectric* diel,
-    const Ray*                 rayIn,
-    const HitInfo*             hit,
-    Color*                     colorSurface,
-    Color*                     colorEmitted,
-    Ray*                       rayOut)
+    in Material_Dielectric* diel,
+    in Ray*                 rayIn,
+    in HitInfo*             hit,
+    out Color*              colorSurface,
+    out Color*              colorEmitted,
+    out Ray*                rayOut)
 {
     *colorSurface       = Texture_ColorAt(diel->albedo, hit->uv);
     *colorEmitted       = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
@@ -132,7 +132,7 @@ bool Material_Dielectric_Bounce(
 
 /* ---- DIFFUSE LIGHT ---- */
 
-Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness)
+Material Material_DiffuseLight_Make(in Texture* tex, f32 brightness)
 {
     return (Material){
         .type = MATERIAL_DIFFUSE_LIGHT,
@@ -144,12 +144,12 @@ Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness)
 }
 
 bool Material_DiffuseLight_Bounce(
-    const Material_DiffuseLight* diffuseLight,
-    const Ray*                   rayIn,
-    const HitInfo*               hit,
-    Color*                       colorSurface,
-    Color*                       colorEmitted,
-    Ray*                         rayOut)
+    in Material_DiffuseLight* diffuseLight,
+    in Ray*                   rayIn,
+    in HitInfo*               hit,
+    out Color*                colorSurface,
+    out Color*                colorEmitted,
+    out Ray*                  rayOut)
 {
     (void)rayIn;
     (void)hit;
@@ -163,7 +163,7 @@ bool Material_DiffuseLight_Bounce(
 
 /* ---- SKYBOX ---- */
 
-Material Material_Skybox_Make(const Skybox* skybox)
+Material Material_Skybox_Make(in Skybox* skybox)
 {
     return (Material){
         .type = MATERIAL_SKYBOX,
@@ -174,12 +174,12 @@ Material Material_Skybox_Make(const Skybox* skybox)
 }
 
 bool Material_Skybox_Bounce(
-    const Material_Skybox* skybox,
-    const Ray*             rayIn,
-    const HitInfo*         hit,
-    Color*                 colorSurface,
-    Color*                 colorEmitted,
-    Ray*                   rayOut)
+    in Material_Skybox* skybox,
+    in Ray*             rayIn,
+    in HitInfo*         hit,
+    out Color*          colorSurface,
+    out Color*          colorEmitted,
+    out Ray*            rayOut)
 {
     vec3 target    = vadd(hit->position, Random_InHemisphere(hit->unitNormal, 1.0f));
     vec3 scattered = vsub(target, hit->position);
@@ -199,12 +199,12 @@ bool Material_Skybox_Bounce(
 
 /* ---- Disney Diffuse ---- */
 
-static inline vec3 HalfVector(vec3 w_in, vec3 w_out)
+intern inline vec3 HalfVector(vec3 w_in, vec3 w_out)
 {
     return vnorm(vadd(w_in, w_out));
 }
 
-Material Material_Disney_Diffuse_Make(const Texture* albedo, f32 roughness, f32 subsurface)
+Material Material_Disney_Diffuse_Make(in Texture* albedo, f32 roughness, f32 subsurface)
 {
     return (Material){
         .type = MATERIAL_DISNEY_DIFFUSE,
@@ -216,17 +216,17 @@ Material Material_Disney_Diffuse_Make(const Texture* albedo, f32 roughness, f32 
     };
 }
 
-static inline f32 F_D90(vec3 w_out, vec3 half_vector, f32 roughness)
+intern inline f32 F_D90(vec3 w_out, vec3 half_vector, f32 roughness)
 {
     return 0.5f + 2.0f * roughness * POWF(vdot(half_vector, w_out), 2);
 }
 
-static inline f32 F_D(vec3 w, vec3 shading_normal, f32 f_d90)
+intern inline f32 F_D(vec3 w, vec3 shading_normal, f32 f_d90)
 {
     return 1.0f + (f_d90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
 }
 
-static inline Color BRDF_BaseDiffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
+intern inline Color BRDF_BaseDiffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
 {
     vec3 half_vector = HalfVector(w_in, w_out);
     f32  f_d90       = F_D90(w_out, half_vector, roughness);
@@ -234,17 +234,17 @@ static inline Color BRDF_BaseDiffuse(Color base_color, vec3 w_in, vec3 w_out, ve
     return vmul(base_color, attenuation);
 }
 
-static inline f32 F_SS90(vec3 w_out, vec3 half_vector, f32 roughness)
+intern inline f32 F_SS90(vec3 w_out, vec3 half_vector, f32 roughness)
 {
     return roughness * POWF(vdot(half_vector, w_out), 2);
 }
 
-static inline f32 F_SS(vec3 w, vec3 shading_normal, f32 f_ss90)
+intern inline f32 F_SS(vec3 w, vec3 shading_normal, f32 f_ss90)
 {
     return 1.0 + (f_ss90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
 }
 
-static inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
+intern inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
 {
     vec3 half_vector = HalfVector(w_in, w_out);
     f32  f_ss90      = F_SS90(w_out, half_vector, roughness);
@@ -260,7 +260,7 @@ static inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec
     return vmul(base_color, attenuation);
 }
 
-static inline Color
+intern inline Color
 BRDF_Diffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness, f32 subsurface)
 {
     Color brdf_base_diffuse = BRDF_BaseDiffuse(base_color, w_in, w_out, shading_normal, roughness);
@@ -268,7 +268,7 @@ BRDF_Diffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 r
     return vlerp(brdf_base_diffuse, brdf_subsurface, subsurface);
 }
 
-static inline vec3 CosWeightedHemisphere_Sample(vec3 unit_normal)
+intern inline vec3 CosWeightedHemisphere_Sample(vec3 unit_normal)
 {
     f32 epsilon_0 = Random_Unilateral();
     f32 epsilon_1 = Random_Unilateral();
@@ -333,12 +333,12 @@ Material Material_Disney_Metal_Make(in Texture* albedo, f32 roughness, f32 anist
     };
 }
 
-static inline Color F_Schlick(Color r_0, f32 cos_theta)
+intern inline Color F_Schlick(Color r_0, f32 cos_theta)
 {
     return vadd(r_0, vmul(vsub(vec3_Set(1.0f), r_0), POWF(1.0f - cos_theta, 5)));
 }
 
-static inline f32 D_N(vec3 normal, f32 a_x, f32 a_y)
+intern inline f32 D_N(vec3 normal, f32 a_x, f32 a_y)
 {
     f32 numerator = 1.0f;
     f32 denominator
@@ -346,7 +346,7 @@ static inline f32 D_N(vec3 normal, f32 a_x, f32 a_y)
     return numerator / denominator;
 }
 
-static inline f32 Lambda_w(vec3 w, f32 a_x, f32 a_y)
+intern inline f32 Lambda_w(vec3 w, f32 a_x, f32 a_y)
 {
     f32 numerator   = sqrtf(1.0f + (POWF(w.x * a_x, 2) + POWF(w.y * a_y, 2)) / POWF(w.z, 2)) - 1.0f;
     f32 denominator = 2.0f;
@@ -354,12 +354,12 @@ static inline f32 Lambda_w(vec3 w, f32 a_x, f32 a_y)
     return numerator / denominator;
 }
 
-static inline f32 G_1(vec3 w, f32 a_x, f32 a_y)
+intern inline f32 G_1(vec3 w, f32 a_x, f32 a_y)
 {
     return 1.0f / (1.0f + Lambda_w(w, a_x, a_y));
 }
 
-static inline f32 G_2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+intern inline f32 G_2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
 {
     if (vdot(w_out, w_micronormal) < 0 || vdot(w_in, w_micronormal) < 0) {
         return 0.0f;
@@ -370,7 +370,7 @@ static inline f32 G_2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_
     }
 }
 
-static inline Color BRDF_Disney_Metal(Color base_color, vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+intern inline Color BRDF_Disney_Metal(Color base_color, vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
 {
     Color f_m = F_Schlick(base_color, vdot(w_out, w_micronormal));
     f32   g_2 = G_2(w_in, w_out, w_micronormal, a_x, a_y);
@@ -384,7 +384,7 @@ static inline Color BRDF_Disney_Metal(Color base_color, vec3 w_in, vec3 w_out, v
 // Input alpha_x, alpha_y: roughness parameters
 // Input U1, U2: uniform random numbers
 // Output Ne: normal sampled with PDF D_Ve(Ne) = G1(Ve) * max(0, dot(Ve, Ne)) * D(Ne) / Ve.z
-static inline vec3 GGXVNDF_Sample(vec3 Ve, f32 alpha_x, f32 alpha_y, f32 U1, f32 U2)
+intern inline vec3 GGXVNDF_Sample(vec3 Ve, f32 alpha_x, f32 alpha_y, f32 U1, f32 U2)
 {
     // Section 3.2: transforming the view direction to the hemisphere configuration
     vec3 Vh = vnorm(vec(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));

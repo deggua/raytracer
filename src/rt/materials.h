@@ -15,11 +15,13 @@
 // parameters to work
 
 typedef enum {
-    /* Raytracing.io Materials */
+    /* raytracing.github.io Materials */
     MATERIAL_DIFFUSE,
     MATERIAL_METAL,
     MATERIAL_DIELECTRIC,
     MATERIAL_DIFFUSE_LIGHT,
+
+    /* Custom Materials */
     MATERIAL_SKYBOX,
 
     /* Disney Materials */
@@ -32,59 +34,59 @@ typedef enum {
 } Material_Type;
 
 typedef struct {
-    const Texture* albedo;
+    Texture* albedo;
 } Material_Diffuse;
 
 typedef struct {
-    const Texture* albedo;
-    f32            fuzz;
+    Texture* albedo;
+    f32      fuzz;
 } Material_Metal;
 
 typedef struct {
-    const Texture* albedo;
-    f32            refactiveIndex;
+    Texture* albedo;
+    f32      refactiveIndex;
 } Material_Dielectric;
 
 typedef struct {
-    const Texture* albedo;
-    f32            brightness;
+    Texture* albedo;
+    f32      brightness;
 } Material_DiffuseLight;
 
 typedef struct {
-    const Skybox* skybox;
+    Skybox* skybox;
 } Material_Skybox;
 
 typedef struct {
-    const Texture* albedo;
-    f32            roughness;
-    f32            subsurface;
+    Texture* albedo;
+    f32      roughness;
+    f32      subsurface;
 } Material_Disney_Diffuse;
 
 typedef struct {
-    const Texture* albedo;
-    f32            roughness;
-    f32            anistropic;
+    Texture* albedo;
+    f32      roughness;
+    f32      anistropic;
 } Material_Disney_Metal;
 
 typedef struct {
-    const Texture* albedo;
-    f32            roughness;
-    f32            anistropic;
-    f32            eta; // Internal_IOR / External_IOR (looks like n in the formula)
+    Texture* albedo;
+    f32      roughness;
+    f32      anistropic;
+    f32      eta; // Internal_IOR / External_IOR (looks like n in the formula)
 } Material_Disney_Glass;
 
 typedef struct {
-    const Texture* albedo;
-    f32            gloss;
+    Texture* albedo;
+    f32      gloss;
 } Material_Disney_Clearcoat;
 
 typedef struct {
-    const Texture* albedo;
-    f32            sheen;
+    Texture* albedo;
+    f32      sheen;
 } Material_Disney_Sheen;
 
 typedef struct {
-    const Texture* albedo;
+    Texture* albedo;
     // TODO: finish this, seems complicated
 } Material_Disney_BSDF;
 
@@ -107,51 +109,51 @@ typedef struct {
     };
 } Material;
 
-Material Material_Diffuse_Make(const Texture* tex);
-Material Material_Metal_Make(const Texture* tex, f32 fuzz);
-Material Material_Dielectric_Make(const Texture* tex, f32 refractiveIndex);
-Material Material_DiffuseLight_Make(const Texture* tex, f32 brightness);
-Material Material_Skybox_Make(const Skybox* skybox);
+Material Material_Diffuse_Make(in Texture* tex);
+Material Material_Metal_Make(in Texture* tex, f32 fuzz);
+Material Material_Dielectric_Make(in Texture* tex, f32 refractiveIndex);
+Material Material_DiffuseLight_Make(in Texture* tex, f32 brightness);
+Material Material_Skybox_Make(in Skybox* skybox);
 
 bool Material_Diffuse_Bounce(
-    const Material_Diffuse* lambert,
-    const Ray*              rayIn,
-    const HitInfo*          hit,
-    Color*                  colorSurface,
-    Color*                  colorEmitted,
-    Ray*                    rayOut);
+    in Material_Diffuse* lambert,
+    in Ray*              rayIn,
+    in HitInfo*          hit,
+    out Color*           colorSurface,
+    out Color*           colorEmitted,
+    out Ray*             rayOut);
 
 bool Material_Metal_Bounce(
-    const Material_Metal* metal,
-    const Ray*            rayIn,
-    const HitInfo*        hit,
-    Color*                colorSurface,
-    Color*                colorEmitted,
-    Ray*                  rayOut);
+    in Material_Metal* metal,
+    in Ray*            rayIn,
+    in HitInfo*        hit,
+    out Color*         colorSurface,
+    out Color*         colorEmitted,
+    out Ray*           rayOut);
 
 bool Material_Dielectric_Bounce(
-    const Material_Dielectric* diel,
-    const Ray*                 rayIn,
-    const HitInfo*             hit,
-    Color*                     colorSurface,
-    Color*                     colorEmitted,
-    Ray*                       rayOut);
+    in Material_Dielectric* diel,
+    in Ray*                 rayIn,
+    in HitInfo*             hit,
+    out Color*              colorSurface,
+    out Color*              colorEmitted,
+    out Ray*                rayOut);
 
 bool Material_DiffuseLight_Bounce(
-    const Material_DiffuseLight* diffuseLight,
-    const Ray*                   rayIn,
-    const HitInfo*               hit,
-    Color*                       colorSurface,
-    Color*                       colorEmitted,
-    Ray*                         rayOut);
+    in Material_DiffuseLight* diffuseLight,
+    in Ray*                   rayIn,
+    in HitInfo*               hit,
+    out Color*                colorSurface,
+    out Color*                colorEmitted,
+    out Ray*                  rayOut);
 
 bool Material_Skybox_Bounce(
-    const Material_Skybox* skybox,
-    const Ray*             rayIn,
-    const HitInfo*         hit,
-    Color*                 colorSurface,
-    Color*                 colorEmitted,
-    Ray*                   rayOut);
+    in Material_Skybox* skybox,
+    in Ray*             rayIn,
+    in HitInfo*         hit,
+    out Color*          colorSurface,
+    out Color*          colorEmitted,
+    out Ray*            rayOut);
 
 /* ---- Disney Materials ---- */
 

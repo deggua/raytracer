@@ -134,3 +134,7 @@ SpacesInSquareBrackets: false
 
 TabWidth: 4
 UseTab: Never
+
+TypenameMacros: [
+    'Vector', 'Dict', 'Option', 'Tuple', 'Set', 'Tree', 'List'
+]

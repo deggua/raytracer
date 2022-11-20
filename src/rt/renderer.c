@@ -7,7 +7,7 @@
 #include "math/random.h"
 #include "platform/threads.h"
 
-RenderCtx* Render_New(const Scene* scene, ImageRGB* img, const Camera* cam)
+RenderCtx* Render_New(in Scene* scene, in ImageRGB* img, in Camera* cam)
 {
     RenderCtx* ctx = malloc(sizeof(*ctx));
 
@@ -22,12 +22,12 @@ RenderCtx* Render_New(const Scene* scene, ImageRGB* img, const Camera* cam)
     return ctx;
 }
 
-void Render_Delete(RenderCtx* ctx)
+void Render_Delete(out RenderCtx* ctx)
 {
     free(ctx);
 }
 
-static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
+intern Color RayColor(in Scene* scene, in Ray* ray, size_t depth)
 {
     if (depth == 0) {
         return COLOR_BLACK;
@@ -52,96 +52,96 @@ static Color RayColor(const Scene* scene, const Ray* ray, size_t depth)
 }
 
 typedef struct {
+    RenderCtx* ctx;
+
     struct {
-        size_t samplesPerPixel;
-        size_t maxRayDepth;
-    } renderParams;
-
-    const RenderCtx* ctx;
-
-    size_t lineOffset;
-    size_t lineStep;
+        size_t samples_per_pixel;
+        size_t max_ray_depth;
+        size_t line_offset;
+        size_t line_increment;
+    } params;
 } RenderThreadArg;
 
-static void RenderThread(void* arg)
+intern void Render_Worker(void* arg)
 {
     RenderThreadArg* args = arg;
 
     Random_Seed_HighEntropy();
 
-    ImageRGB*     img   = args->ctx->img;
-    const Camera* cam   = args->ctx->cam;
-    const Scene*  scene = args->ctx->scene;
+    ImageRGB* img   = args->ctx->img;
+    Camera*   cam   = args->ctx->cam;
+    Scene*    scene = args->ctx->scene;
 
-    const size_t lineStep   = args->lineStep;
-    const size_t lineOffset = args->lineOffset;
+    size_t line_increment = args->params.line_increment;
+    size_t line_offset    = args->params.line_offset;
 
-    const size_t samplesPerPixel = args->renderParams.samplesPerPixel;
-    const size_t maxRayDepth     = args->renderParams.maxRayDepth;
+    size_t samples_per_pixel = args->params.samples_per_pixel;
+    size_t max_ray_depth     = args->params.max_ray_depth;
 
-    const size_t imageHeight = args->ctx->img->res.height;
-    const size_t imageWidth  = args->ctx->img->res.width;
+    size_t image_height = args->ctx->img->res.height;
+    size_t image_width  = args->ctx->img->res.width;
 
     // compute the image
-    for (i64 yy = imageHeight - 1 - lineOffset; yy >= 0; yy -= lineStep) {
-        for (size_t xx = 0; xx < imageWidth; xx++) {
-            Color cumColorPt = {0};
+    for (i64 yy = image_height - 1 - line_offset; yy >= 0; yy -= line_increment) {
+        for (size_t xx = 0; xx < image_width; xx++) {
+            Color cum_color = {0};
 
-            for (size_t samples = 0; samples < samplesPerPixel; samples++) {
-                f32 horizontalFraction = (xx + Random_Unilateral()) / (f32)(imageWidth - 1);
-                f32 verticalFraction   = (yy + Random_Unilateral()) / (f32)(imageHeight - 1);
+            for (size_t samples = 0; samples < samples_per_pixel; samples++) {
+                f32 horizontal_fraction = (xx + Random_Unilateral()) / (f32)(image_width - 1);
+                f32 vertical_fraction   = (yy + Random_Unilateral()) / (f32)(image_height - 1);
 
-                Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
-                Color rayColor = RayColor(scene, &ray, maxRayDepth);
-                cumColorPt     = vadd(cumColorPt, rayColor);
+                Ray   ray       = Camera_GetRay(cam, horizontal_fraction, vertical_fraction);
+                Color ray_color = RayColor(scene, &ray, max_ray_depth);
+                cum_color       = vadd(cum_color, ray_color);
             }
 
-            Color avgColorPt = vdiv(cumColorPt, samplesPerPixel);
-            RGB   avgRGB     = RGB_FromColor(avgColorPt);
+            Color avg_color = vdiv(cum_color, samples_per_pixel);
+            RGB   avg_sRGB  = RGB_FromColor(avg_color);
 
-            ImageRGB_SetPixel(img, xx, imageHeight - 1 - yy, avgRGB);
+            ImageRGB_SetPixel(img, xx, image_height - 1 - yy, avg_sRGB);
         }
 
         // TODO: figure out a better way to print progress
-        printf("\rFinished line %03zd of %zu", yy, imageHeight);
+        printf("\rFinished line %03zd of %zu", yy, image_height);
         fflush(stdout);
     }
 
     return;
 }
 
-ImageRGB* Render_Do(const RenderCtx* ctx, size_t samplesPerPixel, size_t maxRayDepth, size_t numThreads)
+// TODO: error checking on allocations
+ImageRGB* Render_Do(in RenderCtx* ctx, size_t samples_per_pixel, size_t max_ray_depth, size_t num_threads)
 {
-    const size_t minStackSize = 16 * 1024 * 1024;
+    size_t min_stack_size = 16 * 1024 * 1024;
 
-    Thread**         threads    = calloc(numThreads, sizeof(Thread*));
-    RenderThreadArg* threadArgs = calloc(numThreads, sizeof(*threadArgs));
+    Thread**         threads     = calloc(num_threads, sizeof(Thread*));
+    RenderThreadArg* thread_args = calloc(num_threads, sizeof(*thread_args));
 
-    for (size_t ii = 0; ii < numThreads; ii++) {
+    for (size_t ii = 0; ii < num_threads; ii++) {
         threads[ii] = Thread_New();
-        Thread_Set_StackSize(threads[ii], minStackSize);
+        Thread_Set_StackSize(threads[ii], min_stack_size);
 
-        threadArgs[ii].ctx                          = ctx;
-        threadArgs[ii].renderParams.maxRayDepth     = maxRayDepth;
-        threadArgs[ii].renderParams.samplesPerPixel = samplesPerPixel;
-        threadArgs[ii].lineStep                     = numThreads;
-        threadArgs[ii].lineOffset                   = ii;
+        thread_args[ii].ctx                      = ctx;
+        thread_args[ii].params.max_ray_depth     = max_ray_depth;
+        thread_args[ii].params.samples_per_pixel = samples_per_pixel;
+        thread_args[ii].params.line_increment    = num_threads;
+        thread_args[ii].params.line_offset       = ii;
 
-        Thread_Spawn(threads[ii], RenderThread, &threadArgs[ii]);
+        Thread_Spawn(threads[ii], Render_Worker, &thread_args[ii]);
     }
 
-    for (size_t ii = 0; ii < numThreads; ii++) {
+    for (size_t ii = 0; ii < num_threads; ii++) {
         Thread_Join(threads[ii]);
     }
 
     printf("\nFinished rendering\n");
 
-    for (size_t ii = 0; ii < numThreads; ii++) {
+    for (size_t ii = 0; ii < num_threads; ii++) {
         Thread_Delete(threads[ii]);
     }
 
     free(threads);
-    free(threadArgs);
+    free(thread_args);
 
     return ctx->img;
 }

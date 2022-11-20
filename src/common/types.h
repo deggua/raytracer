@@ -1,5 +1,7 @@
 #pragma once
 
+#include <inttypes.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "common/macros.h"
@@ -76,6 +78,13 @@ enum {
     false = 0,
     true  = 1
 };
+#endif
+
+#ifdef TARGET_WINDOWS
+#    include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
+#    include <unistd.h>
 #endif
 
 static_assert_decl(sizeof(f32) == 4);
