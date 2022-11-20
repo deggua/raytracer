@@ -94,15 +94,26 @@ void Random_Seed_HighEntropy(void)
     Random_Seed((u64)s1, (u64)s2);
 }
 
-// TODO: can we get this to [0, 1] (without much cost)?
-// we have bias in a lot of places as a result of the range
+// NOTE: we would rather have [0, 1] since there is bias here we don't want
 // Range: [0, 1)
+#if 1
 f32 Random_Unilateral(void)
 {
     u32         nextVal = next();
     f32_ieee754 conv    = {.u32 = (nextVal >> 9) | 0x3f800000};
     return conv.f32 - 1.0f;
 }
+#else
+// TODO: having to do the computation in f64 is not ideal, maybe there's a better way?
+f32 Random_Unilateral(void)
+{
+    u32         next_val  = next();
+    f32_ieee754 conv      = {.u32 = (next_val >> 9) | 0x3F800000};
+    f32_ieee754 max_val   = {.u32 = 0x3FFFFFFF};
+    f64         max_val_d = (f64)(max_val.f32 - 1.0f);
+    return (conv.f32 - 1.0f) * (1.0 / max_val_d);
+}
+#endif
 
 // Range: [min, max)
 f32 Random_InRange(f32 min, f32 max)

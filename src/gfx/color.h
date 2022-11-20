@@ -5,12 +5,14 @@
 
 #include "math/vec.h"
 
-#define COLOR_RED    ((const Color){.r = 1.0f, .g = 0.0f, .b = 0.0f})
-#define COLOR_GREEN  ((const Color){.r = 0.0f, .g = 1.0f, .b = 0.0f})
-#define COLOR_BLUE   ((const Color){.r = 0.0f, .g = 0.0f, .b = 1.0f})
+// WARNING: don't change these
+#define COLOR_WHITE ((const Color){.r = 1.0f, .g = 1.0f, .b = 1.0f})
+#define COLOR_BLACK ((const Color){.r = 0.0f, .g = 0.0f, .b = 0.0f})
+#define COLOR_RED   ((const Color){.r = 1.0f, .g = 0.0f, .b = 0.0f})
+#define COLOR_GREEN ((const Color){.r = 0.0f, .g = 1.0f, .b = 0.0f})
+#define COLOR_BLUE  ((const Color){.r = 0.0f, .g = 0.0f, .b = 1.0f})
+
 #define COLOR_GREY   ((const Color){.r = 0.5f, .g = 0.5f, .b = 0.5f})
-#define COLOR_WHITE  ((const Color){.r = 1.0f, .g = 1.0f, .b = 1.0f})
-#define COLOR_BLACK  ((const Color){.r = 0.0f, .g = 0.0f, .b = 0.0f})
 #define COLOR_YELLOW ((const Color){.r = 0.8f, .g = 0.6f, .b = 0.2f})
 #define COLOR_NAVY   ((const Color){.r = 0.1f, .g = 0.2f, .b = 0.5f})
 

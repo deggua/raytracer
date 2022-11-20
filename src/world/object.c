@@ -80,7 +80,13 @@ bool Material_Bounce(
         } break;
 
         case MATERIAL_DISNEY_METAL: {
-            assert(false);
+            return Material_Disney_Metal_Bounce(
+                &material->disney_metal,
+                rayIn,
+                hit,
+                colorSurface,
+                colorEmitted,
+                rayOut);
         } break;
 
         case MATERIAL_DISNEY_GLASS: {

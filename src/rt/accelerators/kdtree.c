@@ -110,7 +110,7 @@ typedef struct KDTree {
     ssize_t     rootIndex;
 } KDTree;
 
-static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox container, size_t depth);
+static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vectt, BoundingBox container, size_t depth);
 
 static ssize_t BuildParentNode(
     KDTree* tree,
@@ -155,7 +155,7 @@ error_lt:
     return -1;
 }
 
-static ssize_t BuildLeafNode(KDTree* tree, const Vector(KDBBPtr) * vec)
+static ssize_t BuildLeafNode(KDTree* tree, const Vector(KDBBPtr) * vect)
 {
     size_t nodeIndex = tree->nodes->length;
 
@@ -165,12 +165,12 @@ static ssize_t BuildLeafNode(KDTree* tree, const Vector(KDBBPtr) * vec)
 
     KDNode* node   = &tree->nodes->at[nodeIndex];
     node->type     = KD_LEAF;
-    node->leaf.len = vec->length;
+    node->leaf.len = vect->length;
 
     ssize_t firstObjIndex = tree->objPtrs->length;
 
-    for (size_t ii = 0; ii < vec->length; ii++) {
-        if (!Vector_Push(ObjectPtr)(tree->objPtrs, &vec->at[ii]->obj)) {
+    for (size_t ii = 0; ii < vect->length; ii++) {
+        if (!Vector_Push(ObjectPtr)(tree->objPtrs, &vect->at[ii]->obj)) {
             return -1;
         }
     }
@@ -189,10 +189,10 @@ static f32 SurfaceArea(BoundingBox box)
     return 2 * xDim * yDim + 2 * xDim * zDim + 2 * yDim * zDim;
 }
 
-static BoundingBox BoxBoundingAll(const Vector(KDBB) * vec)
+static BoundingBox BoxBoundingAll(const Vector(KDBB) * vect)
 {
-    KDBB*  kdbbs = vec->at;
-    size_t len   = vec->length;
+    KDBB*  kdbbs = vect->at;
+    size_t len   = vect->length;
 
     BoundingBox box = {
         .min = kdbbs[0].box.min,
@@ -231,17 +231,17 @@ static BoundingBoxPair SplitBox(BoundingBox box, f32 split, Axis axis)
     return splitBoxes;
 }
 
-static f32 ComputeSplitSAH(const Vector(KDBBPtr) * vec, f32 split, Axis axis, BoundingBox parent)
+static f32 ComputeSplitSAH(const Vector(KDBBPtr) * vect, f32 split, Axis axis, BoundingBox parent)
 {
     const f32 parentSA = SurfaceArea(parent);
 
-    KDBB** kdbbs = vec->at;
+    KDBB** kdbbs = vect->at;
 
     BoundingBoxPair boxPair    = SplitBox(parent, split, axis);
     size_t          leftPrims  = 0;
     size_t          rightPrims = 0;
 
-    for (size_t ii = 0; ii < vec->length; ii++) {
+    for (size_t ii = 0; ii < vect->length; ii++) {
         const BoundingBox* box = &kdbbs[ii]->box;
 
         if (box->max.elem[axis] < split) {
@@ -261,7 +261,7 @@ static f32 ComputeSplitSAH(const Vector(KDBBPtr) * vec, f32 split, Axis axis, Bo
     return TraversalCost + (1.0f - emptyBonus) * (leftCost + rightCost);
 }
 
-static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox container, size_t depth)
+static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vect, BoundingBox container, size_t depth)
 {
     const size_t maxVecLen = (1 << 30) - 1;
 
@@ -271,8 +271,8 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
         exit(EXIT_FAILURE);
     }
 
-    if (vec->length <= MinLeafLoad || depth == 0) {
-        return BuildLeafNode(tree, vec);
+    if (vect->length <= MinLeafLoad || depth == 0) {
+        return BuildLeafNode(tree, vect);
     }
 
     f32  bestSplit = 0.0f;
@@ -285,7 +285,7 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
         for (f32 bucket = container.min.elem[axis] + stride; bucket <= container.max.elem[axis] - stride;
              bucket += stride) {
             f32 split = bucket;
-            f32 SAH   = ComputeSplitSAH(vec, split, axis, container);
+            f32 SAH   = ComputeSplitSAH(vect, split, axis, container);
 
             if (SAH < bestSAH) {
                 bestSAH   = SAH;
@@ -295,11 +295,11 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
         }
     }
 
-    f32 parentSAH = vec->length * IntersectCost;
+    f32 parentSAH = vect->length * IntersectCost;
 
     if (parentSAH <= bestSAH) {
         // cost of best split outweighs just putting everything in a leaf
-        return BuildLeafNode(tree, vec);
+        return BuildLeafNode(tree, vect);
     } else {
         // cost of best split is better than cost of total, split them up
         // TODO: use updated vector template to avoid allocating vector objects on the heap
@@ -313,31 +313,31 @@ static ssize_t BuildNode(KDTree* tree, const Vector(KDBBPtr) * vec, BoundingBox 
             goto error_RightVector;
         }
 
-        if (!Vector_Reserve(KDBBPtr)(leftVec, vec->length)) {
+        if (!Vector_Reserve(KDBBPtr)(leftVec, vect->length)) {
             goto error_Reserve;
         }
 
-        if (!Vector_Reserve(KDBBPtr)(rightVec, vec->length)) {
+        if (!Vector_Reserve(KDBBPtr)(rightVec, vect->length)) {
             goto error_Reserve;
         }
 
-        for (size_t ii = 0; ii < vec->length; ii++) {
-            const BoundingBox* box = &vec->at[ii]->box;
+        for (size_t ii = 0; ii < vect->length; ii++) {
+            const BoundingBox* box = &vect->at[ii]->box;
 
             if (box->max.elem[bestAxis] < bestSplit) {
-                if (!Vector_Push(KDBBPtr)(leftVec, (const KDBB**)&vec->at[ii])) {
+                if (!Vector_Push(KDBBPtr)(leftVec, (const KDBB**)&vect->at[ii])) {
                     goto error_Push;
                 }
             } else if (box->min.elem[bestAxis] > bestSplit) {
-                if (!Vector_Push(KDBBPtr)(rightVec, (const KDBB**)&vec->at[ii])) {
+                if (!Vector_Push(KDBBPtr)(rightVec, (const KDBB**)&vect->at[ii])) {
                     goto error_Push;
                 }
             } else {
-                if (!Vector_Push(KDBBPtr)(leftVec, (const KDBB**)&vec->at[ii])) {
+                if (!Vector_Push(KDBBPtr)(leftVec, (const KDBB**)&vect->at[ii])) {
                     goto error_Push;
                 }
 
-                if (!Vector_Push(KDBBPtr)(rightVec, (const KDBB**)&vec->at[ii])) {
+                if (!Vector_Push(KDBBPtr)(rightVec, (const KDBB**)&vect->at[ii])) {
                     goto error_Push;
                 }
             }
@@ -370,50 +370,50 @@ error_LeftVector:
 static ssize_t BuildKDTree(KDTree* tree, const Vector(KDBB) * boxes, size_t maxDepth)
 {
     // we need a buffer of pointers to the objects BB's
-    Vector(KDBBPtr)* vec = Vector_New(KDBBPtr)();
+    Vector(KDBBPtr)* vect = Vector_New(KDBBPtr)();
 
-    if (vec == NULL) {
+    if (vect == NULL) {
         goto error_VectorNew;
     }
 
-    if (!Vector_Reserve(KDBBPtr)(vec, boxes->length)) {
+    if (!Vector_Reserve(KDBBPtr)(vect, boxes->length)) {
         goto error_VectorReserve;
     }
 
     for (size_t ii = 0; ii < boxes->length; ii++) {
         KDBB* ptr = &boxes->at[ii];
 
-        if (!Vector_Push(KDBBPtr)(vec, (const KDBB**)&ptr)) {
+        if (!Vector_Push(KDBBPtr)(vect, (const KDBB**)&ptr)) {
             goto error_VectorPush;
         }
     }
 
-    ssize_t rootIndex = BuildNode(tree, vec, tree->worldBox, maxDepth);
+    ssize_t rootIndex = BuildNode(tree, vect, tree->worldBox, maxDepth);
 
     if (rootIndex < 0) {
         goto error_Root;
     }
 
-    Vector_Delete(KDBBPtr)(vec);
+    Vector_Delete(KDBBPtr)(vect);
     return rootIndex;
 
 error_Root:
 error_VectorPush:
 error_VectorReserve:
-    Vector_Delete(KDBBPtr)(vec);
+    Vector_Delete(KDBBPtr)(vect);
 error_VectorNew:
     return -1;
 }
 
 static Vector(KDBB) * CreateKDBBs(const Object objs[], size_t len)
 {
-    Vector(KDBB)* vec = Vector_New(KDBB)();
+    Vector(KDBB)* vect = Vector_New(KDBB)();
 
-    if (vec == NULL) {
+    if (vect == NULL) {
         goto error_VectorKDBBs;
     }
 
-    if (!Vector_Reserve(KDBB)(vec, len)) {
+    if (!Vector_Reserve(KDBB)(vect, len)) {
         goto error_VectorKDBBsReserve;
     }
 
@@ -422,16 +422,16 @@ static Vector(KDBB) * CreateKDBBs(const Object objs[], size_t len)
         temp.obj = &objs[ii];
         Surface_BoundedBy(&objs[ii].surface, &temp.box);
 
-        if (!Vector_Push(KDBB)(vec, &temp)) {
+        if (!Vector_Push(KDBB)(vect, &temp)) {
             goto error_VectorKDBBsPush;
         }
     }
 
-    return vec;
+    return vect;
 
 error_VectorKDBBsPush:
 error_VectorKDBBsReserve:
-    Vector_Delete(KDBB)(vec);
+    Vector_Delete(KDBB)(vect);
 error_VectorKDBBs:
     return NULL;
 }

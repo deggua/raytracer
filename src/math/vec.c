@@ -139,6 +139,14 @@ vec2 vec2_CartesianToPolar(vec2 cartesian)
     };
 }
 
+vec2 vec2_Make(f32 x, f32 y)
+{
+    return (vec2){
+        .x = x,
+        .y = y,
+    };
+}
+
 /* --- Vec3 Functions --- */
 
 vec3 vec3_Set(f32 value)
@@ -328,6 +336,15 @@ basis3 vec3_OrthonormalBasis(vec3 bx)
     };
 }
 
+vec3 vec3_Make(f32 x, f32 y, f32 z)
+{
+    return (vec3){
+        .x = x,
+        .y = y,
+        .z = z,
+    };
+}
+
 /* --- Vec4 Functions --- */
 
 vec4 vec4_Set(f32 value)
@@ -445,6 +462,16 @@ bool vec4_CompareMagnitudeGreaterThanR(f32 mag, vec4 v1)
 bool vec4_AlmostTheSame(vec4 v1, vec4 v2)
 {
     return equalf(v1.x, v2.x) && equalf(v1.y, v2.y) && equalf(v1.z, v2.z) && equalf(v1.w, v2.w);
+}
+
+vec4 vec4_Make(f32 x, f32 y, f32 z, f32 w)
+{
+    return (vec4){
+        .x = x,
+        .y = y,
+        .z = z,
+        .w = w,
+    };
 }
 
 /* --- Scalar --- */

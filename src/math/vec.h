@@ -137,6 +137,8 @@ bool vec2_AlmostTheSame(vec2 v1, vec2 v2);
 vec2 vec2_CartesianToPolar(vec2 cartesian);
 vec2 vec2_PolarToCartesian(vec2 polar);
 
+vec2 vec2_Make(f32 x, f32 y);
+
 /* --- vec3 --- */
 
 vec3 vec3_Set(f32 t);
@@ -175,6 +177,8 @@ vec3 vec3_SphericalToCartesian(vec3 spherical);
 vec3   vec3_Reorient(vec3 n, basis3 basis);
 basis3 vec3_OrthonormalBasis(vec3 bx);
 
+vec3 vec3_Make(f32 x, f32 y, f32 z);
+
 /* --- vec4 --- */
 
 vec4 vec4_Set(f32 t);
@@ -203,6 +207,8 @@ bool vec4_CompareMagnitudeEqualR(f32 mag, vec4 v1);
 bool vec4_CompareMagnitudeGreaterThan(vec4 v1, f32 mag);
 bool vec4_CompareMagnitudeGreaterThanR(f32 mag, vec4 v1);
 bool vec4_AlmostTheSame(vec4 v1, vec4 v2);
+
+vec4 vec4_Make(f32 x, f32 y, f32 z, f32 w);
 
 /* --- scalar --- */
 
@@ -397,3 +403,5 @@ type:                    \
 
 #define vprod(v1, ...) \
     GETOVERLOAD(__VA_ARGS__, VPROD_8, VPROD_7, VPROD_6, VPROD_5, VPROD_4, VPROD_3, VPROD_2, IGNORE)((v1), __VA_ARGS__)
+
+#define vec(...) GETOVERLOAD(__VA_ARGS__, _, _, _, vec4_Make, vec3_Make, vec2_Make)(__VA_ARGS__)

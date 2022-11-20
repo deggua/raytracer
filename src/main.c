@@ -94,9 +94,9 @@ static void FillScene(Scene* scene, Skybox* skybox)
     fclose(littleDragon);
 
     Texture* texMesh = Texture_New();
-    Texture_Import_Color(texMesh, COLOR_GREY);
+    Texture_Import_Color(texMesh, COLOR_YELLOW);
 
-    g_matMesh = Material_Disney_Diffuse_Make(texMesh, 1.0f, 1.0f);
+    g_matMesh = Material_Disney_Metal_Make(texMesh, 1.0f, 0.0f);
     // g_matMesh = Material_Diffuse_Make(texMesh);
 
     Mesh_Set_Material(mesh, &g_matMesh);
@@ -113,7 +113,7 @@ static void FillScene(Scene* scene, Skybox* skybox)
     /* Shiny Sphere */
     Texture* tex = Texture_New();
     Texture_Import_Color(tex, COLOR_WHITE);
-    g_matMesh = Material_Disney_Diffuse_Make(tex, 1.0f, 0.0f);
+    g_matMesh = Material_Disney_Metal_Make(tex, 0.0f, 0.0f);
 
     Object sphere = {
         .material = &g_matMesh,
@@ -121,7 +121,7 @@ static void FillScene(Scene* scene, Skybox* skybox)
             .type = SURFACE_SPHERE,
             .sphere = {
                 .r = 6.0f,
-                .c = (point3){0, 6, 0},
+                .c = (point3){0, 0, 6},
             },
         },
     };
@@ -200,48 +200,35 @@ static void FillScene(Scene* scene, Skybox* skybox)
     /* Sphere Light */
     Texture* texLight = Texture_New();
     // c3d7f0
-    Texture_Import_Color(texLight, Color_FromRGB((RGB){0xc3, 0xd7, 0xf0}));
+    Texture_Import_Color(texLight, COLOR_WHITE);
     g_matLight = Material_DiffuseLight_Make(texLight, 5.0f);
 
     Object lightObj;
     lightObj.material         = &g_matLight;
     lightObj.surface.type     = SURFACE_SPHERE;
-    lightObj.surface.sphere.c = (point3){0, 8.0f, 0};
-    lightObj.surface.sphere.r = 4.0f;
+    lightObj.surface.sphere.c = (point3){-10, -10, 20.0f};
+    lightObj.surface.sphere.r = 8.0f;
     Scene_Add_Object(scene, &lightObj);
 #endif
 
 #if 0
     /* Ground */
     Texture* texGround = Texture_New();
-    Texture_Import_Color(texGround, COLOR_WHITE);
-    // g_matGround = Material_Disney_Diffuse_Make(texGround, 1.0f, 0.0f);
-    // g_matGround = Material_Diffuse_Make(texGround);
-    g_matGround = Material_Skybox_Make(skybox);
+    Texture_Import_Color(texGround, COLOR_GREY);
+    g_matGround = Material_Disney_Diffuse_Make(texGround, 1.0f, 0.0f);
 
-    point3 p1 = {-10000, 0, -10000};
-    point3 p2 = {-10000, 0, 10000};
-    point3 p3 = {10000, 0, -10000};
-    point3 p4 = {10000, 0, 10000};
-
-    Object worldObj1 = {
+    Object ground = {
         .material = &g_matGround,
         .surface = {
-            .type = SURFACE_TRIANGLE,
-            .triangle = Triangle_MakeSimple(p1, p2, p3),
+            .type = SURFACE_SPHERE,
+            .sphere = {
+                .c = (point3){0, 0, -1000},
+                .r = 1000,
+            },
         },
     };
 
-    Object worldObj2 = {
-        .material = &g_matGround,
-        .surface = {
-            .type = SURFACE_TRIANGLE,
-            .triangle = Triangle_MakeSimple(p4, p2, p3),
-        },
-    };
-
-    Scene_Add_Object(scene, &worldObj1);
-    Scene_Add_Object(scene, &worldObj2);
+    Scene_Add_Object(scene, &ground);
 #endif
 }
 

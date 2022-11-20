@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 #include "gfx/color.h"
-#include "math/distribution.h"
 #include "math/math.h"
 #include "math/random.h"
 #include "math/vec.h"
@@ -269,6 +268,25 @@ BRDF_Diffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 r
     return vlerp(brdf_base_diffuse, brdf_subsurface, subsurface);
 }
 
+static inline vec3 CosWeightedHemisphere_Sample(vec3 unit_normal)
+{
+    f32 epsilon_0 = Random_Unilateral();
+    f32 epsilon_1 = Random_Unilateral();
+
+    f32 sin_theta = sqrtf(1.0f - epsilon_0);
+    f32 cos_theta = sqrtf(epsilon_0);
+    f32 phi       = 2.0f * PI32 * epsilon_1;
+
+    vec3 xyz_normal_space = {cosf(phi) * sin_theta, sinf(phi) * sin_theta, cos_theta};
+
+    basis3 basis = vec3_OrthonormalBasis(unit_normal);
+    basis        = (basis3){.x = basis.z, .y = basis.y, .z = basis.x};
+
+    vec3 xyz_world_space = vec3_Reorient(xyz_normal_space, basis);
+
+    return xyz_world_space;
+}
+
 bool Material_Disney_Diffuse_Bounce(
     in Material_Disney_Diffuse* mat,
     in Ray*                     ray_in,
@@ -278,7 +296,7 @@ bool Material_Disney_Diffuse_Bounce(
     out Ray*                    ray_out)
 {
     // generate sample vector
-    vec3 ray_dir_out = Distribution_CosWeightedHemisphere_Sample(hit->unitNormal);
+    vec3 ray_dir_out = CosWeightedHemisphere_Sample(hit->unitNormal);
 
     vec3  shading_normal = hit->unitNormal;
     Color albedo         = Texture_ColorAt(mat->albedo, hit->uv);
@@ -291,8 +309,8 @@ bool Material_Disney_Diffuse_Bounce(
 
     // since we omit the cos term in the BRDF, we don't need the cos term in the PDF
     // so we just multiply by PI32 (essentially)
-    f32 pdf      = Distribution_CosWeightedHemisphere_PDF_InvNoCos();
-    brdf_diffuse = vmul(brdf_diffuse, pdf);
+    f32 inv_pdf  = PI32;
+    brdf_diffuse = vmul(brdf_diffuse, inv_pdf);
 
     *ray_out       = Ray_Make(hit->position, ray_dir_out);
     *surface_color = brdf_diffuse;
@@ -315,17 +333,78 @@ Material Material_Disney_Metal_Make(in Texture* albedo, f32 roughness, f32 anist
     };
 }
 
-#if 0
-// Schlick approximation of the Fresnel reflection
-// TODO: It's not obvious that base_color should be used like this to me, esp. reading the paper
-static inline Color F_m(Color base_color, vec3 half_vector, vec3 w_out)
+static inline Color F_Schlick(Color r_0, f32 cos_theta)
 {
-    Color white = COLOR_WHITE;
-    return vadd(base_color, vmul(vsub(white, base_color), POWF(1.0f - fabsf(vdot(half_vector, w_out)), 5)));
+    return vadd(r_0, vmul(vsub(vec3_Set(1.0f), r_0), POWF(1.0f - cos_theta, 5)));
 }
 
-static inline Color D_m()
+static inline f32 D_N(vec3 normal, f32 a_x, f32 a_y)
+{
+    f32 numerator = 1.0f;
+    f32 denominator
+        = PI32 * a_x * a_y * POWF((POWF(normal.x / a_x, 2) + POWF(normal.y / a_y, 2) + POWF(normal.z, 2)), 2);
+    return numerator / denominator;
+}
 
+static inline f32 Lambda_w(vec3 w, f32 a_x, f32 a_y)
+{
+    f32 numerator   = sqrtf(1.0f + (POWF(w.x * a_x, 2) + POWF(w.y * a_y, 2)) / POWF(w.z, 2)) - 1.0f;
+    f32 denominator = 2.0f;
+
+    return numerator / denominator;
+}
+
+static inline f32 G_1(vec3 w, f32 a_x, f32 a_y)
+{
+    return 1.0f / (1.0f + Lambda_w(w, a_x, a_y));
+}
+
+static inline f32 G_2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+{
+    if (vdot(w_out, w_micronormal) < 0 || vdot(w_in, w_micronormal) < 0) {
+        return 0.0f;
+    } else {
+        f32 numerator   = 1.0f;
+        f32 denominator = 1.0f + Lambda_w(w_out, a_x, a_y) + Lambda_w(w_in, a_x, a_y);
+        return numerator / denominator;
+    }
+}
+
+static inline Color BRDF_Disney_Metal(Color base_color, vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+{
+    Color f_m = F_Schlick(base_color, vdot(w_out, w_micronormal));
+    f32   g_2 = G_2(w_in, w_out, w_micronormal, a_x, a_y);
+    f32   g_1 = G_1(w_in, a_x, a_y);
+
+    return vmul(f_m, g_2 / g_1);
+}
+
+// See: https://jcgt.org/published/0007/04/01/paper.pdf
+// Input Ve: view direction
+// Input alpha_x, alpha_y: roughness parameters
+// Input U1, U2: uniform random numbers
+// Output Ne: normal sampled with PDF D_Ve(Ne) = G1(Ve) * max(0, dot(Ve, Ne)) * D(Ne) / Ve.z
+static inline vec3 GGXVNDF_Sample(vec3 Ve, f32 alpha_x, f32 alpha_y, f32 U1, f32 U2)
+{
+    // Section 3.2: transforming the view direction to the hemisphere configuration
+    vec3 Vh = vnorm(vec(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
+    // Section 4.1: orthonormal basis (with special case if cross product is zero)
+    f32  lensq = Vh.x * Vh.x + Vh.y * Vh.y;
+    vec3 T1    = lensq > 0 ? vmul(vec(-Vh.y, Vh.x, 0), (1.0f / sqrtf(lensq))) : vec(1, 0, 0);
+    vec3 T2    = vcross(Vh, T1);
+    // Section 4.2: parameterization of the projected area
+    f32 r   = sqrtf(U1);
+    f32 phi = 2.0f * PI32 * U2;
+    f32 t1  = r * cosf(phi);
+    f32 t2  = r * sinf(phi);
+    f32 s   = 0.5f * (1.0f + Vh.z);
+    t2      = (1.0f - s) * sqrtf(1.0f - t1 * t1) + s * t2;
+    // Section 4.3: reprojection onto hemisphere
+    vec3 Nh = vsum(vmul(t1, T1), vmul(t2, T2), vmul(sqrtf(maxf(0.0f, 1.0f - t1 * t1 - t2 * t2)), Vh));
+    // Section 3.4: transforming the normal back to the ellipsoid configuration
+    vec3 Ne = vnorm(vec(alpha_x * Nh.x, alpha_y * Nh.y, maxf(0.0f, Nh.z)));
+    return Ne;
+}
 
 bool Material_Disney_Metal_Bounce(
     in Material_Disney_Metal* mat,
@@ -335,6 +414,43 @@ bool Material_Disney_Metal_Bounce(
     out Color*                emitted_color,
     out Ray*                  ray_out)
 {
+    // convert material parameters to a_x and a_y
+    // TODO: no reason to do this on the fly, could be precomputed
+    f32 aspect = sqrtf(1.0f - 0.9f * mat->anistropic);
+    f32 a_min  = 0.0001f;
+    f32 a_x    = maxf(a_min, POWF(mat->roughness, 2) / aspect);
+    f32 a_y    = maxf(a_min, POWF(mat->roughness, 2) * aspect);
+
+    // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
+    basis3 normal_basis = vec3_OrthonormalBasis(hit->unitNormal);
+    normal_basis        = (basis3){.x = normal_basis.z, .y = normal_basis.y, .z = normal_basis.x};
+
+    // TODO: Maybe we should consider making any Ray_Make call emit a normalized direction vector,
+    // should be more efficient to do it when creating the ray vs on material bounce
+    // (I think, esp. if many materials need it normalized anyway)
+    vec3 ray_in_dir = vnorm(vmul(-1.0f, ray_in->dir));
+    vec3 w_in       = vec3_Reorient(ray_in_dir, normal_basis);
+
+    f32  u1            = Random_Unilateral();
+    f32  u2            = Random_Unilateral();
+    vec3 w_micronormal = GGXVNDF_Sample(w_in, a_x, a_y, u1, u2);
+
+    vec3 w_out = vnorm(vec3_Reflect(vmul(-1.0f, w_in), w_micronormal));
+
+    Color albedo = Texture_ColorAt(mat->albedo, hit->uv);
+    Color brdf   = BRDF_Disney_Metal(albedo, w_in, w_out, w_micronormal, a_x, a_y);
+
+    *surface_color = brdf;
+    *emitted_color = COLOR_BLACK;
+
+    // transform w_out into world space
+    basis3 world_basis = (basis3){
+        .x = vec(1.0f, 0.0f, 0.0f),
+        .y = vec(0.0f, 1.0f, 0.0f),
+        .z = vec(0.0f, 0.0f, 1.0f),
+    };
+    vec3 ray_out_dir = vec3_Reorient(w_out, world_basis);
+    *ray_out         = Ray_Make(hit->position, ray_out_dir);
+
     return true;
 }
-#endif
