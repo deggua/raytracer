@@ -24,7 +24,7 @@ typedef struct {
 
 typedef vec3 Color;
 
-static_assert(sizeof(RGB) == 3, "RGB pixel should be 3 bytes");
+static_assert_decl(sizeof(RGB) == 3);
 
 RGB RGB_Brighten(RGB rgb, f32 scalar);
 RGB RGB_Blend(RGB color1, RGB color2, f32 weight);

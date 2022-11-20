@@ -4,7 +4,7 @@
 
 #include "rt/materials.h"
 
-bool Surface_HitAt(in Surface* surface, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit)
+bool Surface_HitAt(Surface* surface, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
 {
     switch (surface->type) {
         case SURFACE_SPHERE: {
@@ -19,7 +19,7 @@ bool Surface_HitAt(in Surface* surface, in Ray* ray, f32 tMin, f32 tMax, out Hit
     OPTIMIZE_UNREACHABLE;
 }
 
-bool Surface_BoundedBy(in Surface* surface, out BoundingBox* box)
+bool Surface_BoundedBy(Surface* surface, BoundingBox* box)
 {
     switch (surface->type) {
         case SURFACE_SPHERE: {
@@ -35,12 +35,12 @@ bool Surface_BoundedBy(in Surface* surface, out BoundingBox* box)
 }
 
 bool Material_Bounce(
-    in Material* material,
-    in Ray*      rayIn,
-    in HitInfo*  hit,
-    out Color*   colorSurface,
-    out Color*   colorEmitted,
-    out Ray*     rayOut)
+    Material* material,
+    Ray*      rayIn,
+    HitInfo*  hit,
+    Color*    colorSurface,
+    Color*    colorEmitted,
+    Ray*      rayOut)
 {
     switch (material->type) {
         case MATERIAL_DIFFUSE: {
@@ -90,19 +90,19 @@ bool Material_Bounce(
         } break;
 
         case MATERIAL_DISNEY_GLASS: {
-            assert(false);
+            ABORT("Disney Glass is unimplemented");
         } break;
 
         case MATERIAL_DISNEY_CLEARCOAT: {
-            assert(false);
+            ABORT("Disney Clearcoat is unimplemented");
         } break;
 
         case MATERIAL_DISNEY_SHEEN: {
-            assert(false);
+            ABORT("Disney Sheen is unimplemented");
         } break;
 
         case MATERIAL_DISNEY_BSDF: {
-            assert(false);
+            ABORT("Disney BSDF is unimplemented");
         } break;
     }
 

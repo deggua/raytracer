@@ -7,7 +7,7 @@
 #include "math/random.h"
 #include "platform/threads.h"
 
-RenderCtx* Render_New(in Scene* scene, in ImageRGB* img, in Camera* cam)
+RenderCtx* Render_New(Scene* scene, ImageRGB* img, Camera* cam)
 {
     RenderCtx* ctx = malloc(sizeof(*ctx));
 
@@ -22,12 +22,12 @@ RenderCtx* Render_New(in Scene* scene, in ImageRGB* img, in Camera* cam)
     return ctx;
 }
 
-void Render_Delete(out RenderCtx* ctx)
+void Render_Delete(RenderCtx* ctx)
 {
     free(ctx);
 }
 
-intern Color RayColor(in Scene* scene, in Ray* ray, size_t depth)
+intern Color RayColor(Scene* scene, Ray* ray, size_t depth)
 {
     if (depth == 0) {
         return COLOR_BLACK;
@@ -82,7 +82,7 @@ intern void Render_Worker(void* arg)
     size_t image_width  = args->ctx->img->res.width;
 
     // compute the image
-    for (i64 yy = image_height - 1 - line_offset; yy >= 0; yy -= line_increment) {
+    for (ssize_t yy = image_height - 1 - line_offset; yy >= 0; yy -= line_increment) {
         for (size_t xx = 0; xx < image_width; xx++) {
             Color cum_color = {0};
 
@@ -110,7 +110,7 @@ intern void Render_Worker(void* arg)
 }
 
 // TODO: error checking on allocations
-ImageRGB* Render_Do(in RenderCtx* ctx, size_t samples_per_pixel, size_t max_ray_depth, size_t num_threads)
+ImageRGB* Render_Do(RenderCtx* ctx, size_t samples_per_pixel, size_t max_ray_depth, size_t num_threads)
 {
     size_t min_stack_size = 16 * 1024 * 1024;
 

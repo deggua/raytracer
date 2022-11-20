@@ -10,7 +10,7 @@
 
 /* ---- DIFFUSE ---- */
 
-Material Material_Diffuse_Make(in Texture* tex)
+Material Material_Diffuse_Make(Texture* tex)
 {
     return (Material)
     {
@@ -22,12 +22,12 @@ Material Material_Diffuse_Make(in Texture* tex)
 }
 
 bool Material_Diffuse_Bounce(
-    in Material_Diffuse* diffuse,
-    in Ray*              rayIn,
-    in HitInfo*          hit,
-    out Color*           colorSurface,
-    out Color*           colorEmitted,
-    out Ray*             rayOut)
+    Material_Diffuse* diffuse,
+    Ray*              rayIn,
+    HitInfo*          hit,
+    Color*            colorSurface,
+    Color*            colorEmitted,
+    Ray*              rayOut)
 {
     (void)rayIn;
 
@@ -47,7 +47,7 @@ bool Material_Diffuse_Bounce(
 
 /* ---- METAL ---- */
 
-Material Material_Metal_Make(in Texture* tex, f32 fuzz)
+Material Material_Metal_Make(Texture* tex, f32 fuzz)
 {
     return (Material){
         .type = MATERIAL_METAL,
@@ -59,12 +59,12 @@ Material Material_Metal_Make(in Texture* tex, f32 fuzz)
 }
 
 bool Material_Metal_Bounce(
-    in Material_Metal* metal,
-    in Ray*            rayIn,
-    in HitInfo*        hit,
-    out Color*         colorSurface,
-    out Color*         colorEmitted,
-    out Ray*           rayOut)
+    Material_Metal* metal,
+    Ray*            rayIn,
+    HitInfo*        hit,
+    Color*          colorSurface,
+    Color*          colorEmitted,
+    Ray*            rayOut)
 {
     // TODO: do we need to do the face fix thing on the hit normal? I'm guessing we do because otherwise the reflect
     // may be be backwards, atm we always make the normal point against
@@ -82,7 +82,7 @@ bool Material_Metal_Bounce(
 
 /* ---- DIELECTRIC ---- */
 
-Material Material_Dielectric_Make(in Texture* tex, f32 refractiveIndex)
+Material Material_Dielectric_Make(Texture* tex, f32 refractiveIndex)
 {
     return (Material){
         .type = MATERIAL_DIELECTRIC,
@@ -101,12 +101,12 @@ intern inline f32 reflectance(f32 cosine, f32 refractiveIndex)
 }
 
 bool Material_Dielectric_Bounce(
-    in Material_Dielectric* diel,
-    in Ray*                 rayIn,
-    in HitInfo*             hit,
-    out Color*              colorSurface,
-    out Color*              colorEmitted,
-    out Ray*                rayOut)
+    Material_Dielectric* diel,
+    Ray*                 rayIn,
+    HitInfo*             hit,
+    Color*               colorSurface,
+    Color*               colorEmitted,
+    Ray*                 rayOut)
 {
     *colorSurface       = Texture_ColorAt(diel->albedo, hit->uv);
     *colorEmitted       = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
@@ -132,7 +132,7 @@ bool Material_Dielectric_Bounce(
 
 /* ---- DIFFUSE LIGHT ---- */
 
-Material Material_DiffuseLight_Make(in Texture* tex, f32 brightness)
+Material Material_DiffuseLight_Make(Texture* tex, f32 brightness)
 {
     return (Material){
         .type = MATERIAL_DIFFUSE_LIGHT,
@@ -144,12 +144,12 @@ Material Material_DiffuseLight_Make(in Texture* tex, f32 brightness)
 }
 
 bool Material_DiffuseLight_Bounce(
-    in Material_DiffuseLight* diffuseLight,
-    in Ray*                   rayIn,
-    in HitInfo*               hit,
-    out Color*                colorSurface,
-    out Color*                colorEmitted,
-    out Ray*                  rayOut)
+    Material_DiffuseLight* diffuseLight,
+    Ray*                   rayIn,
+    HitInfo*               hit,
+    Color*                 colorSurface,
+    Color*                 colorEmitted,
+    Ray*                   rayOut)
 {
     (void)rayIn;
     (void)hit;
@@ -163,7 +163,7 @@ bool Material_DiffuseLight_Bounce(
 
 /* ---- SKYBOX ---- */
 
-Material Material_Skybox_Make(in Skybox* skybox)
+Material Material_Skybox_Make(Skybox* skybox)
 {
     return (Material){
         .type = MATERIAL_SKYBOX,
@@ -174,12 +174,12 @@ Material Material_Skybox_Make(in Skybox* skybox)
 }
 
 bool Material_Skybox_Bounce(
-    in Material_Skybox* skybox,
-    in Ray*             rayIn,
-    in HitInfo*         hit,
-    out Color*          colorSurface,
-    out Color*          colorEmitted,
-    out Ray*            rayOut)
+    Material_Skybox* skybox,
+    Ray*             rayIn,
+    HitInfo*         hit,
+    Color*           colorSurface,
+    Color*           colorEmitted,
+    Ray*             rayOut)
 {
     vec3 target    = vadd(hit->position, Random_InHemisphere(hit->unitNormal, 1.0f));
     vec3 scattered = vsub(target, hit->position);
@@ -204,7 +204,7 @@ intern inline vec3 HalfVector(vec3 w_in, vec3 w_out)
     return vnorm(vadd(w_in, w_out));
 }
 
-Material Material_Disney_Diffuse_Make(in Texture* albedo, f32 roughness, f32 subsurface)
+Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsurface)
 {
     return (Material){
         .type = MATERIAL_DISNEY_DIFFUSE,
@@ -288,12 +288,12 @@ intern inline vec3 CosWeightedHemisphere_Sample(vec3 unit_normal)
 }
 
 bool Material_Disney_Diffuse_Bounce(
-    in Material_Disney_Diffuse* mat,
-    in Ray*                     ray_in,
-    in HitInfo*                 hit,
-    out Color*                  surface_color,
-    out Color*                  emitted_color,
-    out Ray*                    ray_out)
+    Material_Disney_Diffuse* mat,
+    Ray*                     ray_in,
+    HitInfo*                 hit,
+    Color*                   surface_color,
+    Color*                   emitted_color,
+    Ray*                     ray_out)
 {
     // generate sample vector
     vec3 ray_dir_out = CosWeightedHemisphere_Sample(hit->unitNormal);
@@ -321,7 +321,7 @@ bool Material_Disney_Diffuse_Bounce(
 
 /* ---- Disney Metal ---- */
 
-Material Material_Disney_Metal_Make(in Texture* albedo, f32 roughness, f32 anistropic)
+Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistropic)
 {
     return (Material){
         .type = MATERIAL_DISNEY_METAL,
@@ -407,12 +407,12 @@ intern inline vec3 GGXVNDF_Sample(vec3 Ve, f32 alpha_x, f32 alpha_y, f32 U1, f32
 }
 
 bool Material_Disney_Metal_Bounce(
-    in Material_Disney_Metal* mat,
-    in Ray*                   ray_in,
-    in HitInfo*               hit,
-    out Color*                surface_color,
-    out Color*                emitted_color,
-    out Ray*                  ray_out)
+    Material_Disney_Metal* mat,
+    Ray*                   ray_in,
+    HitInfo*               hit,
+    Color*                 surface_color,
+    Color*                 emitted_color,
+    Ray*                   ray_out)
 {
     // convert material parameters to a_x and a_y
     // TODO: no reason to do this on the fly, could be precomputed

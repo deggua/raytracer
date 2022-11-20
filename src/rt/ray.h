@@ -21,6 +21,6 @@ typedef struct {
 } HitInfo;
 
 Ray    Ray_Make(point3 origin, vec3 dir);
-point3 Ray_At(in Ray* ray, f32 dist);
+point3 Ray_At(Ray* ray, f32 dist);
 
-void HitInfo_SetFaceNormal(HitInfo* hit, out Ray* ray, vec3 outwardNormal);
+void HitInfo_SetFaceNormal(HitInfo* hit, Ray* ray, vec3 outwardNormal);

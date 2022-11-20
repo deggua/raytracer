@@ -31,7 +31,7 @@ Camera* Camera_New(point3 lookFrom, point3 lookTo, vec3 vup, f32 aspectRatio, f3
     return cam;
 }
 
-Ray Camera_GetRay(in Camera* cam, f32 u, f32 v)
+Ray Camera_GetRay(Camera* cam, f32 u, f32 v)
 {
     vec2 rd     = Random_InDisc(cam->lensRadius);
     vec3 offset = (vec3){

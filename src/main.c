@@ -16,7 +16,7 @@
 #include "world/object.h"
 #include "world/scene.h"
 
-intern bool ExportImage(out ImageRGB* img, in const char* filename)
+intern bool ExportImage(ImageRGB* img, const char* filename)
 {
     FILE* fd = fopen(filename, "wb+");
     if (fd == NULL) {
@@ -47,7 +47,7 @@ intern void InterruptHandler(int sig)
     if (ExportImage(g_img, "partial.bmp")) {
         exit(EXIT_SUCCESS);
     } else {
-        exit(EXIT_FAILURE);
+        ABORT("Failed to write image to disk");
     }
 }
 
@@ -85,8 +85,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
     if (littleDragon == NULL) {
-        printf("Couldn't find assets/little_dragon.obj\n");
-        exit(EXIT_FAILURE);
+        ABORT("Couldn't find assets/little_dragon.obj");
     }
 
     Mesh* mesh = Mesh_New();
@@ -270,32 +269,28 @@ int main(int argc, char** argv)
 
     ImageRGB* img = calloc(1, sizeof(ImageRGB));
     if (img == NULL) {
-        printf("Failed to create image container\n");
-        exit(EXIT_FAILURE);
+        ABORT("Failed to create image container");
     }
 
     if (!ImageRGB_Load_Empty(img, imageWidth, imageHeight)) {
-        printf("Failed to create image buffer\n");
+        ABORT("Failed to create image buffer");
     }
 
     g_img = img;
 
     Camera* cam = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist);
     if (cam == NULL) {
-        printf("Failed to create camera\n");
-        exit(EXIT_FAILURE);
+        ABORT("Failed to create camera");
     }
 
     Skybox* skybox = Skybox_Import_BMP("assets/skybox2");
     if (skybox == NULL) {
-        printf("Failed to load skybox\n");
-        exit(EXIT_FAILURE);
+        ABORT("Failed to load skybox");
     }
 
     Scene* scene = Scene_New(skybox);
     if (scene == NULL) {
-        printf("Failed to create scene\n");
-        exit(EXIT_FAILURE);
+        ABORT("Failed to create scene");
     }
 
     TIMEIT("Scene load", FillScene(scene, skybox));

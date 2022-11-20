@@ -21,7 +21,7 @@ typedef struct Scene {
     KDTree*         kdTree;
 } Scene;
 
-Scene* Scene_New(in Skybox* skybox)
+Scene* Scene_New(Skybox* skybox)
 {
     Scene* scene = malloc(sizeof(Scene));
     if (scene == NULL) {
@@ -57,7 +57,7 @@ error_Scene:
     return NULL;
 }
 
-void Scene_Delete(inout Scene* scene)
+void Scene_Delete(Scene* scene)
 {
     Vector_Delete(scene->objects);
     Vector_Delete(scene->unboundObjs);
@@ -70,7 +70,7 @@ void Scene_Delete(inout Scene* scene)
     free(scene);
 }
 
-intern bool Scene_ClosestHitInArray(in Object* objs, size_t len, in Ray* ray, out Object** objHit, out HitInfo* hit)
+intern bool Scene_ClosestHitInArray(Object* objs, size_t len, Ray* ray, Object** objHit, HitInfo* hit)
 {
     Object* closestObjectHit = NULL;
     HitInfo closestHit       = {.tIntersect = INF};
@@ -79,7 +79,7 @@ intern bool Scene_ClosestHitInArray(in Object* objs, size_t len, in Ray* ray, ou
         Object* obj = &objs[ii];
 
         HitInfo curHit;
-        bool    hitDetected = Surface_HitAt(&obj->surface, ray, 0.001f, INF, &curHit);
+        bool    hitDetected = Surface_HitAt(&obj->surface, ray, RT_EPSILON, INF, &curHit);
 
         if (hitDetected && (curHit.tIntersect < closestHit.tIntersect)) {
             // store the nearest intersection if the ray hits multiple objects
@@ -97,17 +97,17 @@ intern bool Scene_ClosestHitInArray(in Object* objs, size_t len, in Ray* ray, ou
     }
 }
 
-bool Scene_ClosestHit(in Scene* scene, in Ray* ray, out Object** objHit, out HitInfo* hit)
+bool Scene_ClosestHit(Scene* scene, Ray* ray, Object** objHit, HitInfo* hit)
 {
     return KDTree_HitAt(scene->kdTree, ray, objHit, hit);
 }
 
-bool Scene_ClosestHitSlow(in Scene* scene, in Ray* ray, out Object** objHit, out HitInfo* hit)
+bool Scene_ClosestHitSlow(Scene* scene, Ray* ray, Object** objHit, HitInfo* hit)
 {
     return Scene_ClosestHitInArray(scene->objects->at, scene->objects->length, ray, objHit, hit);
 }
 
-bool Scene_Prepare(inout Scene* scene)
+bool Scene_Prepare(Scene* scene)
 {
     // only bounded objects (not moving, not infinite) can be stored in the KDTree
     // TODO: can we store infinite objects? does it make sense to?
@@ -136,12 +136,12 @@ bool Scene_Prepare(inout Scene* scene)
     return true;
 }
 
-bool Scene_Add_Object(inout Scene* scene, in Object* obj)
+bool Scene_Add_Object(Scene* scene, Object* obj)
 {
     return Vector_Push(scene->objects, obj);
 }
 
-Color Scene_Get_SkyColor(in Scene* scene, vec3 dir)
+Color Scene_Get_SkyColor(Scene* scene, vec3 dir)
 {
     return Skybox_ColorAt(scene->skybox, dir);
 }

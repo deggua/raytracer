@@ -113,17 +113,17 @@ typedef struct KDTree {
     ssize_t            rootIndex;
 } KDTree;
 
-intern ssize_t BuildNode(inout KDTree* tree, in Vector(KDBBPtr)* vect, BoundingBox container, size_t depth);
+intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox container, size_t depth);
 
 intern ssize_t BuildParentNode(
-    inout KDTree*       tree,
-    in Vector(KDBBPtr)* leftVect,
-    BoundingBox         leftContainer,
-    in Vector(KDBBPtr)* rightVect,
-    BoundingBox         rightContainer,
-    f32                 partition,
-    Axis                axis,
-    size_t              depth)
+    KDTree*          tree,
+    Vector(KDBBPtr)* leftVect,
+    BoundingBox      leftContainer,
+    Vector(KDBBPtr)* rightVect,
+    BoundingBox      rightContainer,
+    f32              partition,
+    Axis             axis,
+    size_t           depth)
 {
     size_t parentIndex = tree->nodes->length;
 
@@ -156,7 +156,7 @@ error_lt:
     return -1;
 }
 
-intern ssize_t BuildLeafNode(inout KDTree* tree, in Vector(KDBBPtr)* vect)
+intern ssize_t BuildLeafNode(KDTree* tree, Vector(KDBBPtr)* vect)
 {
     size_t nodeIndex = tree->nodes->length;
 
@@ -190,7 +190,7 @@ intern f32 SurfaceArea(BoundingBox box)
     return 2 * xDim * yDim + 2 * xDim * zDim + 2 * yDim * zDim;
 }
 
-intern BoundingBox BoxBoundingAll(in Vector(KDBB)* vect)
+intern BoundingBox BoxBoundingAll(Vector(KDBB)* vect)
 {
     KDBB*  kdbbs = vect->at;
     size_t len   = vect->length;
@@ -227,7 +227,7 @@ intern BoundingBoxPair SplitBox(BoundingBox box, f32 split, Axis axis)
     return splitBoxes;
 }
 
-intern f32 ComputeSplitSAH(in Vector(KDBBPtr)* vect, f32 split, Axis axis, BoundingBox parent)
+intern f32 ComputeSplitSAH(Vector(KDBBPtr)* vect, f32 split, Axis axis, BoundingBox parent)
 {
     f32 parentSA = SurfaceArea(parent);
 
@@ -257,7 +257,7 @@ intern f32 ComputeSplitSAH(in Vector(KDBBPtr)* vect, f32 split, Axis axis, Bound
     return TraversalCost + (1.0f - emptyBonus) * (leftCost + rightCost);
 }
 
-intern ssize_t BuildNode(inout KDTree* tree, in Vector(KDBBPtr)* vect, BoundingBox container, size_t depth)
+intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox container, size_t depth)
 {
     size_t maxVecLen = (1 << 30) - 1;
 
@@ -350,7 +350,7 @@ error_LeftVector:
     }
 }
 
-intern ssize_t BuildKDTree(inout KDTree* tree, in Vector(KDBB)* boxes, size_t maxDepth)
+intern ssize_t BuildKDTree(KDTree* tree, Vector(KDBB)* boxes, size_t maxDepth)
 {
     // we need a buffer of pointers to the objects BB's
     Vector(KDBBPtr) vect;
@@ -380,7 +380,7 @@ error_VectorNew:
     return -1;
 }
 
-intern Vector(KDBB)* CreateKDBBs(in Object* objs, size_t len)
+intern Vector(KDBB)* CreateKDBBs(Object* objs, size_t len)
 {
     Vector(KDBB)* vect = Vector_New(KDBB)(len);
     if (vect == NULL) {
@@ -405,7 +405,7 @@ error_VectorKDBBs:
     return NULL;
 }
 
-KDTree* KDTree_New(in Object* objs, size_t len)
+KDTree* KDTree_New(Object* objs, size_t len)
 {
     // NOTE: this is fine tuned
     size_t maxDepth = (size_t)(8.0 + 1.8 * log2(len));
@@ -457,27 +457,19 @@ error_KDTree:
     return NULL;
 }
 
-void KDTree_Delete(inout KDTree* tree)
+void KDTree_Delete(KDTree* tree)
 {
     Vector_Delete(tree->nodes);
     Vector_Delete(tree->objPtrs);
     free(tree);
 }
 
-intern bool
-CheckHitLeafNode(in KDTree* tree, in KDLeaf* leaf, in Ray* ray, out Object** objHit, out HitInfo* hit, f32 tMax);
-
-intern bool CheckHitInternalNode(
-    in KDTree*     tree,
-    in KDInternal* node,
-    in Ray*        ray,
-    out Object**   objHit,
-    out HitInfo*   hit,
-    Axis           axis,
-    f32            tMax);
+intern bool CheckHitLeafNode(KDTree* tree, KDLeaf* leaf, Ray* ray, Object** objHit, HitInfo* hit, f32 tMax);
 
 intern bool
-CheckHitNextNode(in KDTree* tree, in KDNode* node, in Ray* ray, out Object** objHit, out HitInfo* hit, f32 tMax)
+CheckHitInternalNode(KDTree* tree, KDInternal* node, Ray* ray, Object** objHit, HitInfo* hit, Axis axis, f32 tMax);
+
+intern bool CheckHitNextNode(KDTree* tree, KDNode* node, Ray* ray, Object** objHit, HitInfo* hit, f32 tMax)
 {
     switch (node->type) {
         case KD_INTERNAL_X:
@@ -494,8 +486,7 @@ CheckHitNextNode(in KDTree* tree, in KDNode* node, in Ray* ray, out Object** obj
     return false;
 }
 
-intern bool
-CheckHitLeafNode(in KDTree* tree, in KDLeaf* leaf, in Ray* ray, out Object** objHit, out HitInfo* hit, f32 tMax)
+intern bool CheckHitLeafNode(KDTree* tree, KDLeaf* leaf, Ray* ray, Object** objHit, HitInfo* hit, f32 tMax)
 {
     HitInfo hitClosest = {.tIntersect = INF};
     Object* objClosest = NULL;
@@ -504,7 +495,7 @@ CheckHitLeafNode(in KDTree* tree, in KDLeaf* leaf, in Ray* ray, out Object** obj
         HitInfo hitCur;
         Object* objCur = tree->objPtrs->at[leaf->objIndex + ii];
 
-        if (Surface_HitAt(&objCur->surface, ray, 0.001f, tMax, &hitCur)) {
+        if (Surface_HitAt(&objCur->surface, ray, RT_EPSILON, tMax, &hitCur)) {
             if (hitCur.tIntersect < hitClosest.tIntersect) {
                 objClosest = objCur;
                 hitClosest = hitCur;
@@ -521,23 +512,15 @@ CheckHitLeafNode(in KDTree* tree, in KDLeaf* leaf, in Ray* ray, out Object** obj
     return false;
 }
 
-intern bool CheckHitInternalNode(
-    in KDTree*     tree,
-    in KDInternal* node,
-    in Ray*        ray,
-    out Object**   objHit,
-    out HitInfo*   hit,
-    Axis           axis,
-    f32            tMax)
+intern bool
+CheckHitInternalNode(KDTree* tree, KDInternal* node, Ray* ray, Object** objHit, HitInfo* hit, Axis axis, f32 tMax)
 {
-    f32 split            = node->split;
-    f32 epsilonParallel  = 0.0001f;
-    f32 epsilonIntersect = 0.001f;
+    f32 split = node->split;
 
     KDNode* left  = &tree->nodes->at[node->leftIndex];
     KDNode* right = (KDNode*)node->right;
 
-    if (unlikely(fabsf(ray->dir.elem[axis]) < epsilonParallel)) {
+    if (unlikely(fabsf(ray->dir.elem[axis]) < RT_EPSILON)) {
         // ray parallel to plane, check the origin to see which side ray falls on
         if (ray->origin.elem[axis] >= split) {
             return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
@@ -549,7 +532,7 @@ intern bool CheckHitInternalNode(
     f32 tIntersect = split * ray->cache.invDir.elem[axis] - ray->cache.originDivDir.elem[axis];
     f32 tMaxNew    = minf(tMax, tIntersect);
 
-    if (tIntersect < epsilonIntersect) {
+    if (tIntersect < RT_EPSILON) {
         // ray doesn't intersect plane at valid t, check the origin to see which side ray falls on
         if (likely(ray->origin.elem[axis] > split)) {
             return CheckHitNextNode(tree, right, ray, objHit, hit, tMax);
@@ -600,7 +583,7 @@ intern bool CheckHitInternalNode(
     }
 }
 
-bool KDTree_HitAt(in KDTree* tree, in Ray* ray, out Object** objHit, out HitInfo* hit)
+bool KDTree_HitAt(KDTree* tree, Ray* ray, Object** objHit, HitInfo* hit)
 {
     // then we traverse the tree and check for collisions
     KDNode* root = &tree->nodes->at[tree->rootIndex];

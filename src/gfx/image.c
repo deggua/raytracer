@@ -54,7 +54,7 @@ typedef struct {
 
 #pragma pack(pop)
 
-static_assert(sizeof(BMPHeader) == 0x36, "Incorrect BMP header size");
+static_assert_decl(sizeof(BMPHeader) == 0x36);
 
 intern inline size_t GetPixelIndex(size_t width, size_t xx, size_t yy)
 {
@@ -63,7 +63,7 @@ intern inline size_t GetPixelIndex(size_t width, size_t xx, size_t yy)
 
 /* ---- sRGB Colorspace Image ---- */
 
-bool ImageRGB_Load_Empty(out ImageRGB* img, size_t width, size_t height)
+bool ImageRGB_Load_Empty(ImageRGB* img, size_t width, size_t height)
 {
     RGB* pixel_buffer = calloc(width * height, sizeof(RGB));
     if (pixel_buffer == NULL) {
@@ -77,7 +77,7 @@ bool ImageRGB_Load_Empty(out ImageRGB* img, size_t width, size_t height)
     return true;
 }
 
-bool ImageRGB_Load_BMP(out ImageRGB* img, in FILE* fd)
+bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd)
 {
     fpos_t init_fpos;
     if (fgetpos(fd, &init_fpos)) {
@@ -114,7 +114,7 @@ bool ImageRGB_Load_BMP(out ImageRGB* img, in FILE* fd)
     }
 
     // read row by row and fill image
-    for (i64 yy = tmp_img.res.height - 1; yy >= 0; yy--) {
+    for (ssize_t yy = tmp_img.res.height - 1; yy >= 0; yy--) {
         RGB* pix_row = &tmp_img.pix[GetPixelIndex(tmp_img.res.width, 0, yy)];
         if (fread(pix_row, sizeof(RGB), tmp_img.res.width, fd) != tmp_img.res.width) {
             goto error_CleanupImage;
@@ -138,7 +138,7 @@ error_Return:
     return false;
 }
 
-bool ImageRGB_Load_ImageColor(out ImageRGB* img, in ImageColor* src)
+bool ImageRGB_Load_ImageColor(ImageRGB* img, ImageColor* src)
 {
     ImageRGB tmp_img;
     if (!ImageRGB_Load_Empty(&tmp_img, src->res.width, src->res.height)) {
@@ -159,7 +159,7 @@ error_Return:
     return false;
 }
 
-bool ImageRGB_Save_PPM(in ImageRGB* img, out FILE* fd)
+bool ImageRGB_Save_PPM(ImageRGB* img, FILE* fd)
 {
     fpos_t init_fpos;
     if (fgetpos(fd, &init_fpos)) {
@@ -190,7 +190,7 @@ error_Return:
     return false;
 }
 
-bool ImageRGB_Save_BMP(in ImageRGB* img, out FILE* fd)
+bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
 {
     fpos_t init_fpos;
     if (fgetpos(fd, &init_fpos)) {
@@ -230,7 +230,7 @@ bool ImageRGB_Save_BMP(in ImageRGB* img, out FILE* fd)
 
     // write out rows bottom to top
     u8 padding[4] = {0};
-    for (i64 yy = img->res.height - 1; yy >= 0; yy--) {
+    for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
         // write out the row
         RGB* pix_row = &img->pix[GetPixelIndex(img->res.width, 0, yy)];
         if (fwrite(pix_row, sizeof(RGB), img->res.width, fd) != img->res.width) {
@@ -255,7 +255,7 @@ error_Return:
     return false;
 }
 
-void ImageRGB_Unload(out ImageRGB* img)
+void ImageRGB_Unload(ImageRGB* img)
 {
     free(img->pix);
 
@@ -264,19 +264,19 @@ void ImageRGB_Unload(out ImageRGB* img)
     img->pix        = NULL;
 }
 
-void ImageRGB_SetPixel(out ImageRGB* img, size_t xx, size_t yy, RGB color)
+void ImageRGB_SetPixel(ImageRGB* img, size_t xx, size_t yy, RGB color)
 {
     img->pix[GetPixelIndex(img->res.width, xx, yy)] = color;
 }
 
-RGB ImageRGB_GetPixel(in ImageRGB* img, size_t xx, size_t yy)
+RGB ImageRGB_GetPixel(ImageRGB* img, size_t xx, size_t yy)
 {
     return img->pix[GetPixelIndex(img->res.width, xx, yy)];
 }
 
 /* ---- Linear Colorspace Image ---- */
 
-bool ImageColor_Load_Empty(out ImageColor* img, size_t width, size_t height)
+bool ImageColor_Load_Empty(ImageColor* img, size_t width, size_t height)
 {
     Color* pixel_buffer = calloc(width * height, sizeof(Color));
     if (pixel_buffer == NULL) {
@@ -290,7 +290,7 @@ bool ImageColor_Load_Empty(out ImageColor* img, size_t width, size_t height)
     return true;
 }
 
-bool ImageColor_Load_ImageRGB(out ImageColor* img, in ImageRGB* src)
+bool ImageColor_Load_ImageRGB(ImageColor* img, ImageRGB* src)
 {
     ImageColor tmp_img;
     if (!ImageColor_Load_Empty(&tmp_img, src->res.width, src->res.height)) {
@@ -311,7 +311,7 @@ error_Return:
     return false;
 }
 
-void ImageColor_Unload(out ImageColor* img)
+void ImageColor_Unload(ImageColor* img)
 {
     free(img->pix);
 
@@ -320,12 +320,12 @@ void ImageColor_Unload(out ImageColor* img)
     img->pix        = NULL;
 }
 
-void ImageColor_SetPixel(out ImageColor* img, size_t xx, size_t yy, Color color)
+void ImageColor_SetPixel(ImageColor* img, size_t xx, size_t yy, Color color)
 {
     img->pix[GetPixelIndex(img->res.width, xx, yy)] = color;
 }
 
-Color ImageColor_GetPixel(in ImageColor* img, size_t xx, size_t yy)
+Color ImageColor_GetPixel(ImageColor* img, size_t xx, size_t yy)
 {
     return img->pix[GetPixelIndex(img->res.width, xx, yy)];
 }

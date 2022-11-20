@@ -109,69 +109,69 @@ typedef struct {
     };
 } Material;
 
-Material Material_Diffuse_Make(in Texture* tex);
-Material Material_Metal_Make(in Texture* tex, f32 fuzz);
-Material Material_Dielectric_Make(in Texture* tex, f32 refractiveIndex);
-Material Material_DiffuseLight_Make(in Texture* tex, f32 brightness);
-Material Material_Skybox_Make(in Skybox* skybox);
+Material Material_Diffuse_Make(Texture* tex);
+Material Material_Metal_Make(Texture* tex, f32 fuzz);
+Material Material_Dielectric_Make(Texture* tex, f32 refractiveIndex);
+Material Material_DiffuseLight_Make(Texture* tex, f32 brightness);
+Material Material_Skybox_Make(Skybox* skybox);
 
 bool Material_Diffuse_Bounce(
-    in Material_Diffuse* lambert,
-    in Ray*              rayIn,
-    in HitInfo*          hit,
-    out Color*           colorSurface,
-    out Color*           colorEmitted,
-    out Ray*             rayOut);
+    Material_Diffuse* lambert,
+    Ray*              rayIn,
+    HitInfo*          hit,
+    Color*            colorSurface,
+    Color*            colorEmitted,
+    Ray*              rayOut);
 
 bool Material_Metal_Bounce(
-    in Material_Metal* metal,
-    in Ray*            rayIn,
-    in HitInfo*        hit,
-    out Color*         colorSurface,
-    out Color*         colorEmitted,
-    out Ray*           rayOut);
+    Material_Metal* metal,
+    Ray*            rayIn,
+    HitInfo*        hit,
+    Color*          colorSurface,
+    Color*          colorEmitted,
+    Ray*            rayOut);
 
 bool Material_Dielectric_Bounce(
-    in Material_Dielectric* diel,
-    in Ray*                 rayIn,
-    in HitInfo*             hit,
-    out Color*              colorSurface,
-    out Color*              colorEmitted,
-    out Ray*                rayOut);
+    Material_Dielectric* diel,
+    Ray*                 rayIn,
+    HitInfo*             hit,
+    Color*               colorSurface,
+    Color*               colorEmitted,
+    Ray*                 rayOut);
 
 bool Material_DiffuseLight_Bounce(
-    in Material_DiffuseLight* diffuseLight,
-    in Ray*                   rayIn,
-    in HitInfo*               hit,
-    out Color*                colorSurface,
-    out Color*                colorEmitted,
-    out Ray*                  rayOut);
+    Material_DiffuseLight* diffuseLight,
+    Ray*                   rayIn,
+    HitInfo*               hit,
+    Color*                 colorSurface,
+    Color*                 colorEmitted,
+    Ray*                   rayOut);
 
 bool Material_Skybox_Bounce(
-    in Material_Skybox* skybox,
-    in Ray*             rayIn,
-    in HitInfo*         hit,
-    out Color*          colorSurface,
-    out Color*          colorEmitted,
-    out Ray*            rayOut);
+    Material_Skybox* skybox,
+    Ray*             rayIn,
+    HitInfo*         hit,
+    Color*           colorSurface,
+    Color*           colorEmitted,
+    Ray*             rayOut);
 
 /* ---- Disney Materials ---- */
 
-Material Material_Disney_Diffuse_Make(in Texture* albedo, f32 roughness, f32 subsurface);
-Material Material_Disney_Metal_Make(in Texture* albedo, f32 roughness, f32 anistropic);
+Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsurface);
+Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistropic);
 
 bool Material_Disney_Diffuse_Bounce(
-    in Material_Disney_Diffuse* mat,
-    in Ray*                     ray_in,
-    in HitInfo*                 hit,
-    out Color*                  surface_color,
-    out Color*                  emitted_color,
-    out Ray*                    ray_out);
+    Material_Disney_Diffuse* mat,
+    Ray*                     ray_in,
+    HitInfo*                 hit,
+    Color*                   surface_color,
+    Color*                   emitted_color,
+    Ray*                     ray_out);
 
 bool Material_Disney_Metal_Bounce(
-    in Material_Disney_Metal* mat,
-    in Ray*                   ray_in,
-    in HitInfo*               hit,
-    out Color*                surface_color,
-    out Color*                emitted_color,
-    out Ray*                  ray_out);
+    Material_Disney_Metal* mat,
+    Ray*                   ray_in,
+    HitInfo*               hit,
+    Color*                 surface_color,
+    Color*                 emitted_color,
+    Ray*                   ray_out);

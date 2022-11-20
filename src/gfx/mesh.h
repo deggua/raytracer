@@ -9,7 +9,7 @@ typedef struct Mesh Mesh;
 Mesh* Mesh_New(void);
 void  Mesh_Delete(Mesh* mesh);
 
-bool Mesh_Import_OBJ(Mesh* mesh, FILE*);
+bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd);
 void Mesh_AddToScene(Mesh* mesh, Scene* scene);
 
 void Mesh_Set_Material(Mesh* mesh, Material* material);

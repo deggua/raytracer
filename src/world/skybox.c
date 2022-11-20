@@ -63,7 +63,7 @@ error_load:
     return NULL;
 }
 
-Color Skybox_ColorAt(in Skybox* skybox, vec3 dir)
+Color Skybox_ColorAt(Skybox* skybox, vec3 dir)
 {
     f32 absX = fabsf(dir.x);
     f32 absY = fabsf(dir.y);

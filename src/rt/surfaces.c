@@ -15,14 +15,13 @@ Sphere Sphere_Make(point3 center, f32 radius)
     };
 }
 
-bool Sphere_BoundedBy(in Sphere* sphere, out BoundingBox* box)
+bool Sphere_BoundedBy(Sphere* sphere, BoundingBox* box)
 {
-    point3 center  = sphere->c;
-    f32    epsilon = 0.001f;
-    vec3   vRad    = (vec3){
-             .x = sphere->r + epsilon,
-             .y = sphere->r + epsilon,
-             .z = sphere->r + epsilon,
+    point3 center = sphere->c;
+    vec3   vRad   = (vec3){
+            .x = sphere->r + RT_EPSILON,
+            .y = sphere->r + RT_EPSILON,
+            .z = sphere->r + RT_EPSILON,
     };
 
     box->min = vsub(center, vRad);
@@ -42,7 +41,7 @@ intern inline vec2 Sphere_MapUV(point3 onSphere)
     };
 }
 
-bool Sphere_HitAt(in Sphere* sphere, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit)
+bool Sphere_HitAt(Sphere* sphere, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
 {
     vec3 dist         = vsub(ray->origin, sphere->c);
     f32  polyA        = vdot(ray->dir, ray->dir);
@@ -96,31 +95,29 @@ Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
     };
 }
 
-bool Triangle_BoundedBy(in Triangle* tri, out BoundingBox* box)
+bool Triangle_BoundedBy(Triangle* tri, BoundingBox* box)
 {
-    f32 epsilon = 0.001f;
-
     for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
         box->min.elem[axis]
-            = minf(minf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis]) - epsilon;
+            = minf(minf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis])
+              - RT_EPSILON;
         box->max.elem[axis]
-            = maxf(maxf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis]) + epsilon;
+            = maxf(maxf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis])
+              + RT_EPSILON;
     }
 
     return true;
 }
 
-bool Triangle_HitAt(in Triangle* tri, in Ray* ray, f32 tMin, f32 tMax, out HitInfo* hit)
+bool Triangle_HitAt(Triangle* tri, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
 {
-    f32 epsilon = 0.0001f;
-
     vec3 edge1 = vsub(tri->vtx[1].pos, tri->vtx[0].pos);
     vec3 edge2 = vsub(tri->vtx[2].pos, tri->vtx[0].pos);
 
     vec3 h = vcross(ray->dir, edge2);
     f32  a = vdot(edge1, h);
 
-    if (fabsf(a) < epsilon) {
+    if (fabsf(a) < RT_EPSILON) {
         // ray is parallel to the triangle plane
         return false;
     }

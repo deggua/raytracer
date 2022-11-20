@@ -19,10 +19,6 @@
 #define attr_naked              __attribute__((naked))
 #define attr_aligned(alignment) __attribute__((packed, aligned(alignment)))
 
-#define in
-#define out
-#define inout
-
 #define global
 #define intern static
 #define thread_local __thread

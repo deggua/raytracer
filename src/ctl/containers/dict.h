@@ -34,7 +34,6 @@
         Default compare key function is simple equality (key1 == key2) for integral types and !strcmp for char*
 */
 
-#include <assert.h>
 #include <immintrin.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -62,7 +61,8 @@
 #    if !defined(CTL_DICT_COMMON_HASH)
 #        define CTL_DICT_COMMON_HASH
 
-static inline uint32_t Dict_Hash32(uint32_t x) {
+static inline uint32_t Dict_Hash32(uint32_t x)
+{
     x ^= x >> 17;
     x *= 0xed5ad4bb;
     x ^= x >> 11;
@@ -73,23 +73,28 @@ static inline uint32_t Dict_Hash32(uint32_t x) {
     return x;
 }
 
-static inline uint32_t Dict_HashKey_U8(uint8_t key) {
+static inline uint32_t Dict_HashKey_U8(uint8_t key)
+{
     return Dict_Hash32(key);
 }
 
-static inline uint32_t Dict_HashKey_U16(uint16_t key) {
+static inline uint32_t Dict_HashKey_U16(uint16_t key)
+{
     return Dict_Hash32(key);
 }
 
-static inline uint32_t Dict_HashKey_U32(uint32_t key) {
+static inline uint32_t Dict_HashKey_U32(uint32_t key)
+{
     return Dict_Hash32(key);
 }
 
-static inline uint32_t Dict_HashKey_U64(uint64_t key) {
+static inline uint32_t Dict_HashKey_U64(uint64_t key)
+{
     return Dict_Hash32((uint32_t)key) ^ Dict_Hash32((uint32_t)(key >> 32));
 }
 
-static inline uint32_t Dict_HashKey_F32(float key) {
+static inline uint32_t Dict_HashKey_F32(float key)
+{
     union {
         float    f32;
         uint32_t u32;
@@ -99,7 +104,8 @@ static inline uint32_t Dict_HashKey_F32(float key) {
     return Dict_Hash32(conv.u32);
 }
 
-static inline uint32_t Dict_HashKey_F64(double key) {
+static inline uint32_t Dict_HashKey_F64(double key)
+{
     union {
         double   f64;
         uint64_t u64;
@@ -109,7 +115,8 @@ static inline uint32_t Dict_HashKey_F64(double key) {
     return Dict_HashKey_U64(conv.u64);
 }
 
-static inline uint32_t Dict_HashKey_Str(const char* restrict str) {
+static inline uint32_t Dict_HashKey_Str(const char* restrict str)
+{
     uint64_t hash = 0xcbf29ce484222325;
 
     while (*str) {
@@ -141,31 +148,38 @@ static inline uint32_t Dict_HashKey_Str(const char* restrict str) {
 #    if !defined(CTL_DICT_COMMON_COMPARE)
 #        define CTL_DICT_COMMON_COMPARE
 
-static inline bool Dict_CompareKey_U8(uint8_t k1, uint8_t k2) {
+static inline bool Dict_CompareKey_U8(uint8_t k1, uint8_t k2)
+{
     return k1 == k2;
 }
 
-static inline bool Dict_CompareKey_U16(uint16_t k1, uint16_t k2) {
+static inline bool Dict_CompareKey_U16(uint16_t k1, uint16_t k2)
+{
     return k1 == k2;
 }
 
-static inline bool Dict_CompareKey_U32(uint32_t k1, uint32_t k2) {
+static inline bool Dict_CompareKey_U32(uint32_t k1, uint32_t k2)
+{
     return k1 == k2;
 }
 
-static inline bool Dict_CompareKey_U64(uint64_t k1, uint64_t k2) {
+static inline bool Dict_CompareKey_U64(uint64_t k1, uint64_t k2)
+{
     return k1 == k2;
 }
 
-static inline bool Dict_CompareKey_F32(float k1, float k2) {
+static inline bool Dict_CompareKey_F32(float k1, float k2)
+{
     return k1 == k2;
 }
 
-static inline bool Dict_CompareKey_F64(double k1, double k2) {
+static inline bool Dict_CompareKey_F64(double k1, double k2)
+{
     return k1 == k2;
 }
 
-static inline bool Dict_CompareKey_Str(char* k1, char* k2) {
+static inline bool Dict_CompareKey_Str(char* k1, char* k2)
+{
     return !strcmp(k1, k2);
 }
 
@@ -246,6 +260,7 @@ typedef union {
         uint8_t hlow     : 7;
         uint8_t occupied : 1;
     };
+
     uint8_t u8;
 } Dict_Metadata;
 
@@ -254,7 +269,8 @@ typedef union {
     Dict_v128     v128;
 } Dict_MetadataGroup;
 
-static inline uint16_t Dict_CompareBitmask(Dict_MetadataGroup metadata, uint8_t expected) {
+static inline uint16_t Dict_CompareBitmask(Dict_MetadataGroup metadata, uint8_t expected)
+{
     __m128i  exp_vector = _mm_set1_epi8(expected);
     __m128i  comparison = _mm_cmpeq_epi8(exp_vector, metadata.v128.i128);
     uint16_t mask       = _mm_movemask_epi8(comparison);
@@ -262,34 +278,41 @@ static inline uint16_t Dict_CompareBitmask(Dict_MetadataGroup metadata, uint8_t 
     return mask;
 }
 
-static inline uint16_t Dict_OccupiedBitmask(Dict_MetadataGroup metadata) {
+static inline uint16_t Dict_OccupiedBitmask(Dict_MetadataGroup metadata)
+{
     uint16_t mask = _mm_movemask_epi8(metadata.v128.i128);
     return mask;
 }
 
 #endif
 
-typedef struct Dict_KeyGroup(Tkey_, Tval_) {
+typedef struct Dict_KeyGroup(Tkey_, Tval_)
+{
     Tkey key[16];
 }
+
 Dict_KeyGroup(Tkey_, Tval_);
 
-typedef struct Dict_ValueGroup(Tkey_, Tval_) {
+typedef struct Dict_ValueGroup(Tkey_, Tval_)
+{
     Tval val[16];
 }
+
 Dict_ValueGroup(Tkey_, Tval_);
 
-typedef struct Dict(Tkey_, Tval_) {
+typedef struct Dict(Tkey_, Tval_)
+{
     size_t capacity;
     size_t size;
     Dict_KeyGroup(Tkey_, Tval_) * key_group;
     Dict_ValueGroup(Tkey_, Tval_) * value_group;
     Dict_MetadataGroup* metadata_group;
 }
+
 Dict(Tkey_, Tval_);
 
 CTL_OVERLOADABLE
-static inline bool Dict_Grow(Dict(Tkey_, Tval_) * dict);
+static inline bool Dict_Grow(Dict(Tkey_, Tval_)* dict);
 
 /**
  * @brief Initializes a dict for use
@@ -300,7 +323,8 @@ static inline bool Dict_Grow(Dict(Tkey_, Tval_) * dict);
  * 17 -> 32, etc)
  */
 CTL_OVERLOADABLE
-static inline bool Dict_Init(Dict(Tkey_, Tval_) * dict, size_t capacity) {
+static inline bool Dict_Init(Dict(Tkey_, Tval_)* dict, size_t capacity)
+{
     dict->capacity = 16 * CTL_NEXT_POW2(capacity / 16);
     dict->size     = 0;
 
@@ -328,7 +352,8 @@ static inline bool Dict_Init(Dict(Tkey_, Tval_) * dict, size_t capacity) {
  * @note If capacity is not of the form 2^N * 16, it is rounded up to the next suitable form (e.g. 0 -> 16,
  * 17 -> 32, etc)
  */
-static inline Dict(Tkey_, Tval_) * Dict_New(Tkey_, Tval_)(size_t capacity) {
+static inline Dict(Tkey_, Tval_)* Dict_New(Tkey_, Tval_)(size_t capacity)
+{
     Dict(Tkey_, Tval_)* dict = Dict_Malloc(sizeof(*dict));
     if (!Dict_Init(dict, capacity)) {
         Dict_Free(dict);
@@ -344,7 +369,8 @@ static inline Dict(Tkey_, Tval_) * Dict_New(Tkey_, Tval_)(size_t capacity) {
  * @warning This function should only be used in conjunction with @ref Dict_Init
  */
 CTL_OVERLOADABLE
-static inline void Dict_Uninit(Dict(Tkey_, Tval_) * dict) {
+static inline void Dict_Uninit(Dict(Tkey_, Tval_)* dict)
+{
     Dict_Free(dict->metadata_group);
     dict->metadata_group = NULL;
 }
@@ -355,14 +381,16 @@ static inline void Dict_Uninit(Dict(Tkey_, Tval_) * dict) {
  * @warning This function should only be used in conjunction with @ref Dict_New
  */
 CTL_OVERLOADABLE
-static inline void Dict_Delete(Dict(Tkey_, Tval_) * dict) {
+static inline void Dict_Delete(Dict(Tkey_, Tval_)* dict)
+{
     Dict_Uninit(dict);
     Dict_Free(dict);
 }
 
 CTL_OVERLOADABLE
 static inline bool
-Dict_Find(Dict(Tkey_, Tval_) * dict, Tkey key, uint32_t hash, size_t* group_index_out, size_t* slot_index_out) {
+Dict_Find(Dict(Tkey_, Tval_)* dict, Tkey key, uint32_t hash, size_t* group_index_out, size_t* slot_index_out)
+{
     size_t        group_index       = hash & (dict->capacity / 16 - 1);
     Dict_Metadata expected_metadata = {.hlow = hash, .occupied = true};
 
@@ -406,7 +434,8 @@ Dict_Find(Dict(Tkey_, Tval_) * dict, Tkey key, uint32_t hash, size_t* group_inde
  * @return True if @param key was found and the value was written to @param out_val, false otherwise
  */
 CTL_OVERLOADABLE
-static inline bool Dict_Get(Dict(Tkey_, Tval_) * dict, Tkey key, Tval* out_val) {
+static inline bool Dict_Get(Dict(Tkey_, Tval_)* dict, Tkey key, Tval* out_val)
+{
     uint32_t hash = Dict_HashKey(key);
     size_t   group_index, slot_index;
     if (Dict_Find(dict, key, hash, &group_index, &slot_index)) {
@@ -429,7 +458,8 @@ static inline bool Dict_Get(Dict(Tkey_, Tval_) * dict, Tkey key, Tval* out_val) 
  * un-free'd would be a leak)
  */
 CTL_OVERLOADABLE
-static inline bool Dict_Set(Dict(Tkey_, Tval_) * dict, Tkey key, Tval val) {
+static inline bool Dict_Set(Dict(Tkey_, Tval_)* dict, Tkey key, Tval val)
+{
     uint32_t hash = Dict_HashKey(key);
     size_t   group_index, slot_index;
     if (Dict_Find(dict, key, hash, &group_index, &slot_index)) {
@@ -464,7 +494,8 @@ static inline bool Dict_Set(Dict(Tkey_, Tval_) * dict, Tkey key, Tval val) {
  * @param dict The dict to clear
  */
 CTL_OVERLOADABLE
-static inline void Dict_Clear(Dict(Tkey_, Tval_) * dict) {
+static inline void Dict_Clear(Dict(Tkey_, Tval_)* dict)
+{
     Dict_Uninit(dict);
     Dict_Init(dict, 0);
 }
@@ -478,7 +509,8 @@ static inline void Dict_Clear(Dict(Tkey_, Tval_) * dict) {
  * successor
  */
 CTL_OVERLOADABLE
-static inline Tkey* Dict_EnumerateKeys(Dict(Tkey_, Tval_) * dict, Tkey* prev_key) {
+static inline Tkey* Dict_EnumerateKeys(Dict(Tkey_, Tval_)* dict, Tkey* prev_key)
+{
     const size_t max_group_index = dict->capacity / 16;
 
     if (prev_key == NULL) {
@@ -531,7 +563,8 @@ static inline Tkey* Dict_EnumerateKeys(Dict(Tkey_, Tval_) * dict, Tkey* prev_key
  * successor
  */
 CTL_OVERLOADABLE
-static inline Tval* Dict_EnumerateValues(Dict(Tkey_, Tval_) * dict, Tval* prev_value) {
+static inline Tval* Dict_EnumerateValues(Dict(Tkey_, Tval_)* dict, Tval* prev_value)
+{
     const size_t max_group_index = dict->capacity / 16;
 
     if (prev_value == NULL) {
@@ -557,7 +590,6 @@ static inline Tval* Dict_EnumerateValues(Dict(Tkey_, Tval_) * dict, Tval* prev_v
 
     if (upper_occupied_mask) {
         int next_slot = ffs(upper_occupied_mask) - 1;
-        assert(group_index < max_group_index);
         return &dict->value_group[group_index].val[next_slot];
     }
 
@@ -569,7 +601,6 @@ static inline Tval* Dict_EnumerateValues(Dict(Tkey_, Tval_) * dict, Tval* prev_v
 
         if (occupied_mask) {
             int next_slot = ffs(occupied_mask) - 1;
-            assert(group_index < max_group_index);
             return &dict->value_group[group_index].val[next_slot];
         }
     }
@@ -578,7 +609,8 @@ static inline Tval* Dict_EnumerateValues(Dict(Tkey_, Tval_) * dict, Tval* prev_v
 }
 
 CTL_OVERLOADABLE
-static inline bool Dict_Grow(Dict(Tkey_, Tval_) * dict) {
+static inline bool Dict_Grow(Dict(Tkey_, Tval_)* dict)
+{
     const size_t max_group_index = dict->capacity / 16;
 
     // create a new temp dict to use as a temporary
@@ -624,7 +656,8 @@ static inline bool Dict_Grow(Dict(Tkey_, Tval_) * dict) {
 }
 
 CTL_OVERLOADABLE
-static inline bool Dict_Copy(Dict(Tkey_, Tval_) * src_dict, Dict(Tkey_, Tval_) * dst_dict) {
+static inline bool Dict_Copy(Dict(Tkey_, Tval_)* src_dict, Dict(Tkey_, Tval_)* dst_dict)
+{
     // new_dict will be manipulated to prevent breaking dst_dict in the event of an allocation failure
     Dict(Tkey_, Tval_) new_dict;
     if (!Dict_Init(&new_dict, src_dict->capacity - 1)) {

@@ -16,6 +16,6 @@ typedef struct {
     };
 } Skybox;
 
-void    Skybox_Delete(inout Skybox* skybox);
-Skybox* Skybox_Import_BMP(const char* folder);
-Color   Skybox_ColorAt(in Skybox* skybox, vec3 dir);
+void    Skybox_Delete(Skybox* skybox);
+Skybox* Skybox_Import_BMP(const char* folder_path);
+Color   Skybox_ColorAt(Skybox* skybox, vec3 dir);

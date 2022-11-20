@@ -15,4 +15,4 @@ typedef struct {
 Camera*
 Camera_New(point3 lookFrom, point3 lookTo, vec3 vup, f32 aspectRatio, f32 vertFov, f32 aperature, f32 focusDist);
 
-Ray Camera_GetRay(in Camera* cam, f32 u, f32 v);
+Ray Camera_GetRay(Camera* cam, f32 u, f32 v);

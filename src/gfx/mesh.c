@@ -133,9 +133,9 @@ bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd)
 
         if (strncmp(lineBuffer, "f ", 2) == 0) {
             // extract values
-            int64_t vi[4] = {[0 ... 3] = -1};
-            int64_t vn[4] = {[0 ... 3] = -1};
-            int64_t vt[4] = {[0 ... 3] = -1};
+            ssize_t vi[4] = {[0 ... 3] = -1};
+            ssize_t vn[4] = {[0 ... 3] = -1};
+            ssize_t vt[4] = {[0 ... 3] = -1};
             size_t  tc;
 
             // remove the 'f' token
@@ -152,7 +152,7 @@ bool Mesh_Import_OBJ(Mesh* mesh, FILE* fd)
                 } else if (sscanf(token, "%zu", &vi[tc]) == 1) {
                     goto next_token;
                 } else {
-                    assert(false);
+                    ABORT("No match for token \"%s\"", token);
                 }
 
 next_token:
@@ -170,7 +170,7 @@ next_token:
                 for (size_t ii = 0; ii < 2; ii++) {
                     // first pass is just the vertex positions since they must be valid
                     for (size_t jj = 0; jj < 3; jj++) {
-                        int64_t index       = indices[ii][jj];
+                        ssize_t index       = indices[ii][jj];
                         tri[ii].vtx[jj].pos = vertices.at[vi[index] - 1];
                     }
 
@@ -181,7 +181,7 @@ next_token:
                     vec3 defaultNormal = vcross(edge1, edge2);
 
                     for (size_t jj = 0; jj < 3; jj++) {
-                        int64_t index = indices[ii][jj];
+                        ssize_t index = indices[ii][jj];
 
                         if (vn[index] >= 0) {
                             tri[ii].vtx[jj].norm = vertexNormals.at[vn[index] - 1];

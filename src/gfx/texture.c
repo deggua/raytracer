@@ -85,7 +85,7 @@ void Texture_Delete(Texture* tex)
 }
 
 // TODO: need to implement some better interpolation
-Color Texture_ColorAt(in Texture* tex, point2 st)
+Color Texture_ColorAt(Texture* tex, point2 st)
 {
     // might need to round this down with some guarantee
     size_t xx = (size_t)(st.x * (tex->image->res.width - 1));
