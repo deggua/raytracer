@@ -82,24 +82,24 @@ Color Skybox_ColorAt(const Skybox* skybox, vec3 dir)
         // u (0 to 1) goes from +z to -z
         // v (0 to 1) goes from -y to +y
         maxAxis = absX;
-        uc      = -dir.z;
-        vc      = dir.y;
+        uc      = dir.y;
+        vc      = dir.z;
         index   = 0;
     } else if (!isXPositive && absX >= absY && absX >= absZ) {
         // NEGATIVE X
         // u (0 to 1) goes from -z to +z
         // v (0 to 1) goes from -y to +y
         maxAxis = absX;
-        uc      = dir.z;
-        vc      = dir.y;
+        uc      = -dir.y;
+        vc      = dir.z;
         index   = 1;
     } else if (isYPositive && absY >= absX && absY >= absZ) {
         // POSITIVE Y
         // u (0 to 1) goes from -x to +x
         // v (0 to 1) goes from +z to -z
         maxAxis = absY;
-        uc      = dir.x;
-        vc      = -dir.z;
+        uc      = -dir.x;
+        vc      = dir.z;
         index   = 2;
     } else if (!isYPositive && absY >= absX && absY >= absZ) {
         // NEGATIVE Y
@@ -114,8 +114,8 @@ Color Skybox_ColorAt(const Skybox* skybox, vec3 dir)
         // u (0 to 1) goes from -x to +x
         // v (0 to 1) goes from -y to +y
         maxAxis = absZ;
-        uc      = dir.x;
-        vc      = dir.y;
+        uc      = -dir.x;
+        vc      = -dir.y;
         index   = 4;
     } else {
         // NEGATIVE Z

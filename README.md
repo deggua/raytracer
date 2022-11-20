@@ -26,6 +26,10 @@ TODO:
 * GUI
 * Chunk image into squares, implement a work queue for better distribution of work, parallelize between CPU and GPU
 * Hierarchical hybrid KdTree/BVH (external processing of .obj to produce their KdTree, alleviates the need to re-process meshes)
+* Fix the skybox mirroring
+
+NOTE:
+* Z+ is our up axis, X+ is facing right, and Y+ goes into the screen (right handed coordinate system)
 
 Skyboxes:
 * http://www.humus.name/index.php?page=Textures

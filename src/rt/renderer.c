@@ -88,8 +88,8 @@ static void RenderThread(void* arg)
             Color cumColorPt = {0};
 
             for (size_t samples = 0; samples < samplesPerPixel; samples++) {
-                f32 horizontalFraction = (xx + Random_Normal_f32()) / (f32)(imageWidth - 1);
-                f32 verticalFraction   = (yy + Random_Normal_f32()) / (f32)(imageHeight - 1);
+                f32 horizontalFraction = (xx + Random_Unilateral()) / (f32)(imageWidth - 1);
+                f32 verticalFraction   = (yy + Random_Unilateral()) / (f32)(imageHeight - 1);
 
                 Ray   ray      = Camera_GetRay(cam, horizontalFraction, verticalFraction);
                 Color rayColor = RayColor(scene, &ray, maxRayDepth);

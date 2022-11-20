@@ -24,17 +24,7 @@ typedef union {
     };
 
     struct {
-        u32 : 32;
-        f32 z;
-    };
-
-    struct {
         f32 u, v;
-    };
-
-    struct {
-        u32 : 32;
-        f32 w;
     };
 
     struct {
@@ -175,12 +165,6 @@ bool vec3_CompareMagnitudeEqualR(f32 mag, vec3 v1);
 bool vec3_CompareMagnitudeGreaterThan(vec3 v1, f32 mag);
 bool vec3_CompareMagnitudeGreaterThanR(f32 mag, vec3 v1);
 bool vec3_AlmostTheSame(vec3 v1, vec3 v2);
-
-vec3 vec3_Random(f32 min, f32 max);
-vec3 vec3_RandomInUnitDisc(void); // TODO: should I make it explicit that this is a disc in the XY-plane?
-vec3 vec3_RandomInUnitSphere(void);
-vec3 vec3_RandomOnUnitSphere(void);
-vec3 vec3_RandomInHemisphere(vec3 normal);
 
 vec3 vec3_Reflect(vec3 vec, vec3 normal);
 vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio);

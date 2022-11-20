@@ -130,12 +130,12 @@ vec2 vec2_PolarToCartesian(vec2 polar)
     };
 }
 
-vec2 vec2_CartesianToPolar(vec2 polar)
+vec2 vec2_CartesianToPolar(vec2 cartesian)
 {
     // TODO: handle polar.x == 0.0f?
     return (vec2){
-        .r     = vec2_Magnitude(polar),
-        .theta = atanf(polar.y / polar.x),
+        .r     = vec2_Magnitude(cartesian),
+        .theta = atanf(cartesian.y / cartesian.x),
     };
 }
 
@@ -262,65 +262,6 @@ bool vec3_AlmostTheSame(vec3 v1, vec3 v2)
     return equalf(v1.x, v2.x) && equalf(v1.y, v2.y) && equalf(v1.z, v2.z);
 }
 
-vec3 vec3_Random(f32 min, f32 max)
-{
-    return (vec3){
-        .x = Random_Range_f32(min, max),
-        .y = Random_Range_f32(min, max),
-        .z = Random_Range_f32(min, max),
-    };
-}
-
-vec3 vec3_RandomInUnitDisc(void)
-{
-    vec3 vec;
-
-    do {
-        vec = (vec3){
-            .x = Random_Range_f32(-1, 1),
-            .y = Random_Range_f32(-1, 1),
-            .z = 0,
-        };
-
-        if (vec3_DotProduct(vec, vec) < 1) {
-            break;
-        }
-    } while (1);
-
-    return vec;
-}
-
-vec3 vec3_RandomInUnitSphere(void)
-{
-    vec3 vec;
-
-    do {
-        vec = vec3_Random(-1, 1);
-
-        if (vec3_DotProduct(vec, vec) < 1) {
-            break;
-        }
-    } while (1);
-
-    return vec;
-}
-
-vec3 vec3_RandomOnUnitSphere(void)
-{
-    return vec3_Normalize(vec3_RandomInUnitSphere());
-}
-
-vec3 vec3_RandomInHemisphere(vec3 normal)
-{
-    vec3 inUnitSphere = vec3_RandomInUnitSphere();
-
-    if (vdot(inUnitSphere, normal) > 0.0f) {
-        return inUnitSphere;
-    } else {
-        return vmul(-1.0f, inUnitSphere);
-    }
-}
-
 vec3 vec3_Reflect(vec3 vec, vec3 normal)
 {
     const f32  vecDotNormal      = vec3_DotProduct(vec, normal);
@@ -339,19 +280,18 @@ vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio)
 vec3 vec3_SphericalToCartesian(vec3 spherical)
 {
     return (vec3){
-        .x = spherical.rho * cosf(spherical.phi) * sinf(spherical.theta),
-        .y = spherical.rho * cosf(spherical.theta),
-        .z = spherical.rho * sinf(spherical.phi) * sinf(spherical.theta),
+        .x = spherical.rho * sinf(spherical.theta) * cosf(spherical.phi),
+        .y = spherical.rho * sinf(spherical.theta) * sinf(spherical.phi),
+        .z = spherical.rho * cosf(spherical.theta),
     };
 }
 
-// TODO: I think this is correct, but we should test
 vec3 vec3_CartesianToSpherical(vec3 cartesian)
 {
     return (vec3){
         .rho   = vec3_Magnitude(cartesian),
-        .theta = acosf(cartesian.y / vec3_Magnitude(cartesian)),
-        .phi   = atan2f(cartesian.z, cartesian.x),
+        .theta = acosf(cartesian.z / vec3_Magnitude(cartesian)),
+        .phi   = atan2f(cartesian.y, cartesian.x),
     };
 }
 

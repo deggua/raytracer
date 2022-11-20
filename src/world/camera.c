@@ -7,16 +7,7 @@
 #include "math/random.h"
 #include "math/vec.h"
 
-Camera* Camera_New(
-    point3 lookFrom,
-    point3 lookTo,
-    vec3   vup,
-    f32    aspectRatio,
-    f32    vertFov,
-    f32    aperature,
-    f32    focusDist,
-    f32    timeStart,
-    f32    timeEnd)
+Camera* Camera_New(point3 lookFrom, point3 lookTo, vec3 vup, f32 aspectRatio, f32 vertFov, f32 aperature, f32 focusDist)
 {
     const f32 theta          = radiansf(vertFov);
     const f32 hh             = tanf(theta / 2.0f);
@@ -37,15 +28,12 @@ Camera* Camera_New(
 
     cam->lensRadius = aperature / 2.0f;
 
-    cam->timeStart = timeStart;
-    cam->timeEnd   = timeEnd;
-
     return cam;
 }
 
 Ray Camera_GetRay(const Camera* cam, f32 u, f32 v)
 {
-    vec3 rd     = vmul(vec3_RandomInUnitDisc(), cam->lensRadius);
+    vec2 rd     = Random_InDisc(cam->lensRadius);
     vec3 offset = (vec3){
         .x = u * rd.x,
         .y = v * rd.y,

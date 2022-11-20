@@ -55,6 +55,7 @@ Material g_matMesh;
 Material g_matMesh2;
 Material g_matGround;
 Material g_matLight;
+Material g_mats[16];
 
 static void FillScene(Scene* scene, Skybox* skybox)
 {
@@ -99,7 +100,7 @@ static void FillScene(Scene* scene, Skybox* skybox)
     // g_matMesh = Material_Diffuse_Make(texMesh);
 
     Mesh_Set_Material(mesh, &g_matMesh);
-    Mesh_Set_Origin(mesh, (point3){0, 1, 0});
+    Mesh_Set_Origin(mesh, (point3){0, 0, 1});
     Mesh_Set_Scale(mesh, 1 / 10.0f);
     Mesh_AddToScene(mesh, scene);
 
@@ -125,6 +126,74 @@ static void FillScene(Scene* scene, Skybox* skybox)
         },
     };
     Scene_Add_Object(scene, &sphere);
+#endif
+
+#if 0
+    /* Spheres on Axes */
+    Texture* tex1 = Texture_New();
+    Texture_Import_Color(tex1, COLOR_WHITE);
+    g_mats[0] = Material_Disney_Diffuse_Make(tex1, 1.0f, 0.0f);
+
+    Texture* tex2 = Texture_New();
+    Texture_Import_Color(tex2, COLOR_RED);
+    g_mats[1] = Material_Disney_Diffuse_Make(tex2, 1.0f, 0.0f);
+
+    Texture* tex3 = Texture_New();
+    Texture_Import_Color(tex3, COLOR_GREEN);
+    g_mats[2] = Material_Disney_Diffuse_Make(tex3, 1.0f, 0.0f);
+
+    Texture* tex4 = Texture_New();
+    Texture_Import_Color(tex4, COLOR_BLUE);
+    g_mats[3] = Material_Disney_Diffuse_Make(tex4, 1.0f, 0.0f);
+
+    Object sphere_origin = {
+        .material = &g_mats[0],
+        .surface = {
+            .type = SURFACE_SPHERE,
+            .sphere = {
+                .r = 1.0f,
+                .c = (point3){0, 0, 0},
+            },
+        },
+    };
+
+    Object sphere_x = {
+        .material = &g_mats[1],
+        .surface = {
+            .type = SURFACE_SPHERE,
+            .sphere = {
+                .r = 1.0f,
+                .c = (point3){20, 0, 0},
+            },
+        },
+    };
+
+    Object sphere_y = {
+        .material = &g_mats[2],
+        .surface = {
+            .type = SURFACE_SPHERE,
+            .sphere = {
+                .r = 1.0f,
+                .c = (point3){0, 20, 0},
+            },
+        },
+    };
+
+    Object sphere_z = {
+        .material = &g_mats[3],
+        .surface = {
+            .type = SURFACE_SPHERE,
+            .sphere = {
+                .r = 1.0f,
+                .c = (point3){0, 0, 20},
+            },
+        },
+    };
+
+    Scene_Add_Object(scene, &sphere_origin);
+    Scene_Add_Object(scene, &sphere_x);
+    Scene_Add_Object(scene, &sphere_y);
+    Scene_Add_Object(scene, &sphere_z);
 #endif
 
 #if 0
@@ -178,22 +247,20 @@ static void FillScene(Scene* scene, Skybox* skybox)
 
 int main(int argc, char** argv)
 {
-    const point3 lookFrom    = (point3){20, 15, 20};
-    const point3 lookAt      = (point3){0, 6, 0};
-    const vec3   vup         = (vec3){0, 1, 0};
+    const point3 lookFrom    = (point3){20, -20, 20};
+    const point3 lookAt      = (point3){0, 0, 6};
+    const vec3   vup         = (vec3){0, 0, 1};
     f32          focusDist   = vmag(vsub(lookFrom, lookAt));
     const f32    aperature   = 0.0f;
     const f32    aspectRatio = 16.0f / 9.0f;
     const f32    vFov        = 40.0f;
-    const f32    timeStart   = 0.0f;
-    const f32    timeEnd     = 1.0f;
 
     const size_t imageHeight = 720;
     const size_t imageWidth  = imageHeight * aspectRatio;
 
     size_t numThreads      = 16;
     size_t samplesPerPixel = 32;
-    size_t maxBounces      = 12;
+    size_t maxBounces      = 10;
 
     if (argc > 1)
         numThreads = atol(argv[1]);
@@ -201,6 +268,15 @@ int main(int argc, char** argv)
         samplesPerPixel = atol(argv[2]);
     if (argc > 3)
         maxBounces = atol(argv[3]);
+
+    printf(
+        "Render settings:\n"
+        "%zu threads\n"
+        "%zu samples per pixel\n"
+        "%zu max ray bounces\n\n",
+        numThreads,
+        samplesPerPixel,
+        maxBounces);
 
     signal(SIGINT, InterruptHandler);
 
@@ -216,7 +292,7 @@ int main(int argc, char** argv)
 
     g_img = img;
 
-    Camera* cam = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist, timeStart, timeEnd);
+    Camera* cam = Camera_New(lookFrom, lookAt, vup, aspectRatio, vFov, aperature, focusDist);
     if (cam == NULL) {
         printf("Failed to create camera\n");
         exit(EXIT_FAILURE);

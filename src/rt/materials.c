@@ -32,7 +32,7 @@ bool Material_Diffuse_Bounce(
 {
     (void)rayIn;
 
-    vec3 target    = vadd(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
+    vec3 target    = vadd(hit->position, Random_InHemisphere(hit->unitNormal, 1.0f));
     vec3 scattered = vsub(target, hit->position);
 
     if (vequ(scattered, 0.0f)) {
@@ -70,7 +70,7 @@ bool Material_Metal_Bounce(
     // TODO: do we need to do the face fix thing on the hit normal? I'm guessing we do because otherwise the reflect
     // may be be backwards, atm we always make the normal point against
     vec3 reflected = vec3_Reflect(vnorm(rayIn->dir), hit->unitNormal);
-    vec3 fuzz      = vmul(vec3_RandomOnUnitSphere(), metal->fuzz);
+    vec3 fuzz      = vmul(Random_OnSphere(1.0f), metal->fuzz);
 
     *colorSurface = Texture_ColorAt(metal->albedo, hit->uv);
     *colorEmitted = (Color){.r = 0.0f, .g = 0.0f, .b = 0.0f};
@@ -120,7 +120,7 @@ bool Material_Dielectric_Bounce(
     bool cannotRefract = refractionRatio * sinTheta > 1.0f;
     vec3 bounce;
 
-    if (cannotRefract || reflectance(cosTheta, refractionRatio) > Random_Normal_f32()) {
+    if (cannotRefract || reflectance(cosTheta, refractionRatio) > Random_Unilateral()) {
         bounce = vec3_Reflect(normRayDir, hit->unitNormal);
     } else {
         bounce = vec3_Refract(normRayDir, hit->unitNormal, refractionRatio);
@@ -182,7 +182,7 @@ bool Material_Skybox_Bounce(
     Color*                 colorEmitted,
     Ray*                   rayOut)
 {
-    vec3 target    = vadd(hit->position, vec3_RandomInHemisphere(hit->unitNormal));
+    vec3 target    = vadd(hit->position, Random_InHemisphere(hit->unitNormal, 1.0f));
     vec3 scattered = vsub(target, hit->position);
 
     if (vequ(scattered, 0.0f)) {
