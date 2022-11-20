@@ -1,6 +1,14 @@
-A parallelized CPU raytracer for Linux and Windows with texture mapping, mesh loading, and cubemap skyboxes
+A parallelized CPU raytracer for Linux and Windows with no dependencies
 
 ![alt text](https://github.com/deggua/raytracer/blob/main/assets/sample/image.jpg?raw=true)
+
+Features:
+* Mesh loading (Wavefront OBJ)
+* Texture mapping (BMP only)
+* Cubemap skyboxes (BMP only)
+* Kd-Tree accelerator using the SAH
+* Simple BSDFs (Lambertian, mirror, glass)
+* Disney BSDFs (In-progress)
 
 Build:
 * Install make (for Windows see https://gnuwin32.sourceforge.net/packages/make.htm)
@@ -18,7 +26,6 @@ TODO:
 * SIMDify the surface intersection code (may require supporting only triangles)
 * Optimize render pre-pass
 * GPU shader for more parallelization
-* Other material types
 * Procedural textures
 * Real-time display of render
 * Improve program structure and memory management of objects
