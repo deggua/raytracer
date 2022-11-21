@@ -31,7 +31,7 @@ TODO:
 * Improve program structure and memory management of objects
 * Improve asset loading and storage of assets in memory
 * GUI
-* Chunk image into squares, implement a work queue for better distribution of work, parallelize between CPU and GPU
+* Chunk image into squares, implement a work queue for better distribution of work, hetergeneous compute (CPU + GPU)
 * Hierarchical hybrid KdTree/BVH (external processing of .obj to produce their KdTree, alleviates the need to re-process meshes)
 * Fix the skybox mirroring
 
