@@ -94,7 +94,13 @@ bool Material_Bounce(
         } break;
 
         case MATERIAL_DISNEY_CLEARCOAT: {
-            ABORT("Disney Clearcoat is unimplemented");
+            return Material_Disney_Clearcoat_Bounce(
+                &material->disney_clearcoat,
+                rayIn,
+                hit,
+                colorSurface,
+                colorEmitted,
+                rayOut);
         } break;
 
         case MATERIAL_DISNEY_SHEEN: {

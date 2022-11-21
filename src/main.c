@@ -95,8 +95,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Texture* texMesh = Texture_New();
     Texture_Import_Color(texMesh, COLOR_YELLOW);
 
-    g_matMesh = Material_Disney_Metal_Make(texMesh, 1.0f, 0.0f);
-    // g_matMesh = Material_Diffuse_Make(texMesh);
+    g_matMesh = Material_Disney_Clearcoat_Make(1.0f);
 
     Mesh_Set_Material(mesh, &g_matMesh);
     Mesh_Set_Origin(mesh, (point3){0, 0, 1});

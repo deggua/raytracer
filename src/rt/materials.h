@@ -76,8 +76,7 @@ typedef struct {
 } Material_Disney_Glass;
 
 typedef struct {
-    Texture* albedo;
-    f32      gloss;
+    f32 gloss;
 } Material_Disney_Clearcoat;
 
 typedef struct {
@@ -159,6 +158,7 @@ bool Material_Skybox_Bounce(
 
 Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsurface);
 Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistropic);
+Material Material_Disney_Clearcoat_Make(f32 gloss);
 
 bool Material_Disney_Diffuse_Bounce(
     Material_Disney_Diffuse* mat,
@@ -175,3 +175,11 @@ bool Material_Disney_Metal_Bounce(
     Color*                 surface_color,
     Color*                 emitted_color,
     Ray*                   ray_out);
+
+bool Material_Disney_Clearcoat_Bounce(
+    Material_Disney_Clearcoat* mat,
+    Ray*                       ray_in,
+    HitInfo*                   hit,
+    Color*                     surface_color,
+    Color*                     emitted_color,
+    Ray*                       ray_out);

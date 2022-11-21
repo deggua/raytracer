@@ -8,6 +8,11 @@
 #include "math/random.h"
 #include "math/vec.h"
 
+// TODO: I think we might be able to remove a lot of the uses of fabsf in the Disney BRDFs
+// due to our method of computation, it shouldn't be possible for the dot product to be negative
+
+// TODO: for Disney_Metal and Disney_Clearcoat, we can probably avoid the extra vmul by creating w_in and w_in_neg
+
 /* ---- DIFFUSE ---- */
 
 Material Material_Diffuse_Make(Texture* tex)
@@ -199,11 +204,6 @@ bool Material_Skybox_Bounce(
 
 /* ---- Disney Diffuse ---- */
 
-intern inline vec3 HalfVector(vec3 w_in, vec3 w_out)
-{
-    return vnorm(vadd(w_in, w_out));
-}
-
 Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsurface)
 {
     return (Material){
@@ -214,6 +214,11 @@ Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsur
             .subsurface = subsurface,
         },
     };
+}
+
+intern inline vec3 HalfVector(vec3 w_in, vec3 w_out)
+{
+    return vnorm(vadd(w_in, w_out));
 }
 
 intern inline f32 F_D90(vec3 w_out, vec3 half_vector, f32 roughness)
@@ -241,7 +246,7 @@ intern inline f32 F_SS90(vec3 w_out, vec3 half_vector, f32 roughness)
 
 intern inline f32 F_SS(vec3 w, vec3 shading_normal, f32 f_ss90)
 {
-    return 1.0 + (f_ss90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
+    return 1.0f + (f_ss90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
 }
 
 intern inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
@@ -333,7 +338,7 @@ Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistrop
     };
 }
 
-intern inline Color F_Schlick(Color r_0, f32 cos_theta)
+intern inline Color F_Schlick_Chromatic(Color r_0, f32 cos_theta)
 {
     return vadd(r_0, vmul(vsub(vec3_Set(1.0f), r_0), POWF(1.0f - cos_theta, 5)));
 }
@@ -346,7 +351,7 @@ intern inline f32 D_N(vec3 normal, f32 a_x, f32 a_y)
     return numerator / denominator;
 }
 
-intern inline f32 Lambda_w(vec3 w, f32 a_x, f32 a_y)
+intern inline f32 Lambda_m(vec3 w, f32 a_x, f32 a_y)
 {
     f32 numerator   = sqrtf(1.0f + (POWF(w.x * a_x, 2) + POWF(w.y * a_y, 2)) / POWF(w.z, 2)) - 1.0f;
     f32 denominator = 2.0f;
@@ -354,27 +359,39 @@ intern inline f32 Lambda_w(vec3 w, f32 a_x, f32 a_y)
     return numerator / denominator;
 }
 
-intern inline f32 G_1(vec3 w, f32 a_x, f32 a_y)
+intern inline f32 G_m1(vec3 w, f32 a_x, f32 a_y)
 {
-    return 1.0f / (1.0f + Lambda_w(w, a_x, a_y));
+    return 1.0f / (1.0f + Lambda_m(w, a_x, a_y));
 }
 
-intern inline f32 G_2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+// TODO: would this be faster without the branch? needs benchmarking
+intern inline f32 G_m2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
 {
+#if 0
+    f32 chi_pos_w_out = vdot(w_out, w_micronormal) < 0.0f ? 0.0f : 1.0f;
+    f32 chi_pos_w_in  = vdot(w_in, w_micronormal) < 0.0f ? 0.0f : 1.0f;
+
+    f32 numerator   = chi_pos_w_out * chi_pos_w_in;
+    f32 denominator = 1.0f + Lambda_m(w_out, a_x, a_y) + Lambda_m(w_in, a_x, a_y);
+
+    return numerator / denominator;
+#else
     if (vdot(w_out, w_micronormal) < 0 || vdot(w_in, w_micronormal) < 0) {
         return 0.0f;
     } else {
         f32 numerator   = 1.0f;
-        f32 denominator = 1.0f + Lambda_w(w_out, a_x, a_y) + Lambda_w(w_in, a_x, a_y);
+        f32 denominator = 1.0f + Lambda_m(w_out, a_x, a_y) + Lambda_m(w_in, a_x, a_y);
+
         return numerator / denominator;
     }
+#endif
 }
 
 intern inline Color BRDF_Disney_Metal(Color base_color, vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
 {
-    Color f_m = F_Schlick(base_color, vdot(w_out, w_micronormal));
-    f32   g_2 = G_2(w_in, w_out, w_micronormal, a_x, a_y);
-    f32   g_1 = G_1(w_in, a_x, a_y);
+    Color f_m = F_Schlick_Chromatic(base_color, vdot(w_out, w_micronormal));
+    f32   g_2 = G_m2(w_in, w_out, w_micronormal, a_x, a_y);
+    f32   g_1 = G_m1(w_in, a_x, a_y);
 
     return vmul(f_m, g_2 / g_1);
 }
@@ -441,6 +458,168 @@ bool Material_Disney_Metal_Bounce(
     Color brdf   = BRDF_Disney_Metal(albedo, w_in, w_out, w_micronormal, a_x, a_y);
 
     *surface_color = brdf;
+    *emitted_color = COLOR_BLACK;
+
+    // transform w_out into world space
+    basis3 world_basis = (basis3){
+        .x = vec(1.0f, 0.0f, 0.0f),
+        .y = vec(0.0f, 1.0f, 0.0f),
+        .z = vec(0.0f, 0.0f, 1.0f),
+    };
+    vec3 ray_out_dir = vec3_Reorient(w_out, world_basis);
+    *ray_out         = Ray_Make(hit->position, ray_out_dir);
+
+    return true;
+}
+
+/* ---- Disney Clearcoat BRDF ---- */
+
+Material Material_Disney_Clearcoat_Make(f32 gloss)
+{
+    return (Material){
+        .type = MATERIAL_DISNEY_CLEARCOAT,
+        .disney_clearcoat = {
+            .gloss = gloss,
+        },
+    };
+}
+
+intern inline f32 F_Schlick_Achromatic(vec3 w_out, vec3 w_micronormal)
+{
+    f32 eta = 1.5f;
+    f32 r_0 = POWF(eta - 1.0f, 2) / POWF(eta + 1, 2);
+
+    return r_0 + (1.0f - r_0) * POWF(1.0f - fabsf(vdot(w_micronormal, w_out)), 5);
+}
+
+intern inline f32 D_c(vec3 w_micronormal, f32 a_g)
+{
+    f32 a_g_2 = POWF(a_g, 2);
+
+    f32 numerator   = a_g_2 - 1.0f;
+    f32 denominator = 2.0f * PI32 * logf(a_g) * (1.0f + (a_g_2 - 1.0f) * POWF(w_micronormal.z, 2));
+
+    return numerator / denominator;
+}
+
+intern inline f32 Lambda_c(vec3 w)
+{
+    f32 roughness_2 = 0.25f * 0.25f;
+    f32 w_l_x_2     = POWF(w.x, 2);
+    f32 w_l_y_2     = POWF(w.y, 2);
+    f32 w_l_z_2     = POWF(w.z, 2);
+
+    f32 numerator   = sqrtf(1.0f + (roughness_2 * (w_l_x_2 + w_l_y_2)) / w_l_z_2) - 1.0f;
+    f32 denominator = 2.0f;
+
+    return numerator / denominator;
+}
+
+intern inline f32 G_c1(vec3 w)
+{
+    return 1.0f / (1.0f + Lambda_c(w));
+}
+
+// TODO: would this be faster without the branch? needs benchmarking
+intern inline f32 G_c2(vec3 w_in, vec3 w_out, vec3 w_micronormal)
+{
+#if 0
+    f32 chi_pos_w_out = vdot(w_out, w_micronormal) < 0.0f ? 0.0f : 1.0f;
+    f32 chi_pos_w_in  = vdot(w_in, w_micronormal) < 0.0f ? 0.0f : 1.0f;
+
+    f32 numerator   = chi_pos_w_out * chi_pos_w_in;
+    f32 denominator = 1.0f + Lambda_c(w_out) + Lambda_c(w_in);
+
+    return numerator / denominator;
+#else
+    if (vdot(w_out, w_micronormal) < 0 || vdot(w_in, w_micronormal) < 0) {
+        return 0.0f;
+    } else {
+        f32 numerator   = 1.0f;
+        f32 denominator = 1.0f + Lambda_c(w_out) + Lambda_c(w_in);
+
+        return numerator / denominator;
+    }
+#endif
+}
+
+intern inline f32 BRDF_Disney_Clearcoat(vec3 w_in, vec3 w_out, vec3 w_micronormal, vec3 w_macronormal, f32 a_g)
+{
+    f32 f_c = F_Schlick_Achromatic(w_out, w_micronormal);
+    f32 d_c = D_c(w_micronormal, a_g);
+    f32 g_c = G_c2(w_in, w_out, w_micronormal);
+
+    f32 numerator = f_c * d_c * g_c;
+    // TODO: it looks like they use the macronormal, but this might need to be the micronormal
+    f32 denominator = 4.0f * fabsf(vdot(w_macronormal, w_in));
+
+    return numerator / denominator;
+}
+
+intern inline vec3 Disney_Clearcoat_SampleNormal(f32 a_g)
+{
+    f32 u_0 = Random_Unilateral();
+    f32 u_1 = Random_Unilateral();
+
+    f32 a_g_2 = POWF(a_g, 2);
+
+    f32 cos_h_elev = sqrtf((1.0f - powf(a_g_2, 1.0f - u_0)) / (1.0f - a_g_2));
+    f32 h_azi      = 2.0f * PI32 * u_1;
+
+    f32 sin_h_elev = sqrtf(1.0f - POWF(cos_h_elev, 2));
+    f32 cos_h_azi  = cosf(h_azi);
+    f32 sin_h_azi  = sinf(h_azi);
+
+    return (vec3){
+        .x = sin_h_elev * cos_h_azi,
+        .y = sin_h_elev * sin_h_azi,
+        .z = cos_h_elev,
+    };
+}
+
+// TODO: might need to swap macronormal for micronormal
+intern inline f32 Disney_Clearcoat_SampleNormal_PDF(vec3 w_out, vec3 w_micronormal, vec3 w_macronormal, f32 a_g)
+{
+    f32 d_c = D_c(w_micronormal, a_g);
+
+    f32 numerator   = d_c * fabsf(vdot(w_macronormal, w_micronormal));
+    f32 denominator = 4.0f * fabsf(vdot(w_micronormal, w_out));
+
+    return numerator / denominator;
+}
+
+bool Material_Disney_Clearcoat_Bounce(
+    Material_Disney_Clearcoat* mat,
+    Ray*                       ray_in,
+    HitInfo*                   hit,
+    Color*                     surface_color,
+    Color*                     emitted_color,
+    Ray*                       ray_out)
+{
+    // convert material param to a_g
+    // TODO: no reason to do this on the fly, could be precomputed
+    f32 a_g = (1.0f - mat->gloss) * 0.1f + mat->gloss * 0.001f;
+
+    // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
+    basis3 normal_basis = vec3_OrthonormalBasis(hit->unitNormal);
+    normal_basis        = (basis3){.x = normal_basis.z, .y = normal_basis.y, .z = normal_basis.x};
+
+    // TODO: if we make all rays have normalized direction we can remove the vnorm
+    vec3 ray_in_dir = vnorm(vmul(-1.0f, ray_in->dir));
+    vec3 w_in       = vec3_Reorient(ray_in_dir, normal_basis);
+
+    vec3 w_macronormal = vec(0.0f, 0.0f, 1.0f);
+    vec3 w_micronormal = Disney_Clearcoat_SampleNormal(a_g);
+
+    vec3 w_out = vnorm(vec3_Reflect(vmul(-1.0f, w_in), w_micronormal));
+
+    // TODO: term cancellation
+    f32 brdf = BRDF_Disney_Clearcoat(w_in, w_out, w_micronormal, w_macronormal, a_g);
+    f32 pdf  = Disney_Clearcoat_SampleNormal_PDF(w_out, w_micronormal, w_macronormal, a_g);
+
+    Color brdf_color = vec(brdf / pdf, brdf / pdf, brdf / pdf);
+
+    *surface_color = brdf_color;
     *emitted_color = COLOR_BLACK;
 
     // transform w_out into world space
