@@ -279,10 +279,10 @@ vec3 vec3_Reflect(vec3 vec, vec3 normal)
 
 vec3 vec3_Refract(vec3 vec, vec3 normal, f32 refractRatio)
 {
-    f32  cosTheta   = fminf(vec3_DotProduct(vec3_MultiplyScalar(vec, -1), normal), 1.0f);
-    vec3 vecOutPerp = vec3_MultiplyScalar(vec3_Add(vec, vec3_MultiplyScalar(normal, cosTheta)), refractRatio);
-    vec3 vecOutPara = vec3_MultiplyScalar(normal, -sqrtf(fabsf(1.0f - vec3_DotProduct(vecOutPerp, vecOutPerp))));
-    return vec3_Add(vecOutPerp, vecOutPara);
+    f32  cosTheta   = fminf(vdot(vmul(vec, -1), normal), 1.0f);
+    vec3 vecOutPerp = vmul(vadd(vec, vmul(normal, cosTheta)), refractRatio);
+    vec3 vecOutPara = vmul(normal, -sqrtf(fabsf(1.0f - vdot(vecOutPerp, vecOutPerp))));
+    return vadd(vecOutPerp, vecOutPara);
 }
 
 vec3 vec3_SphericalToCartesian(vec3 spherical)
@@ -315,6 +315,7 @@ vec3 vec3_Reorient(vec3 n, basis3 basis)
 // See: https://backend.orbit.dtu.dk/ws/portalfiles/portal/126824972/onb_frisvad_jgt2012_v2.pdf
 // WARNING: bx MUST be normalized
 // TODO: should we normalize it? probably not I would imagine
+// TODO: we should just put bx in z since we only really use this to construct normal basis <0, 0, 1>
 basis3 vec3_OrthonormalBasis(vec3 bx)
 {
     vec3 by, bz;

@@ -80,7 +80,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
 
-#elif 1
+#elif 0
 
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
@@ -95,7 +95,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Texture* texMesh = Texture_New();
     Texture_Import_Color(texMesh, COLOR_YELLOW);
 
-    g_matMesh = Material_Disney_Clearcoat_Make(1.0f);
+    g_matMesh = Material_Disney_Glass_Make(texMesh, 0.0f, 0.0f, 1.52f);
 
     Mesh_Set_Material(mesh, &g_matMesh);
     Mesh_Set_Origin(mesh, (point3){0, 0, 1});
@@ -107,11 +107,11 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
     Mesh_Delete(mesh);
 
-#elif 0
+#elif 1
     /* Shiny Sphere */
     Texture* tex = Texture_New();
     Texture_Import_Color(tex, COLOR_WHITE);
-    g_matMesh = Material_Disney_Metal_Make(tex, 0.0f, 0.0f);
+    g_matMesh = Material_Disney_Glass_Make(tex, 0.1f, 0.1f, 1.52f);
 
     Object sphere = {
         .material = &g_matMesh,

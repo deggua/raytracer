@@ -159,6 +159,7 @@ bool Material_Skybox_Bounce(
 Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsurface);
 Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistropic);
 Material Material_Disney_Clearcoat_Make(f32 gloss);
+Material Material_Disney_Glass_Make(Texture* albedo, f32 roughness, f32 anistropic, f32 eta);
 
 bool Material_Disney_Diffuse_Bounce(
     Material_Disney_Diffuse* mat,
@@ -183,3 +184,11 @@ bool Material_Disney_Clearcoat_Bounce(
     Color*                     surface_color,
     Color*                     emitted_color,
     Ray*                       ray_out);
+
+bool Material_Disney_Glass_Bounce(
+    Material_Disney_Glass* mat,
+    Ray*                   ray_in,
+    HitInfo*               hit,
+    Color*                 surface_color,
+    Color*                 emitted_color,
+    Ray*                   ray_out);

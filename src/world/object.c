@@ -90,7 +90,13 @@ bool Material_Bounce(
         } break;
 
         case MATERIAL_DISNEY_GLASS: {
-            ABORT("Disney Glass is unimplemented");
+            return Material_Disney_Glass_Bounce(
+                &material->disney_glass,
+                rayIn,
+                hit,
+                colorSurface,
+                colorEmitted,
+                rayOut);
         } break;
 
         case MATERIAL_DISNEY_CLEARCOAT: {
