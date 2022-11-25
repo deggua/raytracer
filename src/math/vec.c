@@ -316,24 +316,33 @@ vec3 vec3_Reorient(vec3 n, basis3 basis)
 // WARNING: bx MUST be normalized
 // TODO: should we normalize it? probably not I would imagine
 // TODO: we should just put bx in z since we only really use this to construct normal basis <0, 0, 1>
-basis3 vec3_OrthonormalBasis(vec3 bx)
+basis3 vec3_OrthonormalBasis(vec3 bz)
 {
-    vec3 by, bz;
-    if (unlikely(bx.z < -0.9999999f)) {
+    vec3 bx, by;
+    if (unlikely(bz.z < -0.9999999f)) {
         by = (vec3){0.0f, -1.0f, 0.0f};
-        bz = (vec3){-1.0f, 0.0f, 0.0f};
+        bx = (vec3){-1.0f, 0.0f, 0.0f};
     } else {
-        f32 a = 1.0f / (1.0f + bx.z);
-        f32 b = -bx.x * bx.y * a;
+        f32 a = 1.0f / (1.0f + bz.z);
+        f32 b = -bz.x * bz.y * a;
 
-        by = (vec3){b, 1.0f - bx.y * bx.y * a, -bx.y};
-        bz = (vec3){1.0f - bx.x * bx.x * a, b, -bx.x};
+        by = (vec3){-1.0f + bz.x * bz.x * a, -b, bz.x};
+        bx = (vec3){-b, -1.0f + bz.y * bz.y * a, bz.y};
     }
 
     return (basis3){
         .x = bx,
         .y = by,
         .z = bz,
+    };
+}
+
+basis3 vec3_OrthonormalBasis_Inverse(basis3 orthonormal_basis)
+{
+    return (basis3){
+        .x = vec(orthonormal_basis.x.x, orthonormal_basis.y.x, orthonormal_basis.z.x),
+        .y = vec(orthonormal_basis.x.y, orthonormal_basis.y.y, orthonormal_basis.z.y),
+        .z = vec(orthonormal_basis.x.z, orthonormal_basis.y.z, orthonormal_basis.z.z),
     };
 }
 

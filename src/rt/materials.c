@@ -362,39 +362,17 @@ intern inline f32 G_m1(vec3 w, f32 a_x, f32 a_y)
     return 1.0f / (1.0f + Lambda_m(w, a_x, a_y));
 }
 
-// NOTE: this (and the other G_*2 functions) are from https://jcgt.org/published/0003/02/03/
-// he recommends using the funciton over the product vesion since it's more accurate
-// it is slower though since we can't eliminate terms
-// TODO: would this be faster without the branch? needs benchmarking
-intern inline f32 G_m2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+intern inline f32 G_m2(vec3 w_in, vec3 w_out, f32 a_x, f32 a_y)
 {
-#if 0
-    f32 chi_pos_w_out = vdot(w_out, w_micronormal) < 0.0f ? 0.0f : 1.0f;
-    f32 chi_pos_w_in  = vdot(w_in, w_micronormal) < 0.0f ? 0.0f : 1.0f;
-
-    f32 numerator   = chi_pos_w_out * chi_pos_w_in;
-    f32 denominator = 1.0f + Lambda_m(w_out, a_x, a_y) + Lambda_m(w_in, a_x, a_y);
-
-    return numerator / denominator;
-#else
-    if (vdot(w_out, w_micronormal) < 0 || vdot(w_in, w_micronormal) < 0) {
-        return 0.0f;
-    } else {
-        f32 numerator   = 1.0f;
-        f32 denominator = 1.0f + Lambda_m(w_out, a_x, a_y) + Lambda_m(w_in, a_x, a_y);
-
-        return numerator / denominator;
-    }
-#endif
+    return G_m1(w_in, a_x, a_y) * G_m1(w_out, a_x, a_y);
 }
 
-intern inline Color BRDF_Disney_Metal(Color base_color, vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+intern inline Color BRDF_Disney_Metal(Color base_color, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
 {
     Color f_m = Fresnel_Schlick_Chromatic(base_color, vdot(w_out, w_micronormal));
-    f32   g_2 = G_m2(w_in, w_out, w_micronormal, a_x, a_y);
-    f32   g_1 = G_m1(w_in, a_x, a_y);
+    f32   g_m = G_m1(w_out, a_x, a_y);
 
-    return vmul(f_m, g_2 / g_1);
+    return vmul(f_m, g_m);
 }
 
 // See: https://jcgt.org/published/0007/04/01/paper.pdf
@@ -408,7 +386,7 @@ intern inline vec3 GGXVNDF_Sample(vec3 Ve, f32 alpha_x, f32 alpha_y, f32 U1, f32
     vec3 Vh = vnorm(vec(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
     // Section 4.1: orthonormal basis (with special case if cross product is zero)
     f32  lensq = Vh.x * Vh.x + Vh.y * Vh.y;
-    vec3 T1    = lensq > 0 ? vmul(vec(-Vh.y, Vh.x, 0), (1.0f / sqrtf(lensq))) : vec(1, 0, 0);
+    vec3 T1    = lensq > 0.0f ? vmul(vec(-Vh.y, Vh.x, 0.0f), (1.0f / sqrtf(lensq))) : vec(1.0f, 0.0f, 0.0f);
     vec3 T2    = vcross(Vh, T1);
     // Section 4.2: parameterization of the projected area
     f32 r   = sqrtf(U1);
@@ -449,29 +427,24 @@ bool Material_Disney_Metal_Bounce(
     f32 a_y    = maxf(a_min, POWF(mat->roughness, 2) * aspect);
 
     // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
-    basis3 normal_basis = vec3_OrthonormalBasis(hit->unitNormal);
-    normal_basis        = (basis3){.x = normal_basis.z, .y = normal_basis.y, .z = normal_basis.x};
+    basis3 normal_to_world = vec3_OrthonormalBasis(hit->unitNormal);
+    basis3 world_to_normal = vec3_OrthonormalBasis_Inverse(normal_to_world);
 
     // TODO: Maybe we should consider making any Ray_Make call emit a normalized direction vector,
     // should be more efficient to do it when creating the ray vs on material bounce
     // (I think, esp. if many materials need it normalized anyway)
     vec3 ray_in_dir = vnorm(vmul(-1.0f, ray_in->dir));
-    vec3 w_in       = vec3_Reorient(ray_in_dir, normal_basis);
+    vec3 w_in       = vec3_Reorient(ray_in_dir, world_to_normal);
 
     vec3 w_micronormal = Disney_Metal_SampleNormal(w_in, a_x, a_y);
 
     vec3 w_out = vnorm(vec3_Reflect(vmul(-1.0f, w_in), w_micronormal));
 
     Color albedo = Texture_ColorAt(mat->albedo, hit->uv);
-    Color brdf   = BRDF_Disney_Metal(albedo, w_in, w_out, w_micronormal, a_x, a_y);
+    Color brdf   = BRDF_Disney_Metal(albedo, w_out, w_micronormal, a_x, a_y);
 
     // transform w_out into world space
-    basis3 world_basis = (basis3){
-        .x = vec(1.0f, 0.0f, 0.0f),
-        .y = vec(0.0f, 1.0f, 0.0f),
-        .z = vec(0.0f, 0.0f, 1.0f),
-    };
-    vec3 ray_out_dir = vec3_Reorient(w_out, world_basis);
+    vec3 ray_out_dir = vec3_Reorient(w_out, normal_to_world);
 
     *surface_color = brdf;
     *emitted_color = COLOR_BLACK;
@@ -510,6 +483,7 @@ intern inline f32 D_c(vec3 w_micronormal, f32 a_g)
     return numerator / denominator;
 }
 
+// TODO: should we just make this a wrapped call to Lambda_m?
 intern inline f32 Lambda_c(vec3 w)
 {
     f32 roughness_2 = 0.25f * 0.25f;
@@ -528,27 +502,9 @@ intern inline f32 G_c1(vec3 w)
     return 1.0f / (1.0f + Lambda_c(w));
 }
 
-// TODO: would this be faster without the branch? needs benchmarking
-intern inline f32 G_c2(vec3 w_in, vec3 w_out, vec3 w_micronormal)
+intern inline f32 G_c2(vec3 w_in, vec3 w_out)
 {
-#if 0
-    f32 chi_pos_w_out = vdot(w_out, w_micronormal) < 0.0f ? 0.0f : 1.0f;
-    f32 chi_pos_w_in  = vdot(w_in, w_micronormal) < 0.0f ? 0.0f : 1.0f;
-
-    f32 numerator   = chi_pos_w_out * chi_pos_w_in;
-    f32 denominator = 1.0f + Lambda_c(w_out) + Lambda_c(w_in);
-
-    return numerator / denominator;
-#else
-    if (vdot(w_out, w_micronormal) < 0 || vdot(w_in, w_micronormal) < 0) {
-        return 0.0f;
-    } else {
-        f32 numerator   = 1.0f;
-        f32 denominator = 1.0f + Lambda_c(w_out) + Lambda_c(w_in);
-
-        return numerator / denominator;
-    }
-#endif
+    return G_c1(w_in) * G_c1(w_out);
 }
 
 intern inline f32 BRDF_Disney_Clearcoat(vec3 w_in, vec3 w_out, vec3 w_micronormal, vec3 w_macronormal, f32 a_g)
@@ -557,7 +513,7 @@ intern inline f32 BRDF_Disney_Clearcoat(vec3 w_in, vec3 w_out, vec3 w_micronorma
     f32 f_c = Fresnel_Schlick_Achromatic(w_out, w_micronormal);
     // f32 d_c = D_c(w_micronormal, a_g);
     f32 d_c = 1.0f; // due to term cancellation
-    f32 g_c = G_c2(w_in, w_out, w_micronormal);
+    f32 g_c = G_c2(w_in, w_out);
 
     f32 numerator = f_c * d_c * g_c;
     // TODO: it looks like they use the macronormal, but this might need to be the micronormal
@@ -614,12 +570,12 @@ bool Material_Disney_Clearcoat_Bounce(
     f32 a_g = (1.0f - mat->gloss) * 0.1f + mat->gloss * 0.001f;
 
     // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
-    basis3 normal_basis = vec3_OrthonormalBasis(hit->unitNormal);
-    normal_basis        = (basis3){.x = normal_basis.z, .y = normal_basis.y, .z = normal_basis.x};
+    basis3 normal_to_world = vec3_OrthonormalBasis(hit->unitNormal);
+    basis3 world_to_normal = vec3_OrthonormalBasis_Inverse(normal_to_world);
 
     // TODO: if we make all rays have normalized direction we can remove the vnorm
     vec3 ray_in_dir = vnorm(vmul(-1.0f, ray_in->dir));
-    vec3 w_in       = vec3_Reorient(ray_in_dir, normal_basis);
+    vec3 w_in       = vec3_Reorient(ray_in_dir, world_to_normal);
 
     vec3 w_macronormal = vec(0.0f, 0.0f, 1.0f);
     vec3 w_micronormal = Disney_Clearcoat_SampleNormal(a_g);
@@ -632,12 +588,7 @@ bool Material_Disney_Clearcoat_Bounce(
     Color brdf_color = vec(brdf * inv_pdf, brdf * inv_pdf, brdf * inv_pdf);
 
     // transform w_out into world space
-    basis3 world_basis = (basis3){
-        .x = vec(1.0f, 0.0f, 0.0f),
-        .y = vec(0.0f, 1.0f, 0.0f),
-        .z = vec(0.0f, 0.0f, 1.0f),
-    };
-    vec3 ray_out_dir = vec3_Reorient(w_out, world_basis);
+    vec3 ray_out_dir = vec3_Reorient(w_out, normal_to_world);
 
     *surface_color = brdf_color;
     *emitted_color = COLOR_BLACK;
@@ -671,8 +622,7 @@ intern inline f32 Fresnel_Achromatic_DotProducts(f32 micronormal_dot_in, f32 mic
 
 intern inline f32 Fresnel_Achromatic(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 eta)
 {
-    f32 micronormal_dot_in = vdot(w_micronormal, w_in);
-    // f32 micronormal_dot_out = vdot(vmul(-1.0f, w_micronormal), w_out);
+    f32 micronormal_dot_in  = vdot(w_micronormal, w_in);
     f32 micronormal_dot_out = vdot(w_micronormal, w_out);
 
     return Fresnel_Achromatic_DotProducts(micronormal_dot_in, micronormal_dot_out, eta);
@@ -701,45 +651,24 @@ intern inline f32 G_g1(vec3 w, f32 a_x, f32 a_y)
     return G_m1(w, a_x, a_y);
 }
 
-intern inline f32 G_g2(vec3 w_in, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+intern inline f32 G_g2(vec3 w_in, vec3 w_out, f32 a_x, f32 a_y)
 {
-    return G_m2(w_in, w_out, w_micronormal, a_x, a_y);
+    return G_m2(w_in, w_out, a_x, a_y);
 }
 
-intern inline Color BRDF_Disney_Glass(
-    Color base_color,
-    vec3  w_in,
-    vec3  w_out,
-    vec3  w_micronormal,
-    vec3  w_macronormal,
-    f32   a_x,
-    f32   a_y,
-    f32   eta)
+intern inline Color BRDF_Disney_Glass(Color base_color, vec3 w_out, f32 a_x, f32 a_y, bool reflected)
 {
-    if (vdot(w_macronormal, w_in) * vdot(w_macronormal, w_out) > 0.0f) {
+    if (reflected) {
         // Reflective case
-        f32 f_g = Fresnel_Achromatic(w_in, w_out, w_micronormal, eta);
-        f32 d_g = D_g(w_micronormal, a_x, a_y);
-        f32 g_g = G_g2(w_in, w_out, w_micronormal, a_x, a_y);
+        f32 g_g = G_g1(w_out, a_x, a_y);
 
-        f32 numerator   = f_g * d_g * g_g;
-        f32 denominator = 4.0f * fabsf(vdot(w_macronormal, w_in));
-
-        return vmul(base_color, numerator / denominator);
+        return vmul(base_color, g_g);
     } else {
         // Refractive case
         Color sqrt_color = vec(sqrtf(base_color.r), sqrtf(base_color.g), sqrtf(base_color.b));
-        f32   f_g        = Fresnel_Achromatic(w_in, w_out, w_micronormal, eta);
-        f32   d_g        = D_g(w_micronormal, a_x, a_y);
-        f32   g_g        = G_g2(w_in, w_out, w_micronormal, a_x, a_y);
+        f32   g_g        = G_g1(w_out, a_x, a_y);
 
-        f32 micronormal_dot_out = vdot(w_micronormal, w_out);
-        f32 micronormal_dot_in  = vdot(w_micronormal, w_in);
-
-        f32 numerator   = (1.0f - f_g) * d_g * g_g * fabsf(micronormal_dot_out * micronormal_dot_in);
-        f32 denominator = fabsf(vdot(w_macronormal, w_in)) * POWF(micronormal_dot_in + eta * micronormal_dot_out, 2);
-
-        return vmul(sqrt_color, numerator / denominator);
+        return vmul(sqrt_color, g_g);
     }
 }
 
@@ -751,46 +680,6 @@ intern inline vec3 Disney_Glass_SampleNormal(vec3 w_in, f32 a_x, f32 a_y)
     vec3 w_micronormal = GGXVNDF_Sample(w_in, a_x, a_y, u0, u1);
 
     return w_micronormal;
-}
-
-// TODO: the handling of the macronormal/half vector vs micronormal seems suspicious to me
-intern inline f32 Disney_Glass_SampleNormal_PDF(vec3 w_in, vec3 w_out, vec3 w_macronormal, f32 a_x, f32 a_y, f32 eta)
-{
-    // TODO: we know whether we reflected or not, maybe we should just pass that info in
-    bool reflect = vdot(w_macronormal, w_in) * vdot(w_macronormal, w_out) > 0.0f;
-
-    // Generalized half-vector in the refract case
-    // See "Microfacet Models for Refraction through Rough Surfaces"
-    vec3 w_micronormal = reflect ? HalfVector(w_in, w_out) : vnorm(vadd(w_in, vmul(eta, w_out)));
-
-    // TODO: flip half_vector if below surface?
-    // TODO: might need to clamp roughness to [0.01, 1.0] to avoid numerical precision issues
-
-    f32 f_g  = Fresnel_Achromatic(w_in, w_out, w_micronormal, eta);
-    f32 d_g  = D_g(w_micronormal, a_x, a_y);
-    f32 g_g1 = G_g1(w_in, a_x, a_y);
-
-    if (reflect) {
-        // PDF =
-        // F_g * D_g * G_g1(w_in)
-        // ----------------------
-        //   4.0f * |n . w_in|
-        return (f_g * d_g * g_g1) / (4.0f * fabsf(vdot(w_macronormal, w_in)));
-    } else {
-#if 0
-        f32 h_dot_in   = vdot(w_micronormal, w_in);
-        f32 h_dot_out  = vdot(w_micronormal, w_out);
-        f32 sqrt_denom = h_dot_in + eta * h_dot_out;
-        f32 dh_dout    = eta * eta * h_dot_out / (sqrt_denom * sqrt_denom);
-        // TODO: figure this out so we can do cancellation
-        // PDF = ?
-        return (1.0f - f_g) * d_g * g_g1 * fabsf(dh_dout * h_dot_in / vdot(w_macronormal, w_in));
-#else
-        f32 jacobian
-            = vdot(w_micronormal, w_out) / POWF(eta * vdot(w_micronormal, w_in) + vdot(w_micronormal, w_out), 2);
-        return (1.0f - f_g) * d_g * g_g1 * jacobian / vdot(w_macronormal, w_in);
-#endif
-    }
 }
 
 bool Material_Disney_Glass_Bounce(
@@ -809,60 +698,44 @@ bool Material_Disney_Glass_Bounce(
     f32 a_y    = maxf(a_min, POWF(mat->roughness, 2) * aspect);
 
     // determine what eta should be (material param is internal/external)
-    // TODO: this might be backwards
-    f32 eta = hit->frontFace ? mat->eta : 1.0f / mat->eta;
-
-    // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
-    basis3 normal_basis = vec3_OrthonormalBasis(hit->unitNormal);
-    normal_basis        = (basis3){.x = normal_basis.z, .y = normal_basis.y, .z = normal_basis.x};
+    f32 eta = hit->frontFace ? 1.0f / mat->eta : mat->eta;
 
     // TODO: if we make all rays have normalized direction we can remove the vnorm
-    vec3 ray_in_dir = vnorm(vmul(-1.0f, ray_in->dir));
-    vec3 w_in       = vec3_Reorient(ray_in_dir, normal_basis);
+    vec3 ray_in_dir = vnorm(ray_in->dir);
 
-    vec3 w_macronormal = vec(0.0f, 0.0f, 1.0f);
+    // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
+    basis3 normal_to_world = vec3_OrthonormalBasis(hit->unitNormal);
+    basis3 world_to_normal = vec3_OrthonormalBasis_Inverse(normal_to_world);
+
+    vec3 w_in = vec3_Reorient(vmul(-1.0f, ray_in_dir), world_to_normal);
+
     vec3 w_micronormal = Disney_Glass_SampleNormal(w_in, a_x, a_y);
 
     vec3 w_out;
+    bool reflected;
     // compute w_out (Reflect vs Refract)
     // TODO: review these equations, there's probably some optimization opportunity here, also needs refactoring
     {
-        // TODO: flip micronormal if below surface?
         f32 micronormal_dot_in = vdot(w_micronormal, w_in);
         f32 f_g                = Fresnel_Achromatic_IncidentOnly(micronormal_dot_in, eta);
 
         f32 u2 = Random_Unilateral();
         if (u2 <= f_g) {
-            w_out = vnorm(vadd(vmul(-1.0f, w_in), vmul(2.0f * micronormal_dot_in, w_micronormal)));
+            w_out     = vec3_Reflect(vmul(-1.0f, w_in), w_micronormal);
+            reflected = true;
         } else {
-            // TODO: flip micronormal if below surface?
-#if 1
-            f32 micronormal_dot_out = sqrtf(1.0f - (1.0f - POWF(micronormal_dot_in, 2)) / POWF(eta, 2));
-            w_out                   = vadd(
-                vmul(-1.0f / eta, w_in),
-                vmul((fabsf(micronormal_dot_in) / eta - micronormal_dot_out), w_micronormal));
-#else
-            w_out = vec3_Refract(vmul(-1.0f, w_in), w_micronormal, 1.0f / eta);
-#endif
+            w_out     = vec3_Refract(vmul(-1.0f, w_in), w_micronormal, eta);
+            reflected = false;
         }
     }
 
+    // TODO: is this necessary?
     w_out = vnorm(w_out);
 
-    Color albedo = Texture_ColorAt(mat->albedo, hit->uv);
+    Color albedo     = Texture_ColorAt(mat->albedo, hit->uv);
+    Color brdf_color = BRDF_Disney_Glass(albedo, w_out, a_x, a_y, reflected);
 
-    Color brdf = BRDF_Disney_Glass(albedo, w_in, w_out, w_micronormal, w_macronormal, a_x, a_y, eta);
-    f32   pdf  = Disney_Glass_SampleNormal_PDF(w_in, w_out, w_macronormal, a_x, a_y, eta);
-
-    Color brdf_color = vdiv(brdf, pdf);
-
-    // transform w_out into world space
-    basis3 world_basis = (basis3){
-        .x = vec(1.0f, 0.0f, 0.0f),
-        .y = vec(0.0f, 1.0f, 0.0f),
-        .z = vec(0.0f, 0.0f, 1.0f),
-    };
-    vec3 ray_out_dir = vec3_Reorient(w_out, world_basis);
+    vec3 ray_out_dir = vec3_Reorient(w_out, normal_to_world);
 
     *surface_color = brdf_color;
     *emitted_color = COLOR_BLACK;

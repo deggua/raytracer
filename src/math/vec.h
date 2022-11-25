@@ -176,6 +176,7 @@ vec3 vec3_SphericalToCartesian(vec3 spherical);
 
 vec3   vec3_Reorient(vec3 n, basis3 basis);
 basis3 vec3_OrthonormalBasis(vec3 bx);
+basis3 vec3_OrthonormalBasis_Inverse(basis3 orthonormal_basis);
 
 vec3 vec3_Make(f32 x, f32 y, f32 z);
 
