@@ -100,3 +100,9 @@ Color Color_Desaturate(Color color, f32 desaturation)
 
     return Color_Blend(color, greyscale, desaturation);
 }
+
+// TODO: I think this is correct for linear light, but not sure
+f32 Color_Luminance(Color color)
+{
+    return vmag(color) / vmag(COLOR_WHITE);
+}

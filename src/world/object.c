@@ -110,7 +110,13 @@ bool Material_Bounce(
         } break;
 
         case MATERIAL_DISNEY_SHEEN: {
-            ABORT("Disney Sheen is unimplemented");
+            return Material_Disney_Sheen_Bounce(
+                &material->disney_sheen,
+                rayIn,
+                hit,
+                colorSurface,
+                colorEmitted,
+                rayOut);
         } break;
 
         case MATERIAL_DISNEY_BSDF: {

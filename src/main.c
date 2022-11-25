@@ -98,7 +98,8 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     // g_matMesh = Material_Disney_Glass_Make(texMesh, 0.0f, 0.0f, 1.52f);
     // g_matMesh = Material_Disney_Glass_Make(texMesh, 0.2f, 0.0f, 1.52f);
     // g_matMesh = Material_Disney_Metal_Make(texMesh, 0.0f, 0.0f);
-    g_matMesh = Material_Disney_Clearcoat_Make(1.0f);
+    g_matMesh = Material_Disney_Sheen_Make(texMesh, 1.0f);
+    // g_matMesh = Material_Disney_Clearcoat_Make(1.0f);
 
     Mesh_Set_Material(mesh, &g_matMesh);
     Mesh_Set_Origin(mesh, (point3){0, 0, 1});
@@ -114,7 +115,8 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     /* Shiny Sphere */
     Texture* tex = Texture_New();
     Texture_Import_Color(tex, COLOR_WHITE);
-    g_matMesh = Material_Disney_Glass_Make(tex, 0.2f, 0.0f, 1.54f);
+    g_matMesh = Material_Disney_Sheen_Make(tex, 1.0f);
+    // g_matMesh = Material_Disney_Glass_Make(tex, 0.2f, 0.0f, 1.54f);
     // g_matMesh = Material_Metal_Make(tex, 0.0f);
     // g_matMesh = Material_Dielectric_Make(tex, 1.52f);
     // g_matMesh = Material_Disney_Metal_Make(tex, 0.0f, 0.0f);
@@ -211,7 +213,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Object lightObj;
     lightObj.material         = &g_matLight;
     lightObj.surface.type     = SURFACE_SPHERE;
-    lightObj.surface.sphere.c = (point3){-10, -10, 20.0f};
+    lightObj.surface.sphere.c = (point3){20, 20, 10.0f};
     lightObj.surface.sphere.r = 8.0f;
     Scene_Add_Object(scene, &lightObj);
 #endif

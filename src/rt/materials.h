@@ -81,12 +81,23 @@ typedef struct {
 
 typedef struct {
     Texture* albedo;
-    f32      sheen;
+    f32      sheen_tint;
 } Material_Disney_Sheen;
 
 typedef struct {
     Texture* albedo;
-    // TODO: finish this, seems complicated
+    f32      specular_transmission;
+    f32      metallic;
+    f32      subsurface;
+    f32      specular;
+    f32      roughness;
+    f32      specular_tint;
+    f32      anistropic;
+    f32      sheen;
+    f32      sheen_tint;
+    f32      clearcoat;
+    f32      clearcoat_gloss;
+    f32      eta;
 } Material_Disney_BSDF;
 
 typedef struct {
@@ -160,6 +171,7 @@ Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsur
 Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistropic);
 Material Material_Disney_Clearcoat_Make(f32 gloss);
 Material Material_Disney_Glass_Make(Texture* albedo, f32 roughness, f32 anistropic, f32 eta);
+Material Material_Disney_Sheen_Make(Texture* albedo, f32 sheen_tint);
 
 bool Material_Disney_Diffuse_Bounce(
     Material_Disney_Diffuse* mat,
@@ -187,6 +199,14 @@ bool Material_Disney_Clearcoat_Bounce(
 
 bool Material_Disney_Glass_Bounce(
     Material_Disney_Glass* mat,
+    Ray*                   ray_in,
+    HitInfo*               hit,
+    Color*                 surface_color,
+    Color*                 emitted_color,
+    Ray*                   ray_out);
+
+bool Material_Disney_Sheen_Bounce(
+    Material_Disney_Sheen* mat,
     Ray*                   ray_in,
     HitInfo*               hit,
     Color*                 surface_color,

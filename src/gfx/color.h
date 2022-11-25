@@ -35,3 +35,4 @@ Color Color_BrightenBy(Color color1, Color color2);
 Color Color_Blend(Color color1, Color color2, f32 weight);
 Color Color_FromRGB(RGB rgb);
 Color Color_Tint(Color color1, Color color2);
+f32   Color_Luminance(Color color);

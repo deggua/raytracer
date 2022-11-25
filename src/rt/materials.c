@@ -282,10 +282,8 @@ intern inline vec3 CosWeightedHemisphere_Sample(vec3 unit_normal)
 
     vec3 xyz_normal_space = {cosf(phi) * sin_theta, sinf(phi) * sin_theta, cos_theta};
 
-    basis3 basis = vec3_OrthonormalBasis(unit_normal);
-    basis        = (basis3){.x = basis.z, .y = basis.y, .z = basis.x};
-
-    vec3 xyz_world_space = vec3_Reorient(xyz_normal_space, basis);
+    basis3 normal_to_world = vec3_OrthonormalBasis(unit_normal);
+    vec3   xyz_world_space = vec3_Reorient(xyz_normal_space, normal_to_world);
 
     return xyz_world_space;
 }
@@ -308,6 +306,7 @@ bool Material_Disney_Diffuse_Bounce(
     vec3 w_in  = vmul(-1.0f, vnorm(ray_in->dir));
     vec3 w_out = ray_dir_out;
 
+    // TODO: we can just pre-cancel the PI32 terms in the underlying BRDFs
     Color brdf_diffuse = BRDF_Diffuse(albedo, w_in, w_out, shading_normal, mat->roughness, mat->subsurface);
 
     // since we omit the cos term in the BRDF, we don't need the cos term in the PDF
@@ -740,6 +739,59 @@ bool Material_Disney_Glass_Bounce(
     *surface_color = brdf_color;
     *emitted_color = COLOR_BLACK;
     *ray_out       = Ray_Make(hit->position, ray_out_dir);
+
+    return true;
+}
+
+/* ---- Disney Sheen ---- */
+
+Material Material_Disney_Sheen_Make(Texture* albedo, f32 sheen_tint)
+{
+    return (Material){
+        .type = MATERIAL_DISNEY_SHEEN,
+        .disney_sheen = {
+            .albedo = albedo,
+            .sheen_tint = sheen_tint,
+        },
+    };
+}
+
+intern inline Color C_tint(Color base_color)
+{
+    f32 luminance = Color_Luminance(base_color);
+    return vdiv(base_color, luminance);
+}
+
+intern inline Color C_sheen(Color base_color, f32 sheen_tint)
+{
+    // return vadd(vmul(COLOR_WHITE, (1.0f - sheen_tint)), vmul(sheen_tint, C_tint(base_color)));
+    return vlerp(COLOR_WHITE, C_tint(base_color), sheen_tint);
+}
+
+intern inline Color BRDF_Disney_Sheen(Color base_color, vec3 w_out, vec3 w_micronormal, f32 sheen_tint)
+{
+    return vmul(C_sheen(base_color, sheen_tint), POWF(1.0f - fabsf(vdot(w_micronormal, w_out)), 5));
+}
+
+bool Material_Disney_Sheen_Bounce(
+    Material_Disney_Sheen* mat,
+    Ray*                   ray_in,
+    HitInfo*               hit,
+    Color*                 surface_color,
+    Color*                 emitted_color,
+    Ray*                   ray_out)
+{
+    vec3 w_in          = vnorm(vmul(-1.0, ray_in->dir));
+    vec3 w_out         = CosWeightedHemisphere_Sample(hit->unitNormal);
+    vec3 w_micronormal = HalfVector(w_in, w_out);
+
+    Color albedo     = Texture_ColorAt(mat->albedo, hit->uv);
+    Color brdf_color = BRDF_Disney_Sheen(albedo, w_out, w_micronormal, mat->sheen_tint);
+    f32   inv_pdf    = PI32;
+
+    *surface_color = vmul(brdf_color, inv_pdf);
+    *emitted_color = COLOR_BLACK;
+    *ray_out       = Ray_Make(hit->position, w_out);
 
     return true;
 }
