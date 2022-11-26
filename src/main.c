@@ -118,7 +118,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
     g_mats[0] = Material_Disney_Diffuse_Make(tex, 0.4f, 1.0f);
     g_mats[1] = Material_Disney_Metal_Make(tex, 0.0f, 0.0f);
-    g_mats[2] = Material_Disney_Clearcoat_Make(1.0f);
+    g_mats[2] = Material_Disney_Clearcoat_Make(0.0f);
     g_mats[3] = Material_Disney_Glass_Make(tex, 0.2f, 0.0f, 1.54f);
     g_mats[4] = Material_Disney_Sheen_Make(tex, 1.0f);
 
@@ -136,7 +136,49 @@ intern void FillScene(Scene* scene, Skybox* skybox)
         Scene_Add_Object(scene, &sphere);
     }
 
-    g_mats[5] = Material_Disney_BSDF_Make(tex, 0.0f, 0.8f, 0.1f, 0.3f, 0.2f, 0.0f, 0.0f, 0.1f, 0.3f, 1.0f, 1.0f);
+    struct {
+        f32 subsurface;
+        f32 specular;
+        f32 roughness;
+        f32 specular_tint;
+        f32 anistropic;
+        f32 sheen_tint;
+        f32 clearcoat_gloss;
+        f32 eta;
+        f32 weight_sheen;
+        f32 weight_clearcoat;
+        f32 weight_metallic;
+        f32 weight_specular;
+    } args = {
+        .subsurface       = 0.0f,
+        .specular         = 1.0f,
+        .roughness        = 0.0f,
+        .specular_tint    = 1.0f,
+        .anistropic       = 0.0f,
+        .sheen_tint       = 0.0f,
+        .clearcoat_gloss  = 1.0f,
+        .eta              = 1.52f,
+        .weight_sheen     = 0.0f,
+        .weight_clearcoat = 0.0f,
+        .weight_metallic  = 0.5f,
+        .weight_specular  = 1.0f,
+    };
+
+    g_mats[5] = Material_Disney_BSDF_Make(
+        tex,
+        args.subsurface,
+        args.specular,
+        args.roughness,
+        args.specular_tint,
+        args.anistropic,
+        args.sheen_tint,
+        args.clearcoat_gloss,
+        args.eta,
+        args.weight_sheen,
+        args.weight_clearcoat,
+        args.specular,
+        args.weight_metallic);
+
     Object sphere = {
         .material = &g_mats[5],
         .surface = {

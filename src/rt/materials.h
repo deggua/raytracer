@@ -151,6 +151,7 @@ Material Material_Disney_BSDF_Make(
     f32      anistropic,
     f32      sheen_tint,
     f32      clearcoat_gloss,
+    f32      eta,
     f32      weight_sheen,
     f32      weight_clearcoat,
     f32      weight_specular,

@@ -26,13 +26,6 @@
 // #define inline __attribute__((always_inline))
 #define noinline __attribute__((noinline))
 
-// TODO: check what this does in GDB, if it doesn't trigger a breakpoint at the abort call, use int3 or equiv
-#define ABORT(msg, ...)                                                                                  \
-    do {                                                                                                 \
-        fprintf(stderr, "Aborted @ %s:%s:%d :: " msg "\n", __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
-        abort();                                                                                         \
-    } while (0)
-
 #define OPTIMIZE_UNREACHABLE __builtin_unreachable()
 #define OPTIMIZE_ASSUME(expr)     \
     do {                          \
@@ -46,18 +39,25 @@
 #    define DEBUG_PRINT(...)
 #endif
 
+// TODO: check what this does in GDB, if it doesn't trigger a breakpoint at the abort call, use int3 or equiv
+#define ABORT(msg, ...)                                                                                  \
+    do {                                                                                                 \
+        fprintf(stderr, "Aborted @ %s:%s:%d :: " msg "\n", __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
+        abort();                                                                                         \
+    } while (0)
+
 // TODO: overload, 2+ args provides msg
-#define ASSERT(cond)                                 \
-    do {                                             \
-        if (!(cond)) {                               \
-            fprintf(                                 \
-                stderr,                              \
-                "\n\nAssertion failed (%s:%s:%d):\n" \
-                "%s\n\n",                            \
-                __FILE__,                            \
-                __func__,                            \
-                __LINE__,                            \
-                #cond);                              \
-            asm volatile("int3");                    \
-        }                                            \
+#define ASSERT(cond)                                   \
+    do {                                               \
+        if (!(cond)) {                                 \
+            fprintf(                                   \
+                stderr,                                \
+                "\n\nAssertion failed @ %s:%s:%d ::\n" \
+                "%s\n\n",                              \
+                __FILE__,                              \
+                __func__,                              \
+                __LINE__,                              \
+                #cond);                                \
+            asm volatile("int3");                      \
+        }                                              \
     } while (0)

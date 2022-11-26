@@ -229,7 +229,7 @@ intern inline f32 F_D(vec3 w, vec3 shading_normal, f32 f_d90)
     return 1.0f + (f_d90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
 }
 
-intern inline Color BRDF_BaseDiffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
+intern inline Color BRDF_Disney_BaseDiffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
 {
     vec3 half_vector = HalfVector(w_in, w_out);
     f32  f_d90       = F_D90(w_out, half_vector, roughness);
@@ -247,7 +247,7 @@ intern inline f32 F_SS(vec3 w, vec3 shading_normal, f32 f_ss90)
     return 1.0f + (f_ss90 - 1.0f) * POWF(1.0f - fabsf(vdot(shading_normal, w)), 5);
 }
 
-intern inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
+intern inline Color BRDF_Disney_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness)
 {
     vec3 half_vector = HalfVector(w_in, w_out);
     f32  f_ss90      = F_SS90(w_out, half_vector, roughness);
@@ -266,8 +266,8 @@ intern inline Color BRDF_Subsurface(Color base_color, vec3 w_in, vec3 w_out, vec
 intern inline Color
 BRDF_Diffuse(Color base_color, vec3 w_in, vec3 w_out, vec3 shading_normal, f32 roughness, f32 subsurface)
 {
-    Color brdf_base_diffuse = BRDF_BaseDiffuse(base_color, w_in, w_out, shading_normal, roughness);
-    Color brdf_subsurface   = BRDF_Subsurface(base_color, w_in, w_out, shading_normal, roughness);
+    Color brdf_base_diffuse = BRDF_Disney_BaseDiffuse(base_color, w_in, w_out, shading_normal, roughness);
+    Color brdf_subsurface   = BRDF_Disney_Subsurface(base_color, w_in, w_out, shading_normal, roughness);
     return vlerp(brdf_base_diffuse, brdf_subsurface, subsurface);
 }
 
@@ -328,9 +328,10 @@ Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistrop
     return (Material){
         .type = MATERIAL_DISNEY_METAL,
         .disney = {
-            .albedo = albedo,
-            .roughness = roughness,
-            .anistropic = anistropic,
+            .albedo           = albedo,
+            .roughness        = roughness,
+            .anistropic       = anistropic,
+            .weights.metallic = 1.0f,
         },
     };
 }
@@ -366,9 +367,41 @@ intern inline f32 G_m2(vec3 w_in, vec3 w_out, f32 a_x, f32 a_y)
     return G_m1(w_in, a_x, a_y) * G_m1(w_out, a_x, a_y);
 }
 
-intern inline Color BRDF_Disney_Metal(Color base_color, vec3 w_out, vec3 w_micronormal, f32 a_x, f32 a_y)
+intern inline f32 R_0(f32 eta)
 {
-    Color f_m = Fresnel_Schlick_Chromatic(base_color, vdot(w_out, w_micronormal));
+    return POWF(eta - 1.0f, 2) / POWF(eta + 1.0f, 2);
+}
+
+intern inline Color C_0(Color base_color, Color k_s, f32 metallic, f32 specular, f32 eta)
+{
+    return vlerp(vmul(k_s, specular * R_0(eta)), base_color, metallic);
+}
+
+intern inline Color K_s(Color c_tint, f32 specular_tint)
+{
+    return vlerp(COLOR_WHITE, c_tint, specular_tint);
+}
+
+intern inline Color C_tint(Color base_color)
+{
+    f32 luminance = Color_Luminance(base_color);
+    return vdiv(base_color, luminance);
+}
+
+intern inline Color BRDF_Disney_Metal(
+    Color base_color,
+    vec3  w_out,
+    vec3  w_micronormal,
+    f32   metallic,
+    f32   specular,
+    f32   specular_tint,
+    f32   a_x,
+    f32   a_y,
+    f32   eta)
+{
+    Color k_s = K_s(C_tint(base_color), specular_tint);
+    Color c_0 = C_0(base_color, k_s, metallic, specular, eta);
+    Color f_m = Fresnel_Schlick_Chromatic(c_0, vdot(w_out, w_micronormal));
     f32   g_m = G_m1(w_out, a_x, a_y);
 
     return vmul(f_m, g_m);
@@ -437,7 +470,16 @@ bool Material_Disney_Metal_Bounce(
     vec3 w_out = vnorm(vec3_Reflect(vmul(-1.0f, w_in), w_micronormal));
 
     Color albedo = Texture_ColorAt(mat->albedo, hit->uv);
-    Color brdf   = BRDF_Disney_Metal(albedo, w_out, w_micronormal, a_x, a_y);
+    Color brdf   = BRDF_Disney_Metal(
+        albedo,
+        w_out,
+        w_micronormal,
+        mat->weights.metallic,
+        mat->specular,
+        mat->specular_tint,
+        a_x,
+        a_y,
+        mat->eta);
 
     // transform w_out into world space
     vec3 ray_out_dir = vec3_Reorient(w_out, normal_to_world);
@@ -749,12 +791,6 @@ Material Material_Disney_Sheen_Make(Texture* albedo, f32 sheen_tint)
     };
 }
 
-intern inline Color C_tint(Color base_color)
-{
-    f32 luminance = Color_Luminance(base_color);
-    return vdiv(base_color, luminance);
-}
-
 intern inline Color C_sheen(Color base_color, f32 sheen_tint)
 {
     // return vadd(vmul(COLOR_WHITE, (1.0f - sheen_tint)), vmul(sheen_tint, C_tint(base_color)));
@@ -800,6 +836,7 @@ Material Material_Disney_BSDF_Make(
     f32      anistropic,
     f32      sheen_tint,
     f32      clearcoat_gloss,
+    f32      eta,
     f32      weight_sheen,
     f32      weight_clearcoat,
     f32      weight_specular,
@@ -816,6 +853,7 @@ Material Material_Disney_BSDF_Make(
             .anistropic      = anistropic,
             .sheen_tint      = sheen_tint,
             .clearcoat_gloss = clearcoat_gloss,
+            .eta             = eta,
 
             .weights = {
                 .clearcoat = weight_clearcoat,
