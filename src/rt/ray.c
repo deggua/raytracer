@@ -3,6 +3,7 @@
 Ray Ray_Make(point3 origin, vec3 dir)
 {
     vec3 unit = {1.0f, 1.0f, 1.0f};
+    dir       = vnorm(dir);
 
     return (Ray) {
         .origin = origin,

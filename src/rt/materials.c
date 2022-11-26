@@ -71,7 +71,7 @@ bool Material_Metal_Bounce(
 {
     // TODO: do we need to do the face fix thing on the hit normal? I'm guessing we do because otherwise the reflect
     // may be be backwards, atm we always make the normal point against
-    vec3 reflected = vec3_Reflect(vnorm(rayIn->dir), hit->unitNormal);
+    vec3 reflected = vec3_Reflect(rayIn->dir, hit->unitNormal);
     vec3 fuzz      = vmul(Random_OnSphere(1.0f), metal->fuzz);
 
     *colorSurface = Texture_ColorAt(metal->albedo, hit->uv);
@@ -113,7 +113,7 @@ bool Material_Dielectric_Bounce(
 {
     f32 refractionRatio = hit->frontFace ? (1.0f / diel->refactiveIndex) : diel->refactiveIndex;
 
-    vec3 normRayDir = vnorm(rayIn->dir);
+    vec3 normRayDir = rayIn->dir;
     f32  cosTheta   = fminf(vdot(vmul(normRayDir, -1), hit->unitNormal), 1.0f);
     f32  sinTheta   = sqrtf(1.0f - cosTheta * cosTheta);
 
@@ -206,7 +206,7 @@ Material Material_Disney_Diffuse_Make(Texture* albedo, f32 roughness, f32 subsur
 {
     return (Material){
         .type = MATERIAL_DISNEY_DIFFUSE,
-        .disney_diffuse = {
+        .disney = {
             .albedo = albedo,
             .roughness = roughness,
             .subsurface = subsurface,
@@ -289,12 +289,12 @@ intern inline vec3 CosWeightedHemisphere_Sample(vec3 unit_normal)
 }
 
 bool Material_Disney_Diffuse_Bounce(
-    Material_Disney_Diffuse* mat,
-    Ray*                     ray_in,
-    HitInfo*                 hit,
-    Color*                   surface_color,
-    Color*                   emitted_color,
-    Ray*                     ray_out)
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out)
 {
     // generate sample vector
     vec3 ray_dir_out = CosWeightedHemisphere_Sample(hit->unitNormal);
@@ -303,7 +303,7 @@ bool Material_Disney_Diffuse_Bounce(
     Color albedo         = Texture_ColorAt(mat->albedo, hit->uv);
 
     // w_in should point from the surface to the observer
-    vec3 w_in  = vmul(-1.0f, vnorm(ray_in->dir));
+    vec3 w_in  = vmul(-1.0f, ray_in->dir);
     vec3 w_out = ray_dir_out;
 
     // TODO: we can just pre-cancel the PI32 terms in the underlying BRDFs
@@ -327,7 +327,7 @@ Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistrop
 {
     return (Material){
         .type = MATERIAL_DISNEY_METAL,
-        .disney_metal = {
+        .disney = {
             .albedo = albedo,
             .roughness = roughness,
             .anistropic = anistropic,
@@ -411,12 +411,12 @@ intern inline vec3 Disney_Metal_SampleNormal(vec3 w_in, f32 a_x, f32 a_y)
 }
 
 bool Material_Disney_Metal_Bounce(
-    Material_Disney_Metal* mat,
-    Ray*                   ray_in,
-    HitInfo*               hit,
-    Color*                 surface_color,
-    Color*                 emitted_color,
-    Ray*                   ray_out)
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out)
 {
     // convert material parameters to a_x and a_y
     // TODO: no reason to do this on the fly, could be precomputed
@@ -429,10 +429,7 @@ bool Material_Disney_Metal_Bounce(
     basis3 normal_to_world = vec3_OrthonormalBasis(hit->unitNormal);
     basis3 world_to_normal = vec3_OrthonormalBasis_Inverse(normal_to_world);
 
-    // TODO: Maybe we should consider making any Ray_Make call emit a normalized direction vector,
-    // should be more efficient to do it when creating the ray vs on material bounce
-    // (I think, esp. if many materials need it normalized anyway)
-    vec3 ray_in_dir = vnorm(vmul(-1.0f, ray_in->dir));
+    vec3 ray_in_dir = vmul(-1.0f, ray_in->dir);
     vec3 w_in       = vec3_Reorient(ray_in_dir, world_to_normal);
 
     vec3 w_micronormal = Disney_Metal_SampleNormal(w_in, a_x, a_y);
@@ -458,8 +455,8 @@ Material Material_Disney_Clearcoat_Make(f32 gloss)
 {
     return (Material){
         .type = MATERIAL_DISNEY_CLEARCOAT,
-        .disney_clearcoat = {
-            .gloss = gloss,
+        .disney = {
+            .clearcoat_gloss = gloss,
         },
     };
 }
@@ -530,7 +527,8 @@ intern inline vec3 Disney_Clearcoat_SampleNormal(f32 a_g)
     f32 a_g_2 = POWF(a_g, 2);
 
     f32 cos_h_elev = sqrtf((1.0f - powf(a_g_2, 1.0f - u_0)) / (1.0f - a_g_2));
-    f32 h_azi      = 2.0f * PI32 * u_1;
+    ASSERT(cos_h_elev >= 0.0f);
+    f32 h_azi = 2.0f * PI32 * u_1;
 
     f32 sin_h_elev = sqrtf(1.0f - POWF(cos_h_elev, 2));
     f32 cos_h_azi  = cosf(h_azi);
@@ -557,23 +555,22 @@ intern inline f32 Disney_Clearcoat_SampleNormal_InvPDF(vec3 w_out, vec3 w_micron
 }
 
 bool Material_Disney_Clearcoat_Bounce(
-    Material_Disney_Clearcoat* mat,
-    Ray*                       ray_in,
-    HitInfo*                   hit,
-    Color*                     surface_color,
-    Color*                     emitted_color,
-    Ray*                       ray_out)
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out)
 {
     // convert material param to a_g
     // TODO: no reason to do this on the fly, could be precomputed
-    f32 a_g = (1.0f - mat->gloss) * 0.1f + mat->gloss * 0.001f;
+    f32 a_g = (1.0f - mat->clearcoat_gloss) * 0.1f + mat->clearcoat_gloss * 0.001f;
 
     // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
     basis3 normal_to_world = vec3_OrthonormalBasis(hit->unitNormal);
     basis3 world_to_normal = vec3_OrthonormalBasis_Inverse(normal_to_world);
 
-    // TODO: if we make all rays have normalized direction we can remove the vnorm
-    vec3 ray_in_dir = vnorm(vmul(-1.0f, ray_in->dir));
+    vec3 ray_in_dir = vmul(-1.0f, ray_in->dir);
     vec3 w_in       = vec3_Reorient(ray_in_dir, world_to_normal);
 
     vec3 w_macronormal = vec(0.0f, 0.0f, 1.0f);
@@ -602,7 +599,7 @@ Material Material_Disney_Glass_Make(Texture* albedo, f32 roughness, f32 anistrop
 {
     return (Material){
         .type = MATERIAL_DISNEY_GLASS,
-        .disney_glass = {
+        .disney = {
             .albedo = albedo,
             .roughness = roughness,
             .anistropic = anistropic,
@@ -682,12 +679,12 @@ intern inline vec3 Disney_Glass_SampleNormal(vec3 w_in, f32 a_x, f32 a_y)
 }
 
 bool Material_Disney_Glass_Bounce(
-    Material_Disney_Glass* mat,
-    Ray*                   ray_in,
-    HitInfo*               hit,
-    Color*                 surface_color,
-    Color*                 emitted_color,
-    Ray*                   ray_out)
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out)
 {
     // convert material parameters to a_x and a_y
     // TODO: no reason to do this on the fly, could be precomputed
@@ -699,14 +696,11 @@ bool Material_Disney_Glass_Bounce(
     // determine what eta should be (material param is internal/external)
     f32 eta = hit->frontFace ? 1.0f / mat->eta : mat->eta;
 
-    // TODO: if we make all rays have normalized direction we can remove the vnorm
-    vec3 ray_in_dir = vnorm(ray_in->dir);
-
     // everything is done in a reference frame where the normal is <0, 0, 1> to make things simple
     basis3 normal_to_world = vec3_OrthonormalBasis(hit->unitNormal);
     basis3 world_to_normal = vec3_OrthonormalBasis_Inverse(normal_to_world);
 
-    vec3 w_in = vec3_Reorient(vmul(-1.0f, ray_in_dir), world_to_normal);
+    vec3 w_in = vec3_Reorient(vmul(-1.0f, ray_in->dir), world_to_normal);
 
     vec3 w_micronormal = Disney_Glass_SampleNormal(w_in, a_x, a_y);
 
@@ -749,7 +743,7 @@ Material Material_Disney_Sheen_Make(Texture* albedo, f32 sheen_tint)
 {
     return (Material){
         .type = MATERIAL_DISNEY_SHEEN,
-        .disney_sheen = {
+        .disney = {
             .albedo = albedo,
             .sheen_tint = sheen_tint,
         },
@@ -774,14 +768,14 @@ intern inline Color BRDF_Disney_Sheen(Color base_color, vec3 w_out, vec3 w_micro
 }
 
 bool Material_Disney_Sheen_Bounce(
-    Material_Disney_Sheen* mat,
-    Ray*                   ray_in,
-    HitInfo*               hit,
-    Color*                 surface_color,
-    Color*                 emitted_color,
-    Ray*                   ray_out)
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out)
 {
-    vec3 w_in          = vnorm(vmul(-1.0, ray_in->dir));
+    vec3 w_in          = vmul(-1.0, ray_in->dir);
     vec3 w_out         = CosWeightedHemisphere_Sample(hit->unitNormal);
     vec3 w_micronormal = HalfVector(w_in, w_out);
 
@@ -794,4 +788,101 @@ bool Material_Disney_Sheen_Bounce(
     *ray_out       = Ray_Make(hit->position, w_out);
 
     return true;
+}
+
+/* ---- Disney BSDF ---- */
+
+Material Material_Disney_BSDF_Make(
+    Texture* albedo,
+    f32      subsurface,
+    f32      specular,
+    f32      roughness,
+    f32      specular_tint,
+    f32      anistropic,
+    f32      sheen_tint,
+    f32      clearcoat_gloss,
+    f32      weight_sheen,
+    f32      weight_clearcoat,
+    f32      weight_specular,
+    f32      weight_metallic)
+{
+    return (Material){
+        .type = MATERIAL_DISNEY_BSDF,
+        .disney = {
+            .albedo          = albedo,
+            .subsurface      = subsurface,
+            .specular        = specular,
+            .roughness       = roughness,
+            .specular_tint   = specular_tint,
+            .anistropic      = anistropic,
+            .sheen_tint      = sheen_tint,
+            .clearcoat_gloss = clearcoat_gloss,
+
+            .weights = {
+                .clearcoat = weight_clearcoat,
+                .sheen     = weight_sheen,
+                .metallic  = weight_metallic,
+                .specular  = weight_specular,
+            },
+        },
+    };
+}
+
+bool Material_Disney_BSDF_Bounce(
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out)
+{
+    // TODO: this could be precomputed
+    f32 weight_diffuse, weight_sheen, weight_metal, weight_clearcoat, weight_glass;
+    if (hit->frontFace) {
+        weight_diffuse   = (1.0f - mat->weights.specular_transmission) * (1.0f - mat->weights.metallic);
+        weight_sheen     = (1.0f - mat->weights.metallic) * mat->weights.sheen;
+        weight_metal     = (1.0f - mat->weights.specular_transmission * (1.0f - mat->weights.metallic));
+        weight_clearcoat = 0.25f * mat->weights.clearcoat;
+        weight_glass     = (1.0f - mat->weights.metallic) * mat->weights.specular_transmission;
+    } else {
+        weight_diffuse   = 0.0f;
+        weight_sheen     = 0.0f;
+        weight_metal     = 0.0f;
+        weight_clearcoat = 0.0f;
+        weight_glass     = (1.0f - mat->weights.metallic) * mat->weights.specular_transmission;
+    }
+
+    f32 total_weight = weight_diffuse + weight_sheen + weight_metal + weight_clearcoat + weight_glass;
+    f32 sel_interval = Random_Unilateral() * total_weight;
+
+    typedef struct {
+        f32 lower, upper;
+    } RngInterval;
+
+    RngInterval diffuse   = {0.0f, weight_diffuse};
+    RngInterval sheen     = {diffuse.upper, diffuse.upper + weight_sheen};
+    RngInterval metal     = {sheen.upper, sheen.upper + weight_metal};
+    RngInterval clearcoat = {metal.upper, metal.upper + weight_clearcoat};
+    RngInterval glass     = {clearcoat.upper, clearcoat.upper + weight_glass};
+
+    if (diffuse.lower <= sel_interval && sel_interval < diffuse.upper) {
+        return Material_Disney_Diffuse_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
+    } else if (sheen.lower <= sel_interval && sel_interval < sheen.upper) {
+        return Material_Disney_Sheen_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
+    } else if (metal.lower <= sel_interval && sel_interval < metal.upper) {
+        // TODO: this needs the modified fresnel term, figure out how to incorporate
+        return Material_Disney_Metal_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
+    } else if (clearcoat.lower <= sel_interval && sel_interval < clearcoat.upper) {
+        return Material_Disney_Clearcoat_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
+    } else if (glass.lower <= sel_interval && sel_interval < glass.upper) {
+        return Material_Disney_Glass_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
+    } else {
+        // FIXME: This seems to happen because incident rays that are almost tangent are able to
+        // produce reflected rays that are below the surface. This doesn't seem correct.
+        // This case is only possible when specular_transmission is 0 and the ray is inside the object
+        // which shouldn't be possible (as far as I can tell) but happens because of the above bug
+        *surface_color = COLOR_BLACK;
+        *emitted_color = COLOR_BLACK;
+        return false;
+    }
 }

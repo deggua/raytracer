@@ -39,3 +39,25 @@
         if (!(expr))              \
             OPTIMIZE_UNREACHABLE; \
     } while (0)
+
+#if !defined(NDEBUG)
+#    define DEBUG_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#    define DEBUG_PRINT(...)
+#endif
+
+// TODO: overload, 2+ args provides msg
+#define ASSERT(cond)                                 \
+    do {                                             \
+        if (!(cond)) {                               \
+            fprintf(                                 \
+                stderr,                              \
+                "\n\nAssertion failed (%s:%s:%d):\n" \
+                "%s\n\n",                            \
+                __FILE__,                            \
+                __func__,                            \
+                __LINE__,                            \
+                #cond);                              \
+            asm volatile("int3");                    \
+        }                                            \
+    } while (0)

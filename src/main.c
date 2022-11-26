@@ -80,7 +80,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
 
-#elif 1
+#elif 0
 
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
@@ -111,23 +111,40 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
     Mesh_Delete(mesh);
 
-#elif 0
-    /* Shiny Sphere */
+#elif 1
+    /* Spheres */
     Texture* tex = Texture_New();
     Texture_Import_Color(tex, COLOR_WHITE);
-    g_matMesh = Material_Disney_Sheen_Make(tex, 1.0f);
-    // g_matMesh = Material_Disney_Glass_Make(tex, 0.2f, 0.0f, 1.54f);
-    // g_matMesh = Material_Metal_Make(tex, 0.0f);
-    // g_matMesh = Material_Dielectric_Make(tex, 1.52f);
-    // g_matMesh = Material_Disney_Metal_Make(tex, 0.0f, 0.0f);
-    // g_matMesh = Material_Disney_Clearcoat_Make(1.0f);
 
+    g_mats[0] = Material_Disney_Diffuse_Make(tex, 0.4f, 1.0f);
+    g_mats[1] = Material_Disney_Metal_Make(tex, 0.0f, 0.0f);
+    g_mats[2] = Material_Disney_Clearcoat_Make(1.0f);
+    g_mats[3] = Material_Disney_Glass_Make(tex, 0.2f, 0.0f, 1.54f);
+    g_mats[4] = Material_Disney_Sheen_Make(tex, 1.0f);
+
+    for (int64_t ii = 0; ii < 5; ii++) {
+        Object sphere = {
+            .obj_name = "NULL",
+            .material = &g_mats[ii],
+            .surface = {
+                .type = SURFACE_SPHERE,
+                .sphere = {
+                    .r = 5.0f,
+                    .c = (point3){-24 + 12 * ii, 10, 6},
+                },
+            },
+        };
+        Scene_Add_Object(scene, &sphere);
+    }
+
+    g_mats[5] = Material_Disney_BSDF_Make(tex, 0.0f, 0.8f, 0.1f, 0.3f, 0.2f, 0.0f, 0.0f, 0.1f, 0.3f, 1.0f, 1.0f);
     Object sphere = {
-        .material = &g_matMesh,
+        .obj_name = "special",
+        .material = &g_mats[5],
         .surface = {
             .type = SURFACE_SPHERE,
             .sphere = {
-                .r = 6.0f,
+                .r = 5.0f,
                 .c = (point3){0, 0, 6},
             },
         },
@@ -242,7 +259,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
 int main(int argc, char** argv)
 {
-    point3 lookFrom    = (point3){20, -20, 20};
+    point3 lookFrom    = (point3){0, -20, 20};
     point3 lookAt      = (point3){0, 0, 6};
     vec3   vup         = (vec3){0, 0, 1};
     f32    focusDist   = vmag(vsub(lookFrom, lookAt));

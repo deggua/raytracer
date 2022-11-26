@@ -10,7 +10,6 @@
 -Wno-language-extension-token
 -Wno-keyword-macro
 -Wno-unused-function
--Wno-multichar
 -Wno-missing-braces
 
 -march=native

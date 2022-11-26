@@ -70,57 +70,27 @@ bool Material_Bounce(
         } break;
 
         case MATERIAL_DISNEY_DIFFUSE: {
-            return Material_Disney_Diffuse_Bounce(
-                &material->disney_diffuse,
-                rayIn,
-                hit,
-                colorSurface,
-                colorEmitted,
-                rayOut);
+            return Material_Disney_Diffuse_Bounce(&material->disney, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_DISNEY_METAL: {
-            return Material_Disney_Metal_Bounce(
-                &material->disney_metal,
-                rayIn,
-                hit,
-                colorSurface,
-                colorEmitted,
-                rayOut);
+            return Material_Disney_Metal_Bounce(&material->disney, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_DISNEY_GLASS: {
-            return Material_Disney_Glass_Bounce(
-                &material->disney_glass,
-                rayIn,
-                hit,
-                colorSurface,
-                colorEmitted,
-                rayOut);
+            return Material_Disney_Glass_Bounce(&material->disney, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_DISNEY_CLEARCOAT: {
-            return Material_Disney_Clearcoat_Bounce(
-                &material->disney_clearcoat,
-                rayIn,
-                hit,
-                colorSurface,
-                colorEmitted,
-                rayOut);
+            return Material_Disney_Clearcoat_Bounce(&material->disney, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_DISNEY_SHEEN: {
-            return Material_Disney_Sheen_Bounce(
-                &material->disney_sheen,
-                rayIn,
-                hit,
-                colorSurface,
-                colorEmitted,
-                rayOut);
+            return Material_Disney_Sheen_Bounce(&material->disney, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
 
         case MATERIAL_DISNEY_BSDF: {
-            ABORT("Disney BSDF is unimplemented");
+            return Material_Disney_BSDF_Bounce(&material->disney, rayIn, hit, colorSurface, colorEmitted, rayOut);
         } break;
     }
 

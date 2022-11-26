@@ -58,46 +58,21 @@ typedef struct {
 
 typedef struct {
     Texture* albedo;
-    f32      roughness;
-    f32      subsurface;
-} Material_Disney_Diffuse;
-
-typedef struct {
-    Texture* albedo;
-    f32      roughness;
-    f32      anistropic;
-} Material_Disney_Metal;
-
-typedef struct {
-    Texture* albedo;
-    f32      roughness;
-    f32      anistropic;
-    f32      eta; // Internal_IOR / External_IOR (looks like n in the formula)
-} Material_Disney_Glass;
-
-typedef struct {
-    f32 gloss;
-} Material_Disney_Clearcoat;
-
-typedef struct {
-    Texture* albedo;
-    f32      sheen_tint;
-} Material_Disney_Sheen;
-
-typedef struct {
-    Texture* albedo;
-    f32      specular_transmission;
-    f32      metallic;
     f32      subsurface;
     f32      specular;
     f32      roughness;
     f32      specular_tint;
     f32      anistropic;
-    f32      sheen;
     f32      sheen_tint;
-    f32      clearcoat;
     f32      clearcoat_gloss;
-    f32      eta;
+    f32      eta; // Internal_IOR / External_IOR
+
+    struct {
+        f32 clearcoat;
+        f32 sheen;
+        f32 metallic;
+        f32 specular;
+    } weights;
 } Material_Disney_BSDF;
 
 typedef struct {
@@ -110,12 +85,7 @@ typedef struct {
         Material_DiffuseLight diffuse_light;
         Material_Skybox       skybox;
 
-        Material_Disney_Diffuse   disney_diffuse;
-        Material_Disney_Metal     disney_metal;
-        Material_Disney_Glass     disney_glass;
-        Material_Disney_Clearcoat disney_clearcoat;
-        Material_Disney_Sheen     disney_sheen;
-        Material_Disney_BSDF      disney_bsdf;
+        Material_Disney_BSDF disney;
     };
 } Material;
 
@@ -172,43 +142,64 @@ Material Material_Disney_Metal_Make(Texture* albedo, f32 roughness, f32 anistrop
 Material Material_Disney_Clearcoat_Make(f32 gloss);
 Material Material_Disney_Glass_Make(Texture* albedo, f32 roughness, f32 anistropic, f32 eta);
 Material Material_Disney_Sheen_Make(Texture* albedo, f32 sheen_tint);
+Material Material_Disney_BSDF_Make(
+    Texture* albedo,
+    f32      specular_transmission,
+    f32      metallic,
+    f32      subsurface,
+    f32      specular,
+    f32      roughness,
+    f32      specular_tint,
+    f32      anistropic,
+    f32      sheen,
+    f32      sheen_tint,
+    f32      clearcoat,
+    f32      clearcoat_gloss);
 
 bool Material_Disney_Diffuse_Bounce(
-    Material_Disney_Diffuse* mat,
-    Ray*                     ray_in,
-    HitInfo*                 hit,
-    Color*                   surface_color,
-    Color*                   emitted_color,
-    Ray*                     ray_out);
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out);
 
 bool Material_Disney_Metal_Bounce(
-    Material_Disney_Metal* mat,
-    Ray*                   ray_in,
-    HitInfo*               hit,
-    Color*                 surface_color,
-    Color*                 emitted_color,
-    Ray*                   ray_out);
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out);
 
 bool Material_Disney_Clearcoat_Bounce(
-    Material_Disney_Clearcoat* mat,
-    Ray*                       ray_in,
-    HitInfo*                   hit,
-    Color*                     surface_color,
-    Color*                     emitted_color,
-    Ray*                       ray_out);
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out);
 
 bool Material_Disney_Glass_Bounce(
-    Material_Disney_Glass* mat,
-    Ray*                   ray_in,
-    HitInfo*               hit,
-    Color*                 surface_color,
-    Color*                 emitted_color,
-    Ray*                   ray_out);
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out);
 
 bool Material_Disney_Sheen_Bounce(
-    Material_Disney_Sheen* mat,
-    Ray*                   ray_in,
-    HitInfo*               hit,
-    Color*                 surface_color,
-    Color*                 emitted_color,
-    Ray*                   ray_out);
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out);
+
+bool Material_Disney_BSDF_Bounce(
+    Material_Disney_BSDF* mat,
+    Ray*                  ray_in,
+    HitInfo*              hit,
+    Color*                surface_color,
+    Color*                emitted_color,
+    Ray*                  ray_out);
