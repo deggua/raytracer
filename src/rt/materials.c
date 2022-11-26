@@ -527,8 +527,7 @@ intern inline vec3 Disney_Clearcoat_SampleNormal(f32 a_g)
     f32 a_g_2 = POWF(a_g, 2);
 
     f32 cos_h_elev = sqrtf((1.0f - powf(a_g_2, 1.0f - u_0)) / (1.0f - a_g_2));
-    ASSERT(cos_h_elev >= 0.0f);
-    f32 h_azi = 2.0f * PI32 * u_1;
+    f32 h_azi      = 2.0f * PI32 * u_1;
 
     f32 sin_h_elev = sqrtf(1.0f - POWF(cos_h_elev, 2));
     f32 cos_h_azi  = cosf(h_azi);
@@ -839,17 +838,17 @@ bool Material_Disney_BSDF_Bounce(
     // TODO: this could be precomputed
     f32 weight_diffuse, weight_sheen, weight_metal, weight_clearcoat, weight_glass;
     if (hit->frontFace) {
-        weight_diffuse   = (1.0f - mat->weights.specular_transmission) * (1.0f - mat->weights.metallic);
+        weight_diffuse   = (1.0f - mat->weights.specular) * (1.0f - mat->weights.metallic);
         weight_sheen     = (1.0f - mat->weights.metallic) * mat->weights.sheen;
-        weight_metal     = (1.0f - mat->weights.specular_transmission * (1.0f - mat->weights.metallic));
+        weight_metal     = (1.0f - mat->weights.specular * (1.0f - mat->weights.metallic));
         weight_clearcoat = 0.25f * mat->weights.clearcoat;
-        weight_glass     = (1.0f - mat->weights.metallic) * mat->weights.specular_transmission;
+        weight_glass     = (1.0f - mat->weights.metallic) * mat->weights.specular;
     } else {
         weight_diffuse   = 0.0f;
         weight_sheen     = 0.0f;
         weight_metal     = 0.0f;
         weight_clearcoat = 0.0f;
-        weight_glass     = (1.0f - mat->weights.metallic) * mat->weights.specular_transmission;
+        weight_glass     = (1.0f - mat->weights.metallic) * mat->weights.specular;
     }
 
     f32 total_weight = weight_diffuse + weight_sheen + weight_metal + weight_clearcoat + weight_glass;

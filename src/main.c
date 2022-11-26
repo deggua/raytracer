@@ -80,7 +80,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
 
-#elif 0
+#elif 1
 
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
@@ -96,9 +96,9 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Texture_Import_Color(texMesh, COLOR_YELLOW);
 
     // g_matMesh = Material_Disney_Glass_Make(texMesh, 0.0f, 0.0f, 1.52f);
-    // g_matMesh = Material_Disney_Glass_Make(texMesh, 0.2f, 0.0f, 1.52f);
+    g_matMesh = Material_Disney_Glass_Make(texMesh, 0.2f, 0.0f, 1.52f);
     // g_matMesh = Material_Disney_Metal_Make(texMesh, 0.0f, 0.0f);
-    g_matMesh = Material_Disney_Sheen_Make(texMesh, 1.0f);
+    // g_matMesh = Material_Disney_Sheen_Make(texMesh, 1.0f);
     // g_matMesh = Material_Disney_Clearcoat_Make(1.0f);
 
     Mesh_Set_Material(mesh, &g_matMesh);
@@ -111,7 +111,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
     Mesh_Delete(mesh);
 
-#elif 1
+#elif 0
     /* Spheres */
     Texture* tex = Texture_New();
     Texture_Import_Color(tex, COLOR_WHITE);
@@ -259,7 +259,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
 int main(int argc, char** argv)
 {
-    point3 lookFrom    = (point3){0, -20, 20};
+    point3 lookFrom    = (point3){20, -20, 20};
     point3 lookAt      = (point3){0, 0, 6};
     vec3   vup         = (vec3){0, 0, 1};
     f32    focusDist   = vmag(vsub(lookFrom, lookAt));
