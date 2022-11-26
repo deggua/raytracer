@@ -80,7 +80,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Mesh_Set_Scale(mesh, 2.0f);
     Mesh_AddToScene(mesh, scene);
 
-#elif 1
+#elif 0
 
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
@@ -111,7 +111,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
     Mesh_Delete(mesh);
 
-#elif 0
+#elif 1
     /* Spheres */
     Texture* tex = Texture_New();
     Texture_Import_Color(tex, COLOR_WHITE);
@@ -124,7 +124,6 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
     for (int64_t ii = 0; ii < 5; ii++) {
         Object sphere = {
-            .obj_name = "NULL",
             .material = &g_mats[ii],
             .surface = {
                 .type = SURFACE_SPHERE,
@@ -139,7 +138,6 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
     g_mats[5] = Material_Disney_BSDF_Make(tex, 0.0f, 0.8f, 0.1f, 0.3f, 0.2f, 0.0f, 0.0f, 0.1f, 0.3f, 1.0f, 1.0f);
     Object sphere = {
-        .obj_name = "special",
         .material = &g_mats[5],
         .surface = {
             .type = SURFACE_SPHERE,

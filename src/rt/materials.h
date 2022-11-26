@@ -144,17 +144,17 @@ Material Material_Disney_Glass_Make(Texture* albedo, f32 roughness, f32 anistrop
 Material Material_Disney_Sheen_Make(Texture* albedo, f32 sheen_tint);
 Material Material_Disney_BSDF_Make(
     Texture* albedo,
-    f32      specular_transmission,
-    f32      metallic,
     f32      subsurface,
     f32      specular,
     f32      roughness,
     f32      specular_tint,
     f32      anistropic,
-    f32      sheen,
     f32      sheen_tint,
-    f32      clearcoat,
-    f32      clearcoat_gloss);
+    f32      clearcoat_gloss,
+    f32      weight_sheen,
+    f32      weight_clearcoat,
+    f32      weight_specular,
+    f32      weight_metallic);
 
 bool Material_Disney_Diffuse_Bounce(
     Material_Disney_BSDF* mat,
