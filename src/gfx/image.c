@@ -56,8 +56,9 @@ typedef struct {
 
 static_assert_decl(sizeof(BMPHeader) == 0x36);
 
-intern inline size_t GetPixelIndex(size_t width, size_t xx, size_t yy)
+intern inline size_t GetPixelIndex(size_t width, size_t height, size_t xx, size_t yy)
 {
+    (void)height;
     return yy * width + xx;
 }
 
@@ -115,7 +116,7 @@ bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd)
 
     // read row by row and fill image
     for (ssize_t yy = tmp_img.res.height - 1; yy >= 0; yy--) {
-        RGB* pix_row = &tmp_img.pix[GetPixelIndex(tmp_img.res.width, 0, yy)];
+        RGB* pix_row = &tmp_img.pix[GetPixelIndex(tmp_img.res.width, tmp_img.res.height, 0, yy)];
         if (fread(pix_row, sizeof(RGB), tmp_img.res.width, fd) != tmp_img.res.width) {
             goto error_CleanupImage;
         }
@@ -210,8 +211,8 @@ bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
 
         .DIBHeader.BITMAPINFOHEADER = {
             .headerSize         = sizeof(header.DIBHeader.BITMAPINFOHEADER),
-            .pixelWidth         = img->res.width,
-            .pixelHeight        = img->res.height,
+            .pixelWidth         = (i32)img->res.width,
+            .pixelHeight        = -(i32)img->res.height,
             .colorPlanes        = 1,
             .bitsPerPixel       = 24,
             .compressionMethod  = BI_RGB,
@@ -232,7 +233,7 @@ bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
     u8 padding[4] = {0};
     for (ssize_t yy = img->res.height - 1; yy >= 0; yy--) {
         // write out the row
-        RGB* pix_row = &img->pix[GetPixelIndex(img->res.width, 0, yy)];
+        RGB* pix_row = &img->pix[GetPixelIndex(img->res.width, img->res.height, 0, yy)];
         if (fwrite(pix_row, sizeof(RGB), img->res.width, fd) != img->res.width) {
             goto error_CleanupFile;
         }
@@ -266,12 +267,12 @@ void ImageRGB_Unload(ImageRGB* img)
 
 void ImageRGB_SetPixel(ImageRGB* img, size_t xx, size_t yy, RGB color)
 {
-    img->pix[GetPixelIndex(img->res.width, xx, yy)] = color;
+    img->pix[GetPixelIndex(img->res.width, img->res.height, xx, yy)] = color;
 }
 
 RGB ImageRGB_GetPixel(ImageRGB* img, size_t xx, size_t yy)
 {
-    return img->pix[GetPixelIndex(img->res.width, xx, yy)];
+    return img->pix[GetPixelIndex(img->res.width, img->res.height, xx, yy)];
 }
 
 /* ---- Linear Colorspace Image ---- */
@@ -322,10 +323,10 @@ void ImageColor_Unload(ImageColor* img)
 
 void ImageColor_SetPixel(ImageColor* img, size_t xx, size_t yy, Color color)
 {
-    img->pix[GetPixelIndex(img->res.width, xx, yy)] = color;
+    img->pix[GetPixelIndex(img->res.width, img->res.height, xx, yy)] = color;
 }
 
 Color ImageColor_GetPixel(ImageColor* img, size_t xx, size_t yy)
 {
-    return img->pix[GetPixelIndex(img->res.width, xx, yy)];
+    return img->pix[GetPixelIndex(img->res.width, img->res.height, xx, yy)];
 }

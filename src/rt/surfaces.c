@@ -7,11 +7,14 @@
 
 #include "math/math.h"
 
-Sphere Sphere_Make(point3 center, f32 radius)
+Surface Surface_Sphere_Make(point3 center, f32 radius)
 {
-    return (Sphere){
-        .c = center,
-        .r = radius,
+    return (Surface) {
+        .type = SURFACE_SPHERE,
+        .sphere = {
+            .c = center,
+            .r = radius,
+        },
     };
 }
 
@@ -88,10 +91,13 @@ Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2)
     };
 }
 
-Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
+Surface Surface_Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
 {
-    return (Triangle){
-        .vtx = {v0, v1, v2}
+    return (Surface) {
+        .type = SURFACE_TRIANGLE,
+        .triangle = {
+            .vtx = {v0, v1, v2},
+        },
     };
 }
 

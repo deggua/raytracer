@@ -61,3 +61,17 @@
             asm volatile("int3");                      \
         }                                              \
     } while (0)
+
+#define MAX(a, b)          \
+    ({                     \
+        typeof(a) a_ = a;  \
+        typeof(b) b_ = b;  \
+        a_ > b_ ? a_ : b_; \
+    })
+
+#define MIN(a, b)          \
+    ({                     \
+        typeof(a) a_ = a;  \
+        typeof(b) b_ = b;  \
+        a_ < b_ ? a_ : b_; \
+    })

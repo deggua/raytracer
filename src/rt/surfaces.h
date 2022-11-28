@@ -25,8 +25,6 @@ typedef struct {
     f32    r;
 } Sphere;
 
-// TODO: it would be more efficient to store a triangle as a pointer to a Mesh object
-// with indices for each vertex/vertex normal/texture coord as an index into the vector
 typedef struct {
     point3 pos;
     point3 norm;
@@ -46,11 +44,13 @@ typedef struct {
     };
 } Surface;
 
-Sphere Sphere_Make(point3 center, f32 radius);
-bool   Sphere_BoundedBy(Sphere* sphere, BoundingBox* box);
-bool   Sphere_HitAt(Sphere* sphere, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
+Surface Surface_Sphere_Make(point3 center, f32 radius);
+Surface Surface_Triangle_Make(Vertex v0, Vertex v1, Vertex v2);
 
-Triangle Triangle_Make(Vertex v0, Vertex v1, Vertex v2);
+bool Sphere_BoundedBy(Sphere* sphere, BoundingBox* box);
+bool Triangle_BoundedBy(Triangle* tri, BoundingBox* box);
+
+bool Sphere_HitAt(Sphere* sphere, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
+bool Triangle_HitAt(Triangle* tri, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
+
 Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2);
-bool     Triangle_BoundedBy(Triangle* tri, BoundingBox* box);
-bool     Triangle_HitAt(Triangle* tri, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);

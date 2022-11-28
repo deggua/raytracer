@@ -1,5 +1,10 @@
 #pragma once
 
+/* ---- Rendering Parameters ---- */
+
+// FPS the render preview window updates at
+#define RENDER_FPS (5)
+
 /* ---- Raytracing Parameters ---- */
 
 // Epsilon used for RT calculations

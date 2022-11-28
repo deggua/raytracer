@@ -80,3 +80,8 @@ void Thread_Join(Thread* thread)
 {
     pthread_join(thread->thread, NULL);
 }
+
+void Thread_Kill(Thread* thread)
+{
+    pthread_cancel(thread->thread);
+}

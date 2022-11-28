@@ -46,26 +46,17 @@
 #endif
 
 #if !defined(Vector_Malloc)
-#    if !defined(CTL_DEFAULT_ALLOCATOR)
-#        define CTL_DEFAULT_ALLOCATOR
-#    endif
-
+#    define CTL_DEFAULT_ALLOCATOR
 #    define Vector_Malloc(bytes) calloc(1, bytes)
 #endif
 
 #if !defined(Vector_Realloc)
-#    if !defined(CTL_DEFAULT_ALLOCATOR)
-#        warning "Non-default malloc used with default realloc"
-#    endif
-
+#    define CTL_DEFAULT_ALLOCATOR
 #    define Vector_Realloc realloc
 #endif
 
 #if !defined(Vector_Free)
-#    if !defined(CTL_DEFAULT_ALLOCATOR)
-#        warning "Non-default malloc used with default free"
-#    endif
-
+#    define CTL_DEFAULT_ALLOCATOR
 #    define Vector_Free free
 #endif
 
