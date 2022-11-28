@@ -9,8 +9,6 @@
 #    define TARGET_LINUX
 #endif
 
-#define NDEBUG
-
 #include "common/config.h"
 #include "common/macros.h"
 #include "common/types.h"
