@@ -1,38 +1,38 @@
-A parallelized CPU raytracer for Linux and Windows with no dependencies
+A parallelized CPU raytracer for Linux and Windows
 
 ![alt text](https://github.com/deggua/raytracer/blob/main/assets/sample/image.jpg?raw=true)
 
 Features:
 * Mesh loading (Wavefront OBJ)
-* Texture mapping (BMP only)
-* Cubemap skyboxes (BMP only)
+* Texture mapping (Diffuse in BMP format)
+* Cubemap skyboxes (BMP format)
+* Simple Materials (Lambertian, Mirror, Glass)
+* Disney BSDF (Diffuse + SS, Metal + Specular highlight, Clearcoat, Glass, Sheen)
 * Kd-Tree accelerator using the SAH
-* Simple BSDFs (Lambertian, mirror, glass)
-* Disney BSDFs (In-progress)
 
 Build:
 * Install make (for Windows see https://gnuwin32.sourceforge.net/packages/make.htm)
 * Install clang
+* Install GLFW + GLEW
 * Rename compile_flags_*.txt to compile_flags.txt (based on your platform)
 * Rename makefile_* to makefile (based on your platform)
 * Run 'make release' to compile
-* Run ./bin/rt.exe [nthreads] [spp] [ray_depth] or ./bin/rt.out [nthreads] [spp] [ray_depth]
+* Run ./bin/rt.out [spp] [ray_depth]
 
 TODO:
+* Volumetric surfaces
 * Implement normal maps
-* PBR/RayTracing.io stuff
-* Read the sampling section of the PBR book
+* Better sampling
+* Procedural textures
 * Denoising
 * SIMDify the surface intersection code (may require supporting only triangles)
 * Optimize render pre-pass
 * GPU shader for more parallelization
 * Procedural textures
-* Real-time display of render
 * Improve program structure and memory management of objects
 * Improve asset loading and storage of assets in memory
-* GUI
-* Chunk image into squares, implement a work queue for better distribution of work, hetergeneous compute (CPU + GPU)
-* Hierarchical hybrid KdTree/BVH (external processing of .obj to produce their KdTree, alleviates the need to re-process meshes)
+* GUI + Interactivity
+* Implement a BVH, provide options for exporting scene kd-trees or BVHs for objects to avoid recomputation where possible
 * Fix the skybox mirroring
 
 NOTE:

@@ -12,13 +12,12 @@ typedef struct {
     size_t x, y;
 } Tile;
 
-typedef struct {
-    Tile tile;
-    bool taken;
-} attr_aligned(SZ_CACHE_LINE) WorkUnit;
+typedef union {
+    u8 taken8;
+} WorkUnit;
 
-#define Vector_Type          WorkUnit
-#define Vector_Malloc(bytes) aligned_alloc(alignof(WorkUnit), bytes)
+#define Vector_Type WorkUnit
+//#define Vector_Malloc(bytes) aligned_alloc(alignof(WorkUnit), bytes)
 #include "ctl/containers/vector.h"
 
 RenderCtx* Render_New(Scene* scene, ImageRGB* img, Camera* cam)
@@ -121,24 +120,57 @@ intern void RenderTile(Camera* cam, Scene* scene, ImageRGB* img, Tile* tile, siz
     }
 }
 
+intern bool AtomicClaimTile(RenderCtx* ctx, Vector(WorkUnit)* work, size_t x, size_t y)
+{
+    // convert (x, y) tile coords to the (array, bit) index
+    size_t tile_w      = RENDER_TILE_W_PX;
+    size_t num_tiles_w = (ctx->img->res.width + tile_w - 1) / tile_w;
+
+    size_t linear_index = y * num_tiles_w + x;
+    size_t array_index  = linear_index / 8;
+    size_t bit_index    = linear_index % 8;
+
+    u8 claim_mask = 1 << bit_index;
+    if (!(claim_mask & __atomic_fetch_or(&work->at[array_index].taken8, claim_mask, __ATOMIC_RELAXED))) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 intern void Render_Worker(void* arg)
 {
     Random_Seed_HighEntropy();
 
     RenderThreadArg* args = arg;
 
-    ImageRGB*         img   = args->ctx->img;
-    Camera*           cam   = args->ctx->cam;
-    Scene*            scene = args->ctx->scene;
     Vector(WorkUnit)* work  = args->work;
+    RenderCtx*        ctx   = args->ctx;
+    ImageRGB*         img   = ctx->img;
+    Camera*           cam   = ctx->cam;
+    Scene*            scene = ctx->scene;
 
     size_t spp = args->params.samples_per_pixel;
     size_t md  = args->params.max_ray_depth;
 
-    for (size_t ii = 0; ii < work->length; ii++) {
-        if (!__atomic_exchange_n(&work->at[ii].taken, true, __ATOMIC_RELAXED)) {
-            // we grabbed the work unit, process it
-            RenderTile(cam, scene, img, &work->at[ii].tile, spp, md);
+    // convert (x, y) tile coords to the (array, bit) index
+    size_t tile_w      = RENDER_TILE_W_PX;
+    size_t tile_h      = RENDER_TILE_H_PX;
+    size_t num_tiles_w = (img->res.width + tile_w - 1) / tile_w;
+    size_t num_tiles_h = (img->res.height + tile_h - 1) / tile_h;
+
+    // iterate over the tiles, try to claim them, if claimed render the tile
+    for (size_t yy = 0; yy < num_tiles_h; yy++) {
+        for (size_t xx = 0; xx < num_tiles_w; xx++) {
+            if (AtomicClaimTile(ctx, work, xx, yy)) {
+                Tile tile = {
+                    .x = xx * tile_w,
+                    .y = yy * tile_h,
+                    .w = MIN(tile_w, img->res.width - xx * tile_w),
+                    .h = MIN(tile_h, img->res.height - yy * tile_h),
+                };
+                RenderTile(cam, scene, img, &tile, spp, md);
+            }
         }
     }
 
@@ -161,23 +193,13 @@ intern void Render_Waiter(void* arg)
     size_t     max_ray_depth     = args->max_ray_depth;
 
     // create queue of work units
-    size_t tile_w = 2, tile_h = 2;
+    size_t tile_w = RENDER_TILE_W_PX, tile_h = RENDER_TILE_H_PX;
+    size_t num_tiles_w = (ctx->img->res.width + tile_w - 1) / tile_w;
+    size_t num_tiles_h = (ctx->img->res.height + tile_h - 1) / tile_h;
 
     Vector(WorkUnit) vect;
-    Vector_Init(&vect, (ctx->img->res.width / tile_w) * (ctx->img->res.height / tile_h));
-
-    for (size_t yy = 0; yy < ctx->img->res.height; yy += tile_h) {
-        for (size_t xx = 0; xx < ctx->img->res.width; xx += tile_w) {
-            size_t unit_index = vect.length;
-            Vector_ExtendBy(&vect, 1);
-
-            vect.at[unit_index].taken  = false;
-            vect.at[unit_index].tile.x = xx;
-            vect.at[unit_index].tile.y = yy;
-            vect.at[unit_index].tile.w = MIN(tile_w, ctx->img->res.width - xx);
-            vect.at[unit_index].tile.h = MIN(tile_h, ctx->img->res.height - yy);
-        }
-    }
+    Vector_Init(&vect, num_tiles_w * num_tiles_h);
+    Vector_ExtendBy(&vect, num_tiles_w * num_tiles_h);
 
     // create worker threads
     size_t num_threads    = NUM_HYPERTHREADS;

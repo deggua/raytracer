@@ -69,9 +69,17 @@
         a_ > b_ ? a_ : b_; \
     })
 
-#define MIN(a, b)          \
+#define MIN(c, d)          \
     ({                     \
-        typeof(a) a_ = a;  \
-        typeof(b) b_ = b;  \
-        a_ < b_ ? a_ : b_; \
+        typeof(c) c_ = c;  \
+        typeof(d) d_ = d;  \
+        c_ < d_ ? c_ : d_; \
+    })
+
+#define CLAMP(t, e, f)        \
+    ({                        \
+        typeof(t) t_ = t;     \
+        typeof(e) e_ = e;     \
+        typeof(f) f_ = f;     \
+        MIN(MAX(t_, e_), f_); \
     })

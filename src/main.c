@@ -59,6 +59,35 @@ intern void InterruptHandler(int sig)
 
 intern void FillScene(Scene* scene, Skybox* skybox)
 {
+#if 0
+    FILE* pear_file = fopen("assets/pear/obj/pear_export.obj", "r");
+    if (pear_file == NULL) {
+        ABORT("Failed to open pear mesh");
+    }
+
+    Mesh* pear_mesh = Mesh_New();
+    Mesh_Import_OBJ(pear_mesh, pear_file);
+    fclose(pear_file);
+
+    FILE* pear_tex_file = fopen("assets/pear/tex/pear_diffuse.bmp", "rb");
+    if (pear_tex_file == NULL) {
+        ABORT("Failed to open pear texture");
+    }
+
+    Texture* pear_tex = Texture_New();
+    Texture_Import_BMP(pear_tex, pear_tex_file);
+    fclose(pear_tex_file);
+
+    g_mats[0] = Material_Disney_Glass_Make(pear_tex, 0.0f, 0.0f, 1.52f);
+
+    Mesh_Set_Material(pear_mesh, &g_mats[0]);
+    Mesh_Set_Origin(pear_mesh, (point3){0, 0, 6});
+    Mesh_Set_Scale(pear_mesh, 5.0f);
+
+    Mesh_AddToScene(pear_mesh, scene);
+    Mesh_Delete(pear_mesh);
+#endif
+
 #if 1
     /* Little Dragon Mesh */
     FILE* littleDragon = fopen("assets/little_dragon.obj", "r");
@@ -196,7 +225,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Scene_Add_Object(scene, &sphere_z);
 #endif
 
-#if 0
+#if 1
     /* Sphere Light */
     Texture* texLight = Texture_New();
     Texture_Import_Color(texLight, COLOR_WHITE);
@@ -210,7 +239,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     Scene_Add_Object(scene, &lightObj);
 #endif
 
-#if 0
+#if 1
     /* Ground */
     Texture* texGround = Texture_New();
     Texture_Import_Color(texGround, COLOR_GREY);
@@ -407,9 +436,10 @@ int main(int argc, char** argv)
     GLuint gl_texture;
     GL_CHECK(glGenTextures(1, &gl_texture));
     GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl_texture));
-    GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, res_w, res_h, 0, GL_BGR, GL_UNSIGNED_BYTE, ctx->img->pix));
+    GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
     GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, res_w, res_h, 0, GL_BGR, GL_UNSIGNED_BYTE, ctx->img->pix));
 
     // setup framebuffer
     GLuint gl_framebuffer;
