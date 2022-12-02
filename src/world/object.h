@@ -7,9 +7,6 @@
 #include "rt/surfaces.h"
 
 typedef struct {
-#ifndef NDEBUG
-    const char* obj_name;
-#endif
     Material* material;
     Surface   surface; // TODO: should Object just hold a ptr to surface?, also should Surface even have the concept of
     // position? we could save 8 bytes per copy of object, and reduce the memory cost of having the

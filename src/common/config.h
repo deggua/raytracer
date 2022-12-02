@@ -6,8 +6,8 @@
 #define RENDER_FPS (5)
 
 // The tile size for a render work unit in pixels (tiles are square)
-#define RENDER_TILE_W_PX (1)
-#define RENDER_TILE_H_PX (1)
+#define RENDER_TILE_W_PX (2)
+#define RENDER_TILE_H_PX (2)
 
 /* ---- Raytracing Parameters ---- */
 

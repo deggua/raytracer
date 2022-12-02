@@ -68,40 +68,59 @@ typedef struct {
 #define Vector_Type KDBB
 #include "ctl/containers/vector.h"
 
-typedef struct {
-    struct {
-        u32     : 2;
-        u32 len : 30;
-    };
+#pragma pack(push, 1)
 
-    u32 objIndex;
+typedef struct {
+    union {
+        struct {
+            u64 len : 32;
+            u64     : 32;
+            u16     : 16;
+        };
+
+        struct {
+            u16          : 16;
+            u64          : 16;
+            u64 objIndex : 46;
+            u64          : 2;
+        };
+    };
 } KDLeaf;
 
-static_assert_decl(sizeof(KDLeaf) == 8);
-
 typedef struct {
-    struct {
-        u32           : 2;
-        u32 leftIndex : 30;
+    union {
+        f32 split;
+
+        struct {
+            u16           : 16;
+            u64           : 16;
+            u64 leftIndex : 46;
+            u64           : 2;
+        };
     };
 
-    f32 split;
-    u8  right[];
+    u8 right[];
 } KDInternal;
-
-static_assert_decl(sizeof(KDInternal) == 8);
 
 typedef union KDNode {
     struct {
-        u32 type : 2;
-        u32      : 30;
+        u16      : 16;
+        u64      : 62;
+        u64 type : 2;
     };
 
     KDInternal inode;
     KDLeaf     leaf;
 } KDNode;
 
-static_assert_decl(sizeof(KDNode) == 8);
+#pragma pack(pop)
+
+#define KD_LENGTH_BITS 32
+#define KD_INDEX_BITS  46
+
+static_assert_decl(sizeof(KDLeaf) == 10);
+static_assert_decl(sizeof(KDInternal) == 10);
+static_assert_decl(sizeof(KDNode) == 10);
 
 #define Vector_Type KDNode
 #include "ctl/containers/vector.h"
@@ -174,7 +193,6 @@ intern ssize_t BuildLeafNode(KDTree* tree, Vector(KDBBPtr)* vect)
         if (!Vector_Push(tree->objPtrs, vect->at[ii]->obj)) {
             return -1;
         }
-        DEBUG_PRINT("Put obj %s in leaf node\n", vect->at[ii]->obj->obj_name);
     }
 
     node->leaf.objIndex = firstObjIndex;
@@ -260,15 +278,17 @@ intern f32 ComputeSplitSAH(Vector(KDBBPtr)* vect, f32 split, Axis axis, Bounding
 
 intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox container, size_t depth)
 {
-    size_t maxVecLen = (1 << 30) - 1;
+    size_t max_index = (1ull << KD_INDEX_BITS) - 1;
+    size_t max_len   = (1ull << KD_LENGTH_BITS) - 1;
 
     // prevent blowing out the max index silently (would cause inf render time)
-    if (tree->nodes->length > maxVecLen || tree->objPtrs->length > maxVecLen) {
+    if (tree->nodes->length > max_index || tree->objPtrs->length > max_index) {
         ABORT("Too many objects allocated to vector");
     }
 
-    // create a leaf node if we're at max depth or there are too few objects to bother splitting
-    if (vect->length <= MIN_LEAF_LOAD || depth == 0) {
+    // create a leaf node if there aren't enough objects to bother splitting or
+    // if we're at max depth and all the objects can be fit in a single node
+    if (vect->length <= MIN_LEAF_LOAD || (depth == 0 && vect->length <= max_len)) {
         return BuildLeafNode(tree, vect);
     }
 
@@ -294,8 +314,9 @@ intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox contai
     }
 
     // determine whether to split the tree further or just build a leaf node
+    // if the SAH tells us it would be beneficial and we can fit them
     f32 parentSAH = vect->length * INTERSECT_COST;
-    if (parentSAH <= bestSAH) {
+    if (parentSAH <= bestSAH && vect->length <= max_len) {
         // cost of best split outweighs just putting everything in a leaf
         return BuildLeafNode(tree, vect);
     } else {
@@ -319,35 +340,21 @@ intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox contai
                 if (!Vector_Push(&leftVect, &vect->at[ii])) {
                     goto error_Push;
                 }
-                DEBUG_PRINT(
-                    "Put obj %s to the left of " AXIS_FMT " = %f\n",
-                    vect->at[ii]->obj->obj_name,
-                    AXIS_ARG(bestAxis),
-                    bestSplit);
             } else if (box->min.elem[bestAxis] > bestSplit) {
                 if (!Vector_Push(&rightVect, &vect->at[ii])) {
                     goto error_Push;
                 }
-                DEBUG_PRINT(
-                    "Put obj %s to the right of " AXIS_FMT " = %f\n",
-                    vect->at[ii]->obj->obj_name,
-                    AXIS_ARG(bestAxis),
-                    bestSplit);
             } else {
                 if (!Vector_Push(&leftVect, &vect->at[ii]) || !Vector_Push(&rightVect, &vect->at[ii])) {
                     goto error_Push;
                 }
-                DEBUG_PRINT(
-                    "Put obj %s on both sides of " AXIS_FMT " = %f\n",
-                    vect->at[ii]->obj->obj_name,
-                    AXIS_ARG(bestAxis),
-                    bestSplit);
             }
         }
 
-        BoundingBoxPair pair = SplitBox(container, bestSplit, bestAxis);
+        size_t          new_depth = depth == 0 ? 0 : depth - 1;
+        BoundingBoxPair pair      = SplitBox(container, bestSplit, bestAxis);
         ssize_t         nodeIndex
-            = BuildParentNode(tree, &leftVect, pair.left, &rightVect, pair.right, bestSplit, bestAxis, depth - 1);
+            = BuildParentNode(tree, &leftVect, pair.left, &rightVect, pair.right, bestSplit, bestAxis, new_depth);
 
         if (nodeIndex < 0) {
             goto error_BuildParent;

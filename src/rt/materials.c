@@ -907,7 +907,6 @@ bool Material_Disney_BSDF_Bounce(
     } else if (sheen.lower <= sel_interval && sel_interval < sheen.upper) {
         return Material_Disney_Sheen_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
     } else if (metal.lower <= sel_interval && sel_interval < metal.upper) {
-        // TODO: this needs the modified fresnel term, figure out how to incorporate
         return Material_Disney_Metal_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
     } else if (clearcoat.lower <= sel_interval && sel_interval < clearcoat.upper) {
         return Material_Disney_Clearcoat_Bounce(mat, ray_in, hit, surface_color, emitted_color, ray_out);
