@@ -97,29 +97,58 @@ intern bool Scene_ClosestHitInArray(Object* objs, size_t len, Ray* ray, Object**
     }
 }
 
-bool Scene_ClosestHit(Scene* scene, Ray* ray, Object** objHit, HitInfo* hit)
+bool Scene_ClosestHit(Scene* scene, Ray* ray, Object** obj_hit, HitInfo* hit)
 {
-    return KDTree_HitAt(scene->kdTree, ray, objHit, hit);
-}
+    // TODO: see if fetching more than the first object is beneficial
+    // TODO: handle NULL kdtree and empty unbounded objects cases
+    __builtin_prefetch(&scene->unboundObjs->at[0]);
 
-bool Scene_ClosestHitSlow(Scene* scene, Ray* ray, Object** objHit, HitInfo* hit)
-{
-    return Scene_ClosestHitInArray(scene->objects->at, scene->objects->length, ray, objHit, hit);
+    Object* obj_hit_bounded  = NULL;
+    HitInfo hit_info_bounded = {.tIntersect = INF};
+
+    bool hit_bounded = KDTree_HitAt(scene->kdTree, ray, &obj_hit_bounded, &hit_info_bounded);
+
+    Object* obj_hit_unbounded  = NULL;
+    HitInfo hit_info_unbounded = {.tIntersect = INF};
+
+    bool hit_unbounded = Scene_ClosestHitInArray(
+        scene->unboundObjs->at,
+        scene->unboundObjs->length,
+        ray,
+        &obj_hit_unbounded,
+        &hit_info_unbounded);
+
+    // TODO: refactor
+    if (hit_bounded && hit_unbounded) {
+        if (hit_info_unbounded.tIntersect < hit_info_bounded.tIntersect) {
+            *obj_hit = obj_hit_unbounded;
+            *hit     = hit_info_unbounded;
+            return true;
+        } else {
+            *obj_hit = obj_hit_bounded;
+            *hit     = hit_info_bounded;
+            return true;
+        }
+    } else if (hit_bounded) {
+        *obj_hit = obj_hit_bounded;
+        *hit     = hit_info_bounded;
+        return true;
+    } else if (hit_unbounded) {
+        *obj_hit = obj_hit_unbounded;
+        *hit     = hit_info_unbounded;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool Scene_Prepare(Scene* scene)
 {
-    // only bounded objects (not moving, not infinite) can be stored in the KDTree
-    // TODO: can we store infinite objects? does it make sense to?
     Vector_Reserve(scene->kdObjects, scene->objects->length);
     printf("%zu primitives in scene\n", scene->objects->length);
 
     for (size_t ii = 0; ii < scene->objects->length; ii++) {
-        // TODO: this is because I messed up the API between KDTree and Scene, I should add a Surface_Bounded() function
-        // to check whether it is bounded or not
-        BoundingBox ignore;
-
-        if (Surface_BoundedBy(&scene->objects->at[ii].surface, &ignore)) {
+        if (Surface_Bounded(&scene->objects->at[ii].surface)) {
             Vector_Push(scene->kdObjects, &scene->objects->at[ii]);
         } else {
             Vector_Push(scene->unboundObjs, &scene->objects->at[ii]);

@@ -14,20 +14,47 @@ bool Surface_HitAt(Surface* surface, Ray* ray, f32 t_min, f32 t_max, HitInfo* hi
         case SURFACE_TRIANGLE: {
             return Triangle_HitAt(&surface->triangle, ray, t_min, t_max, hit);
         } break;
+
+        case SURFACE_PLANE: {
+            return Plane_HitAt(&surface->plane, ray, t_min, t_max, hit);
+        } break;
     }
 
     OPTIMIZE_UNREACHABLE;
 }
 
-bool Surface_BoundedBy(Surface* surface, BoundingBox* box)
+BoundingBox Surface_BoundingBox(Surface* surface)
 {
     switch (surface->type) {
         case SURFACE_SPHERE: {
-            return Sphere_BoundedBy(&surface->sphere, box);
+            return Sphere_BoundingBox(&surface->sphere);
         } break;
 
         case SURFACE_TRIANGLE: {
-            return Triangle_BoundedBy(&surface->triangle, box);
+            return Triangle_BoundingBox(&surface->triangle);
+        } break;
+
+        case SURFACE_PLANE: {
+            return Plane_BoundingBox(&surface->plane);
+        } break;
+    }
+
+    OPTIMIZE_UNREACHABLE;
+}
+
+bool Surface_Bounded(Surface* surface)
+{
+    switch (surface->type) {
+        case SURFACE_SPHERE: {
+            return Sphere_Bounded();
+        } break;
+
+        case SURFACE_TRIANGLE: {
+            return Triangle_Bounded();
+        } break;
+
+        case SURFACE_PLANE: {
+            return Plane_Bounded();
         } break;
     }
 

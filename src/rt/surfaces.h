@@ -18,6 +18,7 @@ typedef union {
 typedef enum {
     SURFACE_SPHERE,
     SURFACE_TRIANGLE,
+    SURFACE_PLANE,
 } SurfaceType;
 
 typedef struct {
@@ -36,21 +37,34 @@ typedef struct {
 } Triangle;
 
 typedef struct {
+    vec3   normal;
+    point3 point;
+} Plane;
+
+typedef struct {
     SurfaceType type;
 
     union {
         Sphere   sphere;
         Triangle triangle;
+        Plane    plane;
     };
 } Surface;
 
 Surface Surface_Sphere_Make(point3 center, f32 radius);
 Surface Surface_Triangle_Make(Vertex v0, Vertex v1, Vertex v2);
+Surface Surface_Plane_Make(point3 point, vec3 normal);
 
-bool Sphere_BoundedBy(Sphere* sphere, BoundingBox* box);
-bool Triangle_BoundedBy(Triangle* tri, BoundingBox* box);
+BoundingBox Sphere_BoundingBox(Sphere* sphere);
+BoundingBox Triangle_BoundingBox(Triangle* tri);
+BoundingBox Plane_BoundingBox(Plane* plane);
+
+bool Sphere_Bounded(void);
+bool Triangle_Bounded(void);
+bool Plane_Bounded(void);
 
 bool Sphere_HitAt(Sphere* sphere, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
 bool Triangle_HitAt(Triangle* tri, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit);
+bool Plane_HitAt(Plane* plane, Ray* ray, f32 t_min, f32 t_max, HitInfo* hit);
 
 Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2);

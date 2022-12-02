@@ -415,7 +415,7 @@ intern Vector(KDBB)* CreateKDBBs(Object* objs, size_t len)
     for (size_t ii = 0; ii < len; ii++) {
         KDBB temp;
         temp.obj = &objs[ii];
-        Surface_BoundedBy(&objs[ii].surface, &temp.box);
+        temp.box = Surface_BoundingBox(&objs[ii].surface);
 
         if (!Vector_Push(vect, &temp)) {
             goto error_VectorKDBBsPush;

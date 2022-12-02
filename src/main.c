@@ -104,7 +104,7 @@ intern void FillScene(Scene* scene, Skybox* skybox)
     g_mats[0] = Material_Disney_Glass_Make(texMesh, 0.2f, 0.0f, 1.52f);
 
     Mesh_Set_Material(mesh, &g_mats[0]);
-    Mesh_Set_Origin(mesh, (point3){0, 0, 1});
+    Mesh_Set_Origin(mesh, (point3){0, 0, 0});
     Mesh_Set_Scale(mesh, 1 / 10.0f);
     Mesh_AddToScene(mesh, scene);
 
@@ -241,13 +241,17 @@ intern void FillScene(Scene* scene, Skybox* skybox)
 
 #if 1
     /* Ground */
+#    if 0
     Texture* texGround = Texture_New();
     Texture_Import_Color(texGround, COLOR_GREY);
     g_mats[14] = Material_Disney_Diffuse_Make(texGround, 1.0f, 0.0f);
+#    else
+    g_mats[14] = Material_Skybox_Make(skybox);
+#    endif
 
     Object ground = {
         .material = &g_mats[14],
-        .surface  = Surface_Sphere_Make((point3){0, 0, -1000}, 1000),
+        .surface  = Surface_Plane_Make((point3){0, 0, 0}, (vec3){0, 0, 1}),
     };
 
     Scene_Add_Object(scene, &ground);

@@ -7,6 +7,8 @@
 
 #include "math/math.h"
 
+/* ---- Sphere ---- */
+
 Surface Surface_Sphere_Make(point3 center, f32 radius)
 {
     return (Surface) {
@@ -18,18 +20,24 @@ Surface Surface_Sphere_Make(point3 center, f32 radius)
     };
 }
 
-bool Sphere_BoundedBy(Sphere* sphere, BoundingBox* box)
+BoundingBox Sphere_BoundingBox(Sphere* sphere)
 {
     point3 center = sphere->c;
-    vec3   vRad   = (vec3){
-            .x = sphere->r + RT_EPSILON,
-            .y = sphere->r + RT_EPSILON,
-            .z = sphere->r + RT_EPSILON,
+
+    vec3 vRad = (vec3){
+        .x = sphere->r + RT_EPSILON,
+        .y = sphere->r + RT_EPSILON,
+        .z = sphere->r + RT_EPSILON,
     };
 
-    box->min = vsub(center, vRad);
-    box->max = vadd(center, vRad);
+    return (BoundingBox){
+        .min = vsub(center, vRad),
+        .max = vadd(center, vRad),
+    };
+}
 
+bool Sphere_Bounded(void)
+{
     return true;
 }
 
@@ -78,6 +86,8 @@ bool Sphere_HitAt(Sphere* sphere, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
     }
 }
 
+/* ---- Triangle ---- */
+
 Triangle Triangle_MakeSimple(point3 v0, point3 v1, point3 v2)
 {
     vec3 edge1         = vsub(v1, v0);
@@ -101,17 +111,24 @@ Surface Surface_Triangle_Make(Vertex v0, Vertex v1, Vertex v2)
     };
 }
 
-bool Triangle_BoundedBy(Triangle* tri, BoundingBox* box)
+BoundingBox Triangle_BoundingBox(Triangle* tri)
 {
+    BoundingBox box;
+
     for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
-        box->min.elem[axis]
+        box.min.elem[axis]
             = minf(minf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis])
               - RT_EPSILON;
-        box->max.elem[axis]
+        box.max.elem[axis]
             = maxf(maxf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis])
               + RT_EPSILON;
     }
 
+    return box;
+}
+
+bool Triangle_Bounded(void)
+{
     return true;
 }
 
@@ -154,6 +171,70 @@ bool Triangle_HitAt(Triangle* tri, Ray* ray, f32 tMin, f32 tMax, HitInfo* hit)
         hit->uv            = vsum(vmul(tri->vtx[0].tex, coeff), vmul(tri->vtx[1].tex, u), vmul(tri->vtx[2].tex, v));
         vec3 outwardNormal = vsum(vmul(tri->vtx[0].norm, coeff), vmul(tri->vtx[1].norm, u), vmul(tri->vtx[2].norm, v));
         HitInfo_SetFaceNormal(hit, ray, outwardNormal);
+
+        return true;
+    }
+}
+
+/* ---- Plane ---- */
+
+Surface Surface_Plane_Make(point3 point, vec3 normal)
+{
+    return (Surface){
+        .type  = SURFACE_PLANE,
+        .plane = {
+            .normal = normal,
+            .point  = point,
+        },
+    };
+}
+
+BoundingBox Plane_BoundingBox(Plane* plane)
+{
+    for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
+        Axis next_axis = (axis + 1) % AXIS_W;
+        Axis prev_axis = (axis + 2) % AXIS_W;
+        if (plane->normal.elem[next_axis] == 0.0f && plane->normal.elem[prev_axis] == 0.0f) {
+            BoundingBox box;
+
+            box.min.elem[prev_axis] = -INF;
+            box.min.elem[axis]      = -RT_EPSILON;
+            box.min.elem[next_axis] = -INF;
+
+            box.max.elem[prev_axis] = INF;
+            box.max.elem[axis]      = RT_EPSILON;
+            box.max.elem[next_axis] = INF;
+
+            return box;
+        }
+    }
+
+    return (BoundingBox){
+        .min = {-INF, -INF, -INF},
+        .max = { INF,  INF,  INF},
+    };
+}
+
+bool Plane_Bounded(void)
+{
+    return false;
+}
+
+bool Plane_HitAt(Plane* plane, Ray* ray, f32 t_min, f32 t_max, HitInfo* hit)
+{
+    f32 numerator   = vdot(plane->normal, vsub(plane->point, ray->origin));
+    f32 denominator = vdot(plane->normal, ray->dir);
+
+    f32 t_intersect = numerator / denominator;
+
+    if (t_intersect < t_min || t_intersect > t_max) {
+        return false;
+    } else {
+        hit->position   = Ray_At(ray, t_intersect);
+        hit->tIntersect = t_intersect;
+
+        vec3 outward_normal = plane->normal;
+        HitInfo_SetFaceNormal(hit, ray, outward_normal);
 
         return true;
     }
