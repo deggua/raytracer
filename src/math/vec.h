@@ -75,6 +75,10 @@ typedef union {
         vec2 vw;
     };
 
+    struct {
+        f32 width, height, depth;
+    };
+
     f32 elem[3];
 } vec3;
 

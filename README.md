@@ -6,7 +6,7 @@
 * Mesh loading (Wavefront OBJ)
 * Texture mapping (Diffuse in BMP format)
 * Cubemap skyboxes (BMP format)
-* Simple Materials (Lambertian, Mirror, Glass)
+* Simple Materials (Lambertian, Metal, Dielectrics)
 * Disney BSDF (Diffuse + SS, Metal + Specular highlight, Clearcoat, Glass, Sheen)
 * Kd-Tree accelerator using the SAH
 
@@ -21,6 +21,8 @@
 
 ## TODO:
 * Improve OBJ loading (multiple meshes per OBJ, proper obj <-> mtl mapping)
+* Other texture formats
+* Better BMP compatibility
 * Volumetric surfaces
 * Implement normal maps
 * Better sampling
