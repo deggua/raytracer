@@ -3,21 +3,27 @@
 #include <stdlib.h>
 #include <windows.h>
 
-typedef struct Thread {
-    HANDLE thread_handle;
-    size_t stack_size;
-} Thread;
-
 typedef struct ThreadArg {
     void* user_arg;
     void (*user_func)(void* arg);
 } ThreadArg;
 
+typedef struct Thread {
+    HANDLE     handle;
+    size_t     stack_size;
+    ThreadArg* arg;
+} Thread;
+
 intern DWORD Thread_EntryWrapper(LPVOID arg)
 {
-    ThreadArg* arg_wrapper = arg;
-    arg_wrapper->user_func(arg_wrapper->user_arg);
-    free(arg);
+    Thread*    thread = arg;
+    ThreadArg* args   = thread->arg;
+
+    args->user_func(args->user_arg);
+
+    thread->arg = NULL;
+    free(args);
+
     return 0;
 }
 
@@ -48,9 +54,11 @@ bool Thread_Spawn(Thread* thread, void (*entry_point)(void* arg), void* thread_a
     arg_wrapper->user_arg  = thread_arg;
     arg_wrapper->user_func = entry_point;
 
-    thread->thread_handle = CreateThread(NULL, thread->stack_size, Thread_EntryWrapper, (LPVOID)arg_wrapper, 0, NULL);
+    thread->arg    = arg_wrapper;
+    thread->handle = CreateThread(NULL, thread->stack_size, Thread_EntryWrapper, thread, 0, NULL);
 
-    if (thread->thread_handle == NULL) {
+    if (thread->handle == NULL) {
+        thread->arg = NULL;
         free(arg_wrapper);
         return false;
     }
@@ -67,5 +75,11 @@ bool Thread_Set_StackSize(Thread* thread, size_t stack_size)
 
 void Thread_Join(Thread* thread)
 {
-    WaitForSingleObject(thread->thread_handle, INFINITE);
+    WaitForSingleObject(thread->handle, INFINITE);
+}
+
+void Thread_Kill(Thread* thread)
+{
+    TerminateThread(thread, 0);
+    free(thread->arg);
 }

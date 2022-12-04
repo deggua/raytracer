@@ -24,12 +24,12 @@ intern const char* Stopwatch_Units[] = {
 
 #define STOPWATCH_TIMESCALE_UNIT(ts) (Stopwatch_Units[ts])
 
-#define TIMEIT(sw, ts, desc, ...)                                                               \
-    do {                                                                                        \
-        printf("Starting :: " desc "\n");                                                       \
-        Stopwatch_Start(sw);                                                                    \
-        __VA_ARGS__;                                                                            \
-        Stopwatch_Stop(sw);                                                                     \
-        i64 elapsed_ = Stopwatch_Elapsed(sw, ts);                                               \
-        printf("Finished :: " desc " :: (%lu %s)\n\n", elapsed_, STOPWATCH_TIMESCALE_UNIT(ts)); \
+#define TIMEIT(sw, ts, desc, ...)                                                                           \
+    do {                                                                                                    \
+        printf("Starting :: " desc "\n");                                                                   \
+        Stopwatch_Start(sw);                                                                                \
+        __VA_ARGS__;                                                                                        \
+        Stopwatch_Stop(sw);                                                                                 \
+        i64 elapsed_ = Stopwatch_Elapsed(sw, ts);                                                           \
+        printf("Finished :: " desc " :: (" I64_DEC_FMT " %s)\n\n", elapsed_, STOPWATCH_TIMESCALE_UNIT(ts)); \
     } while (0)

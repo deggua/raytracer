@@ -26,42 +26,35 @@ void Stopwatch_Start(Stopwatch* stopwatch)
 
 void Stopwatch_Stop(Stopwatch* stopwatch)
 {
-    QueryPerformanceCounter(&stopwatch->end);
+    QueryPerformanceCounter(&stopwatch->stop);
 }
 
 i64 Stopwatch_Elapsed(Stopwatch* stopwatch, Stopwatch_Timescale timescale)
 {
-    // TODO: fill this out
-    // interval = (double)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
-
-#if 0
     switch (timescale) {
         case STOPWATCH_SECONDS: {
-            return stopwatch->stop_time.tv_sec - stopwatch->start_time.tv_sec;
+            i64 ticks_per_second = stopwatch->frequency.QuadPart;
+            return (stopwatch->stop.QuadPart - stopwatch->start.QuadPart) / ticks_per_second;
         } break;
 
         case STOPWATCH_MILISECONDS: {
-            i64 seconds_elapsed = stopwatch->stop_time.tv_sec - stopwatch->start_time.tv_sec;
-            i64 milis_elapsed   = (stopwatch->stop_time.tv_nsec - stopwatch->start_time.tv_nsec) * 1000 * 1000;
-            return seconds_elapsed * 1000 + milis_elapsed;
+            i64 ticks_per_milisecond = stopwatch->frequency.QuadPart / 1000;
+            return (stopwatch->stop.QuadPart - stopwatch->start.QuadPart) / ticks_per_milisecond;
         } break;
 
         case STOPWATCH_MICROSECONDS: {
-            i64 seconds_elapsed = stopwatch->stop_time.tv_sec - stopwatch->start_time.tv_sec;
-            i64 micros_elapsed  = (stopwatch->stop_time.tv_nsec - stopwatch->start_time.tv_nsec) * 1000;
-            return seconds_elapsed * 1000 * 1000 + micros_elapsed;
+            i64 ticks_per_microsecond = stopwatch->frequency.QuadPart / (1000 * 1000);
+            return (stopwatch->stop.QuadPart - stopwatch->start.QuadPart) / ticks_per_microsecond;
         } break;
 
         case STOPWATCH_NANOSECONDS: {
-            i64 seconds_elapsed = stopwatch->stop_time.tv_sec - stopwatch->start_time.tv_sec;
-            i64 nanos_elapsed   = stopwatch->stop_time.tv_nsec - stopwatch->start_time.tv_nsec;
-            return seconds_elapsed * 1000 * 1000 * 1000 + nanos_elapsed;
+            i64 ticks_per_nanosecond = stopwatch->frequency.QuadPart / (1000 * 1000 * 1000);
+            return (stopwatch->stop.QuadPart - stopwatch->start.QuadPart) / ticks_per_nanosecond;
         } break;
 
         default:
             return -1;
     }
-#endif
 
     return 0;
 }

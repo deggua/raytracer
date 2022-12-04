@@ -6,6 +6,26 @@
 
 #include "common/macros.h"
 
+#define U8_DEC_FMT  "%" PRIu8
+#define U16_DEC_FMT "%" PRIu16
+#define U32_DEC_FMT "%" PRIu32
+#define U64_DEC_FMT "%" PRIu64
+
+#define U8_HEX_FMT  "%" PRIx8
+#define U16_HEX_FMT "%" PRIx16
+#define U32_HEX_FMT "%" PRIx32
+#define U64_HEX_FMT "%" PRIx64
+
+#define I8_DEC_FMT  "%" PRId8
+#define I16_DEC_FMT "%" PRId16
+#define I32_DEC_FMT "%" PRId32
+#define I64_DEC_FMT "%" PRId64
+
+#define I8_HEX_FMT  "%" PRIx8
+#define I16_HEX_FMT "%" PRIx16
+#define I32_HEX_FMT "%" PRIx32
+#define I64_HEX_FMT "%" PRIx64
+
 typedef float  f32;
 typedef double f64;
 

@@ -83,5 +83,6 @@ void Thread_Join(Thread* thread)
 
 void Thread_Kill(Thread* thread)
 {
+    // TODO: change to pthread_kill
     pthread_cancel(thread->thread);
 }

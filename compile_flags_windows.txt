@@ -12,6 +12,13 @@
 -Wno-unused-function
 -Wno-missing-braces
 
+-lopengl32
+-lglfw3
+-lglew32
+-lgdi32
+-luser32
+-lshell32
+
 -march=native
 -mtune=native
 -include common.h

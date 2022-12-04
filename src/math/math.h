@@ -4,8 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#define PI32    ((f32)M_PI)
-#define PI64    ((f64)M_PI)
+#define PI32    (3.141592653589793238462643383279502884197169399375105820f)
+#define PI64    (3.141592653589793238462643383279502884197169399375105820)
 #define EPSILON (FLT_EPSILON)
 
 // TODO: make these compatible with different compilers and add some fallback for ISO C

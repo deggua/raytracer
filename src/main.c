@@ -322,7 +322,7 @@ const char* glGetErrorString(GLenum err)
     do {                                                                    \
         __VA_ARGS__;                                                        \
         GLenum err_;                                                        \
-        while ((err_ = glGetError()) != GL_NO_ERROR) {                      \
+        if ((err_ = glGetError()) != GL_NO_ERROR) {                         \
             ABORT("OpenGL Error :: %s (%u)", glGetErrorString(err_), err_); \
         }                                                                   \
     } while (0)
@@ -393,10 +393,7 @@ int main(int argc, char** argv)
 
     printf(
         "Render settings:\n"
-        "%lux%lu\n"
-        "%lu threads\n"
-        "%lu samples per pixel\n"
-        "%lu max ray bounces\n\n",
+        "%zux%zu\n" U64_DEC_FMT " threads\n" U64_DEC_FMT " samples per pixel\n" U64_DEC_FMT " max ray bounces\n\n",
         res_w,
         res_h,
         num_threads,
@@ -469,7 +466,7 @@ int main(int argc, char** argv)
             Stopwatch_Stop(sw);
             i64 time_elapsed_ms = Stopwatch_Elapsed(sw, STOPWATCH_MILISECONDS);
             printf(
-                "Finished :: Render :: (%lu %s)\n\n",
+                "Finished :: Render :: (" I64_DEC_FMT "%s)\n\n",
                 time_elapsed_ms,
                 STOPWATCH_TIMESCALE_UNIT(STOPWATCH_MILISECONDS));
         }
