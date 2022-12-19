@@ -6,7 +6,8 @@ CC_FLAGS = $(shell cat $(CC_FLAGS_FILE))
 
 CC_FLAGS_DEBUG_MODE = -g3 -O0 -fuse-ld=lld
 
-CC_FLAGS_RELEASE_MODE = -g3 -Ofast -fuse-ld=lld -flto
+CC_FLAGS_RELEASE_MODE = -g3 -Ofast -flto
+CC_FLAGS_RELEASE_MODE += -fuse-ld=lld  -Wl,-O3 -Wl,--lto-O3, -Wl,--icf=all, -Wl,--gc-sections
 CC_FLAGS_RELEASE_MODE += -funsafe-math-optimizations -fno-math-errno -funroll-loops
 CC_FLAGS_RELEASE_MODE += -DNDEBUG
 
@@ -49,7 +50,7 @@ $(BIN_DIR)/$(RELEASE_FNAME): $(OBJS)
 	mkdir -p $(@D)
 	$(CC) -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) -x none $(OBJS)
 
-obj/%.o: src/%.c
+obj/%.o: src/%.c $(CC_FLAGS_FILE)
 	mkdir -p $(@D)
 	$(CC) -o $@ $(CC_FLAGS_RELEASE) -c $<
 

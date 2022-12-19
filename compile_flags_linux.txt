@@ -29,3 +29,7 @@
 -march=native
 -mtune=native
 -include common.h
+
+-fno-rtti
+-fno-exceptions
+-fno-stack-protector
