@@ -36,3 +36,7 @@
 -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
 -LC:\CUDA\v11.8\lib\x64
 -lcudart
+
+-fno-rtti
+-fno-exceptions
+-fno-stack-protector

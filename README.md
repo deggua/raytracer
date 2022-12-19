@@ -25,6 +25,9 @@
 * Remove GOTOs and redundant error handling (not point in returning under most circumstances, can't recover/no purpose)
 * Use the updated vmath.h header (from the other repo)
 * Separate the GUI/GLFW code better (currently a bit messy, should probably be on its own thread)
+* Improve program structure and memory management of objects (related to asset pools)
+* Improve asset loading and storage of assets in memory (should improve memory storage efficiency of meshes)
+* CUDA kernel for GPU execution
 
 ## TODO (eventually):
 * Improve OBJ loading (multiple meshes per OBJ, proper obj <-> mtl mapping)
@@ -37,10 +40,7 @@
 * Denoising
 * SIMD intersection code
 * Optimize render pre-pass
-* CUDA kernel for GPU execution
 * Procedural textures
-* Improve program structure and memory management of objects
-* Improve asset loading and storage of assets in memory
 * GUI + Interactivity
 * Implement a BVH, provide options for exporting scene kd-trees or BVHs for objects to avoid recomputation where possible
 * Fix the skybox mirroring
