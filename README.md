@@ -19,7 +19,14 @@
 * Run `make release` to compile
 * Run `./bin/rt.out [spp] [ray_depth]`
 
-## TODO:
+## TODO (prep for CUDA):
+* Convert surfaces and textures to use surface/texture pools (easier to copy to GPU)
+* Better separation of scene construction, scene optimization, and render steps (better for CUDA separation)
+* Remove GOTOs and redundant error handling (not point in returning under most circumstances, can't recover/no purpose)
+* Use the updated vmath.h header (from the other repo)
+* Separate the GUI/GLFW code better (currently a bit messy, should probably be on its own thread)
+
+## TODO (eventually):
 * Improve OBJ loading (multiple meshes per OBJ, proper obj <-> mtl mapping)
 * Other texture formats
 * Better BMP compatibility
