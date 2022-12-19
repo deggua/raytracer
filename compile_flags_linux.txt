@@ -1,5 +1,6 @@
 -Isrc
--std=gnu2x
+-std=c++20
+-xc++
 
 -Wfatal-errors
 -Wall
@@ -11,12 +12,19 @@
 -Wno-keyword-macro
 -Wno-unused-function
 -Wno-missing-braces
+-Wno-reorder-init-list
+-Wno-c99-designator
+-Wno-microsoft-goto
+-Wno-deprecated-declarations
+-Wno-unused-command-line-argument
 
 -lm
 -pthread
 -lGL
 -lglfw
 -lGLEW
+
+-masm=intel
 
 -march=native
 -mtune=native

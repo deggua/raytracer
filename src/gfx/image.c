@@ -82,18 +82,18 @@ bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd)
 {
     fpos_t init_fpos;
     if (fgetpos(fd, &init_fpos)) {
-        goto error_Return;
+        ABORT("Failed to get initial file position");
     }
 
     BMPHeader header;
     if (fread(&header, sizeof(header), 1, fd) != 1) {
-        goto error_CleanupFile;
+        ABORT("Failed to read header from BMP");
     }
 
     // validate the header
     if (header.FileHeader.id != ID_BM || header.DIBHeader.BITMAPINFOHEADER.bitsPerPixel != 24
         || header.DIBHeader.BITMAPINFOHEADER.compressionMethod != BI_RGB) {
-        goto error_CleanupFile;
+        ABORT("BMP header looks corrupt");
     }
 
     // construct the image into a temp
@@ -102,7 +102,7 @@ bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd)
 
     ImageRGB tmp_img;
     if (!ImageRGB_Load_Empty(&tmp_img, width, height)) {
-        goto error_CleanupFile;
+        ABORT("Failed to initialize image");
     }
 
     // compute the padding
@@ -111,39 +111,32 @@ bool ImageRGB_Load_BMP(ImageRGB* img, FILE* fd)
 
     // start reading rows of pixels into the image
     if (fseek(fd, header.FileHeader.pixelArrayOffset, SEEK_SET)) {
-        goto error_CleanupImage;
+        ABORT("Failed to seek to pixel array offset in BMP");
     }
 
     // read row by row and fill image
     for (ssize_t yy = tmp_img.res.height - 1; yy >= 0; yy--) {
         RGB* pix_row = &tmp_img.pix[GetPixelIndex(tmp_img.res.width, tmp_img.res.height, 0, yy)];
         if (fread(pix_row, sizeof(RGB), tmp_img.res.width, fd) != tmp_img.res.width) {
-            goto error_CleanupImage;
+            ABORT("Failed to read row of pixels from BMP");
         }
 
         // skip past the end of row padding
         if (fseek(fd, pad_bytes_per_row, SEEK_CUR)) {
-            goto error_CleanupImage;
+            ABORT("Failed to skip padding bytes in BMP");
         }
     }
 
     // copy the temp's values to the result
     *img = tmp_img;
     return true;
-
-error_CleanupImage:
-    ImageRGB_Unload(&tmp_img);
-error_CleanupFile:
-    fsetpos(fd, &init_fpos);
-error_Return:
-    return false;
 }
 
 bool ImageRGB_Load_ImageColor(ImageRGB* img, ImageColor* src)
 {
     ImageRGB tmp_img;
     if (!ImageRGB_Load_Empty(&tmp_img, src->res.width, src->res.height)) {
-        goto error_Return;
+        ABORT("Failed to initialize image");
     }
 
     for (size_t yy = 0; yy < src->res.height; yy++) {
@@ -155,47 +148,39 @@ bool ImageRGB_Load_ImageColor(ImageRGB* img, ImageColor* src)
 
     *img = tmp_img;
     return true;
-
-error_Return:
-    return false;
 }
 
 bool ImageRGB_Save_PPM(ImageRGB* img, FILE* fd)
 {
     fpos_t init_fpos;
     if (fgetpos(fd, &init_fpos)) {
-        goto error_Return;
+        ABORT("Failed to get initial file position");
     }
 
     if (fprintf(fd, PPM_HEADER_FMT, PPM_HEADER_ARG(img)) < 0) {
-        goto error_CleanupFile;
+        ABORT("Failed to write header to PPM");
     }
 
     for (size_t yy = 0; yy < img->res.height; yy++) {
         for (size_t xx = 0; xx < img->res.width; xx++) {
             if (fprintf(fd, PPM_RGB_FMT "\n", PPM_RGB_ARG(ImageRGB_GetPixel(img, xx, yy))) < 0) {
-                goto error_CleanupFile;
+                ABORT("Failed to write pixel to PPM");
             }
         }
     }
 
     if (fflush(fd)) {
-        goto error_CleanupFile;
+        ABORT("Failed to flush PPM");
     }
 
     return true;
-
-error_CleanupFile:
-    fsetpos(fd, &init_fpos);
-error_Return:
-    return false;
 }
 
 bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
 {
     fpos_t init_fpos;
     if (fgetpos(fd, &init_fpos)) {
-        goto error_Return;
+        ABORT("Failed to get initial file position of BMP");
     }
 
     size_t pix_bytes_per_row = sizeof(RGB) * img->res.width;
@@ -226,7 +211,7 @@ bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
 
     // write the header to the file
     if (fwrite(&header, sizeof(header), 1, fd) != 1) {
-        goto error_CleanupFile;
+        ABORT("Failed to write header to BMP");
     }
 
     // write out rows bottom to top
@@ -235,25 +220,20 @@ bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
         // write out the row
         RGB* pix_row = &img->pix[GetPixelIndex(img->res.width, img->res.height, 0, yy)];
         if (fwrite(pix_row, sizeof(RGB), img->res.width, fd) != img->res.width) {
-            goto error_CleanupFile;
+            ABORT("Failed to write pixel row to BMP");
         }
 
         // write out the padding
         if (fwrite(padding, sizeof(u8), pad_bytes_per_row, fd) != pad_bytes_per_row) {
-            goto error_CleanupFile;
+            ABORT("Failed to write padding to BMP");
         }
     }
 
     if (fflush(fd)) {
-        goto error_CleanupFile;
+        ABORT("Failed to flush BMP");
     }
 
     return true;
-
-error_CleanupFile:
-    fsetpos(fd, &init_fpos);
-error_Return:
-    return false;
 }
 
 void ImageRGB_Unload(ImageRGB* img)
@@ -295,7 +275,7 @@ bool ImageColor_Load_ImageRGB(ImageColor* img, ImageRGB* src)
 {
     ImageColor tmp_img;
     if (!ImageColor_Load_Empty(&tmp_img, src->res.width, src->res.height)) {
-        goto error_Return;
+        ABORT("Failed to initialize empty image");
     }
 
     for (size_t yy = 0; yy < src->res.height; yy++) {
@@ -307,9 +287,6 @@ bool ImageColor_Load_ImageRGB(ImageColor* img, ImageRGB* src)
 
     *img = tmp_img;
     return true;
-
-error_Return:
-    return false;
 }
 
 void ImageColor_Unload(ImageColor* img)

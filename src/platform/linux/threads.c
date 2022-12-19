@@ -15,7 +15,7 @@ typedef struct ThreadArg {
 
 intern void* Thread_EntryWrapper(void* arg)
 {
-    ThreadArg* arg_wrapper = arg;
+    ThreadArg* arg_wrapper = (ThreadArg*)arg;
     arg_wrapper->user_func(arg_wrapper->user_arg);
     free(arg);
     return NULL;
@@ -23,7 +23,7 @@ intern void* Thread_EntryWrapper(void* arg)
 
 Thread* Thread_New(void)
 {
-    Thread* thread = calloc(1, sizeof(Thread));
+    Thread* thread = (Thread*)calloc(1, sizeof(Thread));
     if (thread == NULL) {
         return NULL;
     }
@@ -51,7 +51,7 @@ void Thread_Delete(Thread* thread)
 
 bool Thread_Spawn(Thread* thread, void (*entry_point)(void* arg), void* thread_arg)
 {
-    ThreadArg* arg_wrapper = malloc(sizeof(*arg_wrapper));
+    ThreadArg* arg_wrapper = (ThreadArg*)malloc(sizeof(*arg_wrapper));
     if (arg_wrapper == NULL) {
         return false;
     }

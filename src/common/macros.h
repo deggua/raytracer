@@ -37,7 +37,7 @@
 #define attr_aligned(alignment) __attribute__((packed, aligned(alignment)))
 
 #define global
-#define intern       static
+#define intern static
 #define thread_local __thread
 // TODO: should we use this?
 // #define inline __attribute__((always_inline))

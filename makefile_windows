@@ -51,7 +51,7 @@ $(BIN_DIR)/$(RELEASE_FNAME): $(OBJS)
 
 obj/%.o: src/%.c
 	$(shell if not exist "$(@D)" mkdir "$(@D)")
-	$(CC) -o $@ $(CC_FLAGS_RELEASE) $(CC_FLAGS_CUDA) -c $<
+	$(CC) -o $@ $(CC_FLAGS_RELEASE) -c $<
 
 sanitize:
 	$(shell if not exist "$(BIN_DIR)" mkdir "$(BIN_DIR)")

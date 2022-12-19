@@ -147,19 +147,19 @@ intern ssize_t BuildParentNode(
     size_t parentIndex = tree->nodes->length;
 
     if (!Vector_ExtendBy(tree->nodes, 1)) {
-        goto error_parent;
+        ABORT("Failed to extend vector of nodes");
     }
 
     // construct right node after parent, causes the next node to be at the index immediately after
     // parent's index (ie if you have the KDNode* to parent, parent + 1 == right child)
     ssize_t rightNode = BuildNode(tree, rightVect, rightContainer, depth);
     if (rightNode < 0) {
-        goto error_gteq;
+        ABORT("Failed to build right kd-node");
     }
 
     ssize_t leftNode = BuildNode(tree, leftVect, leftContainer, depth);
     if (leftNode < 0) {
-        goto error_lt;
+        ABORT("Failed to build left kd-node");
     }
 
     KDNode* parent          = &tree->nodes->at[parentIndex];
@@ -168,11 +168,6 @@ intern ssize_t BuildParentNode(
     parent->inode.split     = partition;
 
     return parentIndex;
-
-error_parent:
-error_gteq:
-error_lt:
-    return -1;
 }
 
 intern ssize_t BuildLeafNode(KDTree* tree, Vector(KDBBPtr)* vect)
@@ -180,7 +175,7 @@ intern ssize_t BuildLeafNode(KDTree* tree, Vector(KDBBPtr)* vect)
     size_t nodeIndex = tree->nodes->length;
 
     if (!Vector_ExtendBy(tree->nodes, 1)) {
-        return -1;
+        ABORT("Failed to extend kd-tree node vector");
     }
 
     KDNode* node   = &tree->nodes->at[nodeIndex];
@@ -191,7 +186,7 @@ intern ssize_t BuildLeafNode(KDTree* tree, Vector(KDBBPtr)* vect)
 
     for (size_t ii = 0; ii < vect->length; ii++) {
         if (!Vector_Push(tree->objPtrs, vect->at[ii]->obj)) {
-            return -1;
+            ABORT("Failed to add object pointers to kd-tree vector of objects");
         }
     }
 
@@ -326,11 +321,11 @@ intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox contai
         Vector(KDBBPtr) rightVect;
 
         if (!Vector_Init(&leftVect, vect->length)) {
-            goto error_LeftVector;
+            ABORT("Failed to create the right side of the split kd-tree");
         }
 
         if (!Vector_Init(&rightVect, vect->length)) {
-            goto error_RightVector;
+            ABORT("Failed to create left side of the split kd-tree");
         }
 
         for (size_t ii = 0; ii < vect->length; ii++) {
@@ -338,15 +333,15 @@ intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox contai
 
             if (box->max.elem[bestAxis] < bestSplit) {
                 if (!Vector_Push(&leftVect, &vect->at[ii])) {
-                    goto error_Push;
+                    ABORT("Failed to add kd-node to the left side");
                 }
             } else if (box->min.elem[bestAxis] > bestSplit) {
                 if (!Vector_Push(&rightVect, &vect->at[ii])) {
-                    goto error_Push;
+                    ABORT("Failed to add kd-node to the right side");
                 }
             } else {
                 if (!Vector_Push(&leftVect, &vect->at[ii]) || !Vector_Push(&rightVect, &vect->at[ii])) {
-                    goto error_Push;
+                    ABORT("Failed to add kd-node to both sides of tree");
                 }
             }
         }
@@ -356,22 +351,10 @@ intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox contai
         ssize_t         nodeIndex
             = BuildParentNode(tree, &leftVect, pair.left, &rightVect, pair.right, bestSplit, bestAxis, new_depth);
 
-        if (nodeIndex < 0) {
-            goto error_BuildParent;
-        }
-
         Vector_Uninit(&leftVect);
         Vector_Uninit(&rightVect);
 
         return nodeIndex;
-
-error_BuildParent:
-error_Push:
-        Vector_Uninit(&rightVect);
-error_RightVector:
-        Vector_Uninit(&leftVect);
-error_LeftVector:
-        return -1;
     }
 }
 
@@ -380,36 +363,30 @@ intern ssize_t BuildKDTree(KDTree* tree, Vector(KDBB)* boxes, size_t maxDepth)
     // we need a buffer of pointers to the objects BB's
     Vector(KDBBPtr) vect;
     if (!Vector_Init(&vect, boxes->length)) {
-        goto error_VectorNew;
+        ABORT("Failed to create kd-tree node vector");
     }
 
     for (size_t ii = 0; ii < boxes->length; ii++) {
         if (!Vector_Push(&vect, &boxes->at[ii])) {
-            goto error_VectorPush;
+            ABORT("Failed to add bounding-boxes to kd-tree");
         }
     }
 
     ssize_t rootIndex = BuildNode(tree, &vect, tree->worldBox, maxDepth);
 
     if (rootIndex < 0) {
-        goto error_Root;
+        ABORT("Failed to build kd-tree");
     }
 
     Vector_Uninit(&vect);
     return rootIndex;
-
-error_Root:
-error_VectorPush:
-    Vector_Delete(&vect);
-error_VectorNew:
-    return -1;
 }
 
 intern Vector(KDBB)* CreateKDBBs(Object* objs, size_t len)
 {
     Vector(KDBB)* vect = Vector_New(KDBB)(len);
     if (vect == NULL) {
-        goto error_VectorKDBBs;
+        ABORT("Failed to create KDBB vector");
     }
 
     for (size_t ii = 0; ii < len; ii++) {
@@ -418,16 +395,11 @@ intern Vector(KDBB)* CreateKDBBs(Object* objs, size_t len)
         temp.box = Surface_BoundingBox(&objs[ii].surface);
 
         if (!Vector_Push(vect, &temp)) {
-            goto error_VectorKDBBsPush;
+            ABORT("Failed to add KDBB to vector");
         }
     }
 
     return vect;
-
-error_VectorKDBBsPush:
-    Vector_Delete(vect);
-error_VectorKDBBs:
-    return NULL;
 }
 
 KDTree* KDTree_New(Object* objs, size_t len)
@@ -442,44 +414,33 @@ KDTree* KDTree_New(Object* objs, size_t len)
 
     KDTree* tree = (KDTree*)calloc(1, sizeof(KDTree));
     if (tree == NULL) {
-        goto error_KDTree;
+        ABORT("Failed to alloc KDTree");
     }
 
     tree->nodes = Vector_New(KDNode)(nodes_upper_bound);
     if (tree->nodes == NULL) {
-        goto error_NodeVector;
+        ABORT("Failed to create vector of KDNode");
     }
 
     tree->objPtrs = Vector_New(ObjectPtr)(objs_upper_bound);
     if (tree->objPtrs == NULL) {
-        goto error_ObjVector;
+        ABORT("Failed to create vector of ObjectPtrs");
     }
 
     Vector(KDBB)* boxes = CreateKDBBs(objs, len);
     if (boxes == NULL) {
-        goto error_KDBBs;
+        ABORT("Failed to create KDBBs");
     }
 
     tree->worldBox  = BoxBoundingAll(boxes);
     tree->rootIndex = BuildKDTree(tree, boxes, maxDepth);
 
     if (tree->rootIndex < 0) {
-        goto error_Root;
+        ABORT("Failed to build KDTree");
     }
 
     Vector_Delete(boxes);
     return tree;
-
-error_Root:
-    Vector_Delete(boxes);
-error_KDBBs:
-    Vector_Delete(tree->objPtrs);
-error_ObjVector:
-    Vector_Delete(tree->nodes);
-error_NodeVector:
-    free(tree);
-error_KDTree:
-    return NULL;
 }
 
 void KDTree_Delete(KDTree* tree)

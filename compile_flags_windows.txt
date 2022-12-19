@@ -16,7 +16,7 @@
 -Wno-c99-designator
 -Wno-microsoft-goto
 -Wno-deprecated-declarations
--Wno-unused-command-link-argument
+-Wno-unused-command-line-argument
 
 -lopengl32
 -lglfw3
