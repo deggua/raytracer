@@ -8,14 +8,14 @@ typedef struct Texture {
 
 Texture* Texture_New(void)
 {
-    Texture* tex = calloc(1, sizeof(*tex));
+    Texture* tex = (Texture*)calloc(1, sizeof(*tex));
     return tex;
 }
 
 bool Texture_Import_BMP(Texture* tex, FILE* fd)
 {
     // create the texture image on the heap
-    ImageColor* tmp_tex_img = calloc(1, sizeof(ImageColor));
+    ImageColor* tmp_tex_img = (ImageColor*)calloc(1, sizeof(ImageColor));
     if (tmp_tex_img == NULL) {
         goto error_Return;
     }
@@ -49,7 +49,7 @@ error_Return:
 bool Texture_Import_Color(Texture* tex, Color color)
 {
     // create the texture image on the heap
-    ImageColor* tmp_tex_img = calloc(1, sizeof(ImageColor));
+    ImageColor* tmp_tex_img = (ImageColor*)calloc(1, sizeof(ImageColor));
     if (tmp_tex_img == NULL) {
         goto error_Return;
     }

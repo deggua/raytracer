@@ -66,7 +66,7 @@ intern inline size_t GetPixelIndex(size_t width, size_t height, size_t xx, size_
 
 bool ImageRGB_Load_Empty(ImageRGB* img, size_t width, size_t height)
 {
-    RGB* pixel_buffer = calloc(width * height, sizeof(RGB));
+    RGB* pixel_buffer = (RGB*)calloc(width * height, sizeof(RGB));
     if (pixel_buffer == NULL) {
         return false;
     }
@@ -205,7 +205,7 @@ bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
     BMPHeader header  = {
         .FileHeader = {
             .id = ID_BM,
-            .size = sizeof(header) + bytes_per_row * img->res.height,
+            .size = (u32)(sizeof(header) + bytes_per_row * img->res.height),
             .pixelArrayOffset = sizeof(BMPHeader),
         },
 
@@ -216,9 +216,9 @@ bool ImageRGB_Save_BMP(ImageRGB* img, FILE* fd)
             .colorPlanes        = 1,
             .bitsPerPixel       = 24,
             .compressionMethod  = BI_RGB,
-            .bitmapSize         = bytes_per_row * img->res.height,
-            .ppmHorizontal      = img->res.width,
-            .ppmVertical        = img->res.height,
+            .bitmapSize         = (u32)(bytes_per_row * img->res.height),
+            .ppmHorizontal      = (i32)img->res.width,
+            .ppmVertical        = (i32)img->res.height,
             .numColors          = 0,
             .numImportantColors = 0,
         },
@@ -279,7 +279,7 @@ RGB ImageRGB_GetPixel(ImageRGB* img, size_t xx, size_t yy)
 
 bool ImageColor_Load_Empty(ImageColor* img, size_t width, size_t height)
 {
-    Color* pixel_buffer = calloc(width * height, sizeof(Color));
+    Color* pixel_buffer = (Color*)calloc(width * height, sizeof(Color));
     if (pixel_buffer == NULL) {
         return false;
     }

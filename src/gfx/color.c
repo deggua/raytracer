@@ -31,18 +31,18 @@ intern inline u8 LinearTosRGB(f32 channel)
 RGB RGB_Brighten(RGB rgb, f32 scalar)
 {
     return (RGB){
-        .r = clampf(rgb.r * scalar, 0, 255),
-        .g = clampf(rgb.g * scalar, 0, 255),
-        .b = clampf(rgb.b * scalar, 0, 255),
+        .r = (u8)clampf(rgb.r * scalar, 0, 255),
+        .g = (u8)clampf(rgb.g * scalar, 0, 255),
+        .b = (u8)clampf(rgb.b * scalar, 0, 255),
     };
 }
 
 RGB RGB_Blend(RGB color1, RGB color2, f32 weight)
 {
     return (RGB){
-        .r = color1.r + weight * (color2.r - color1.r),
-        .g = color1.g + weight * (color2.g - color1.g),
-        .b = color1.b + weight * (color2.b - color1.b),
+        .r = (u8)(color1.r + weight * (color2.r - color1.r)),
+        .g = (u8)(color1.g + weight * (color2.g - color1.g)),
+        .b = (u8)(color1.b + weight * (color2.b - color1.b)),
     };
 }
 

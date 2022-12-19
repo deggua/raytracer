@@ -220,7 +220,7 @@ intern BoundingBox BoxBoundingAll(Vector(KDBB)* vect)
     };
 
     for (size_t ii = 1; ii < len; ii++) {
-        for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
+        for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
             if (kdbbs[ii].box.min.elem[axis] < box.min.elem[axis]) {
                 box.min.elem[axis] = kdbbs[ii].box.min.elem[axis];
             }
@@ -297,17 +297,17 @@ intern ssize_t BuildNode(KDTree* tree, Vector(KDBBPtr)* vect, BoundingBox contai
     Axis bestAxis  = AXIS_X;
     f32  bestSAH   = INF;
 
-    for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
+    for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
         f32 stride = (container.max.elem[axis] - container.min.elem[axis]) / NUM_BUCKETS;
 
         for (f32 bucket = container.min.elem[axis] + stride; bucket <= container.max.elem[axis] - stride;
              bucket += stride) {
             f32 split = bucket;
-            f32 SAH   = ComputeSplitSAH(vect, split, axis, container);
+            f32 SAH   = ComputeSplitSAH(vect, split, (Axis)axis, container);
 
             if (SAH < bestSAH) {
                 bestSAH   = SAH;
-                bestAxis  = axis;
+                bestAxis  = (Axis)axis;
                 bestSplit = split;
             }
         }
@@ -440,7 +440,7 @@ KDTree* KDTree_New(Object* objs, size_t len)
     size_t nodes_upper_bound = (1ull << 30) - 1;
     size_t objs_upper_bound  = (1ull << 30) - 1;
 
-    KDTree* tree = calloc(1, sizeof(KDTree));
+    KDTree* tree = (KDTree*)calloc(1, sizeof(KDTree));
     if (tree == NULL) {
         goto error_KDTree;
     }

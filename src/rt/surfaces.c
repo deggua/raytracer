@@ -115,7 +115,7 @@ BoundingBox Triangle_BoundingBox(Triangle* tri)
 {
     BoundingBox box;
 
-    for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
+    for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
         box.min.elem[axis]
             = minf(minf(tri->vtx[0].pos.elem[axis], tri->vtx[1].pos.elem[axis]), tri->vtx[2].pos.elem[axis])
               - RT_EPSILON;
@@ -191,9 +191,9 @@ Surface Surface_Plane_Make(point3 point, vec3 normal)
 
 BoundingBox Plane_BoundingBox(Plane* plane)
 {
-    for (Axis axis = AXIS_X; axis <= AXIS_Z; axis++) {
-        Axis next_axis = (axis + 1) % AXIS_W;
-        Axis prev_axis = (axis + 2) % AXIS_W;
+    for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
+        Axis next_axis = (Axis)((axis + 1) % AXIS_W);
+        Axis prev_axis = (Axis)((axis + 2) % AXIS_W);
         if (plane->normal.elem[next_axis] == 0.0f && plane->normal.elem[prev_axis] == 0.0f) {
             BoundingBox box;
 

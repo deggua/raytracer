@@ -5,14 +5,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define static_assert_decl(const_expr) _Static_assert(const_expr, "Assertion false: " #const_expr)
-#define static_assert_expr(const_expr) (0 * sizeof(struct { static_assert_decl(const_expr); }))
+#ifdef __cplusplus
+#    include <type_traits>
+#endif
 
-#define same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
-#define is_array(a)     static_assert_expr(!same_type((a), &(a)[0]))
+#define static_assert_decl(const_expr) static_assert((const_expr), "Assertion false: " #const_expr)
+#ifndef __cplusplus
+#    define static_assert_expr(const_expr) (0 * sizeof(struct { static_assert_decl(const_expr); }))
+#else
+#    define static_assert_expr(const_expr)              \
+        (                                               \
+            [=]() {                                     \
+                static_assert(const_expr, #const_expr); \
+            },                                          \
+            0)
+#endif
+
+#ifndef __cplusplus
+#    define same_type(a, b) (__builtin_types_compatible_p(__typeof__(a), __typeof__(b)))
+#else
+#    define same_type(a, b) (std::is_same_v<decltype(a), decltype(b)>)
+#endif
+#define is_array(a) static_assert_expr(!same_type((a), &(a)[0]))
 
 #define containerof(ptr, type, member) ((type*)((char*)ptr - offsetof(type, member)))
-#define lengthof(array)                (sizeof(array) / sizeof((array)[0]) + is_array(array))
+#define lengthof(arr)                  (is_array(arr), sizeof(arr) / sizeof((arr)[0]))
 #define likely(x)                      __builtin_expect(!!(x), 1)
 #define unlikely(x)                    __builtin_expect(!!(x), 0)
 
@@ -20,7 +37,7 @@
 #define attr_aligned(alignment) __attribute__((packed, aligned(alignment)))
 
 #define global
-#define intern static
+#define intern       static
 #define thread_local __thread
 // TODO: should we use this?
 // #define inline __attribute__((always_inline))
@@ -62,24 +79,24 @@
         }                                              \
     } while (0)
 
-#define MAX(a, b)          \
-    ({                     \
-        typeof(a) a_ = a;  \
-        typeof(b) b_ = b;  \
-        a_ > b_ ? a_ : b_; \
+#define MAX(a, b)             \
+    ({                        \
+        __typeof__(a) a_ = a; \
+        __typeof__(b) b_ = b; \
+        a_ > b_ ? a_ : b_;    \
     })
 
-#define MIN(c, d)          \
-    ({                     \
-        typeof(c) c_ = c;  \
-        typeof(d) d_ = d;  \
-        c_ < d_ ? c_ : d_; \
+#define MIN(c, d)             \
+    ({                        \
+        __typeof__(c) c_ = c; \
+        __typeof__(d) d_ = d; \
+        c_ < d_ ? c_ : d_;    \
     })
 
 #define CLAMP(t, e, f)        \
     ({                        \
-        typeof(t) t_ = t;     \
-        typeof(e) e_ = e;     \
-        typeof(f) f_ = f;     \
+        __typeof__(t) t_ = t; \
+        __typeof__(e) e_ = e; \
+        __typeof__(f) f_ = f; \
         MIN(MAX(t_, e_), f_); \
     })

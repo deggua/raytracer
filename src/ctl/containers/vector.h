@@ -30,7 +30,7 @@
 #    define Vector(T)     CONCAT(Vector, T)
 #    define Vector_New(T) CONCAT(Vector_New, T)
 
-#    define Vector_Default_Capacity 16
+#    define Vector_Default_Capacity 16ull
 #endif
 
 #if !defined(Vector_Type)
@@ -85,7 +85,7 @@ Vector(T_);
 CTL_OVERLOADABLE
 static inline bool Vector_Init(Vector(T_)* vec, size_t capacity)
 {
-    T* buffer = Vector_Malloc(sizeof(T) * capacity);
+    T* buffer = (T*)Vector_Malloc(sizeof(T) * capacity);
 
     if (buffer == NULL) {
         return false;
@@ -105,7 +105,7 @@ static inline bool Vector_Init(Vector(T_)* vec, size_t capacity)
  */
 static inline Vector(T_)* Vector_New(T_)(size_t capacity)
 {
-    Vector(T_)* vec = Vector_Malloc(sizeof(Vector(T_)));
+    Vector(T_)* vec = (Vector(T_)*)Vector_Malloc(sizeof(Vector(T_)));
     if (vec == NULL) {
         return NULL;
     }
@@ -144,7 +144,7 @@ static inline void Vector_Delete(Vector(T_)* vec)
 CTL_OVERLOADABLE
 static inline bool Vector_GrowTo(Vector(T_)* vec, size_t length)
 {
-    T* new_buffer = realloc(vec->at, sizeof(T) * length);
+    T* new_buffer = (T*)realloc(vec->at, sizeof(T) * length);
 
     if (new_buffer == NULL) {
         return false;
@@ -343,7 +343,7 @@ static inline bool Vector_Shrink(Vector(T_)* vec)
         vec->at = NULL;
     } else {
         size_t shrunk_capacity = sizeof(T) * vec->length;
-        T*     shrunk_buffer   = Vector_Realloc(vec->at, shrunk_capacity);
+        T*     shrunk_buffer   = (T*)Vector_Realloc(vec->at, shrunk_capacity);
 
         if (shrunk_buffer == NULL) {
             return false;

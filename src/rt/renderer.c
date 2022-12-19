@@ -17,12 +17,12 @@ typedef union {
 } WorkUnit;
 
 #define Vector_Type WorkUnit
-//#define Vector_Malloc(bytes) aligned_alloc(alignof(WorkUnit), bytes)
+// #define Vector_Malloc(bytes) aligned_alloc(alignof(WorkUnit), bytes)
 #include "ctl/containers/vector.h"
 
 RenderCtx* Render_New(Scene* scene, ImageRGB* img, Camera* cam)
 {
-    RenderCtx* ctx = malloc(sizeof(*ctx));
+    RenderCtx* ctx = (RenderCtx*)malloc(sizeof(*ctx));
 
     if (ctx == NULL) {
         return NULL;
@@ -95,7 +95,7 @@ intern RGB RenderPixel(
     size_t  xx,
     size_t  yy)
 {
-    Color cum_color = {0};
+    Color cum_color = vec(0, 0, 0);
 
     for (size_t samples = 0; samples < samples_per_pixel; samples++) {
         f32 horizontal_fraction = (xx + Random_Unilateral()) / (f32)(image_width - 1);
@@ -142,7 +142,7 @@ intern void Render_Worker(void* arg)
 {
     Random_Seed_HighEntropy();
 
-    RenderThreadArg* args = arg;
+    RenderThreadArg* args = (RenderThreadArg*)arg;
 
     Vector(WorkUnit)* work  = args->work;
     RenderCtx*        ctx   = args->ctx;
@@ -186,7 +186,7 @@ typedef struct {
 intern void Render_Waiter(void* arg)
 {
     // grab args
-    WaiterThreadArg* args = arg;
+    WaiterThreadArg* args = (WaiterThreadArg*)arg;
 
     RenderCtx* ctx               = args->ctx;
     size_t     samples_per_pixel = args->samples_per_pixel;
@@ -238,7 +238,7 @@ intern void Render_Waiter(void* arg)
 
 void Start_WaiterThread(RenderCtx* ctx, size_t samples_per_pixel, size_t max_ray_depth)
 {
-    WaiterThreadArg* waiter_args = calloc(1, sizeof(*waiter_args));
+    WaiterThreadArg* waiter_args = (WaiterThreadArg*)calloc(1, sizeof(*waiter_args));
     if (waiter_args == NULL) {
         ABORT("Failed to create render waiter thread args");
     }

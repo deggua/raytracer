@@ -340,7 +340,7 @@ RenderCtx* SetupRender(Stopwatch* sw, size_t res_w, size_t res_h)
     size_t imageWidth  = res_w;
     size_t imageHeight = res_h;
 
-    ImageRGB* img = calloc(1, sizeof(ImageRGB));
+    ImageRGB* img = (ImageRGB*)calloc(1, sizeof(ImageRGB));
     if (img == NULL) {
         ABORT("Failed to create image container");
     }

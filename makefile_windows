@@ -1,12 +1,13 @@
 CC = clang
+LD = lld-link
 
 CC_FLAGS_FILE = compile_flags.txt
 CC_FLAGS = $(shell type $(CC_FLAGS_FILE))
 
 CC_FLAGS_DEBUG_MODE = -g3 -O0 -fuse-ld=lld
 
-CC_FLAGS_RELEASE_MODE = -g3 -Ofast -fuse-ld=lld -flto -Wl,/LTCG
-CC_FLAGS_RELEASE_MODE += -fvisibility=hidden -funsafe-math-optimizations -fno-math-errno -funroll-loops
+CC_FLAGS_RELEASE_MODE = -g3 -Ofast -fuse-ld=lld -flto
+CC_FLAGS_RELEASE_MODE += -funsafe-math-optimizations -fno-math-errno -funroll-loops
 CC_FLAGS_RELEASE_MODE += -DNDEBUG
 
 CC_FLAGS_DEBUG = $(CC_FLAGS_DEBUG_MODE) $(CC_FLAGS)
@@ -14,17 +15,21 @@ CC_FLAGS_RELEASE = $(CC_FLAGS_RELEASE_MODE) $(CC_FLAGS)
 CC_FLAGS_SANITIZE = $(CC_FLAGS_DEBUG) -fsanitize=address
 CC_FLAGS_PROFILE = $(CC_FLAGS_RELEASE) -pg -a
 
-SRCS = src/main.c
-SRCS += $(wildcard src/common/*.c)
-SRCS += $(wildcard src/math/*.c)
-SRCS += $(wildcard src/gfx/*.c)
-SRCS += $(wildcard src/rt/*.c)
-SRCS += $(wildcard src/rt/accelerators/*.c)
-SRCS += $(wildcard src/world/*.c)
-
-SRCS += $(wildcard src/platform/windows/*.c)
-
+SRC_DIR = src
+OBJ_DIR = obj
 BIN_DIR = bin
+
+SRCS = $(SRC_DIR)/main.c
+SRCS += $(wildcard $(SRC_DIR)/common/*.c)
+SRCS += $(wildcard $(SRC_DIR)/math/*.c)
+SRCS += $(wildcard $(SRC_DIR)/gfx/*.c)
+SRCS += $(wildcard $(SRC_DIR)/rt/*.c)
+SRCS += $(wildcard $(SRC_DIR)/rt/accelerators/*.c)
+SRCS += $(wildcard $(SRC_DIR)/world/*.c)
+
+SRCS += $(wildcard $(SRC_DIR)/platform/windows/*.c)
+OBJS = $(SRCS:src/%.c=obj/%.o)
+
 DEBUG_FNAME 	:= rtdbg.exe
 RELEASE_FNAME 	:= rt.exe
 SANITIZE_FNAME 	:= rtsan.exe
@@ -32,18 +37,30 @@ PROFILE_FNAME 	:= rtprof.exe
 
 all: debug release
 
-debug:
-	$(CC) -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) $(SRCS)
+debug: $(BIN_DIR)/$(DEBUG_FNAME)
 
-release:
-	$(CC) -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) $(SRCS)
+release: $(BIN_DIR)/$(RELEASE_FNAME)
+
+$(BIN_DIR)/$(DEBUG_FNAME): $(OBJS)
+	$(shell if not exist "$(@D)" mkdir "$(@D)")
+	$(CC) -o $(BIN_DIR)/$(DEBUG_FNAME) $(CC_FLAGS_DEBUG) -x none $(OBJS)
+
+$(BIN_DIR)/$(RELEASE_FNAME): $(OBJS)
+	$(shell if not exist "$(@D)" mkdir "$(@D)")
+	$(CC) -o $(BIN_DIR)/$(RELEASE_FNAME) $(CC_FLAGS_RELEASE) -x none $(OBJS)
+
+obj/%.o: src/%.c
+	$(shell if not exist "$(@D)" mkdir "$(@D)")
+	$(CC) -o $@ $(CC_FLAGS_RELEASE) $(CC_FLAGS_CUDA) -c $<
 
 sanitize:
+	$(shell if not exist "$(BIN_DIR)" mkdir "$(BIN_DIR)")
 	$(CC) -o $(BIN_DIR)/$(SANITIZE_FNAME) $(CC_FLAGS_SANITIZE) $(SRCS)
 
 profile:
+	$(shell if not exist "$(BIN_DIR)" mkdir "$(BIN_DIR)")
 	$(CC) -o $(BIN_DIR)/$(PROFILE_FNAME) $(CC_FLAGS_PROFILE) $(SRCS)
 
 clean:
 	rmdir /s /q $(BIN_DIR)
-	mkdir $(BIN_DIR)
+	rmdir /s /q $(OBJ_DIR)

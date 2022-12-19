@@ -24,7 +24,7 @@ typedef struct Mesh {
 
 Mesh* Mesh_New(void)
 {
-    Mesh* mesh = calloc(1, sizeof(*mesh));
+    Mesh* mesh = (Mesh*)calloc(1, sizeof(*mesh));
 
     if (mesh == NULL) {
         goto error_Mesh;
@@ -163,8 +163,8 @@ next_token:
                 // need to split into two triangles
                 Triangle tri[2];
                 size_t   indices[2][3] = {
-                      {0, 1, 2},
-                      {0, 2, 3}
+                    {0, 1, 2},
+                    {0, 2, 3}
                 };
 
                 for (size_t ii = 0; ii < 2; ii++) {

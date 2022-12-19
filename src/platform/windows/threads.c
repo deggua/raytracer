@@ -16,7 +16,7 @@ typedef struct Thread {
 
 intern DWORD Thread_EntryWrapper(LPVOID arg)
 {
-    Thread*    thread = arg;
+    Thread*    thread = (Thread*)arg;
     ThreadArg* args   = thread->arg;
 
     args->user_func(args->user_arg);
@@ -29,7 +29,7 @@ intern DWORD Thread_EntryWrapper(LPVOID arg)
 
 Thread* Thread_New(void)
 {
-    Thread* thread = calloc(1, sizeof(Thread));
+    Thread* thread = (Thread*)calloc(1, sizeof(Thread));
     if (thread == NULL) {
         return NULL;
     }
@@ -46,7 +46,7 @@ void Thread_Delete(Thread* thread)
 
 bool Thread_Spawn(Thread* thread, void (*entry_point)(void* arg), void* thread_arg)
 {
-    ThreadArg* arg_wrapper = malloc(sizeof(*arg_wrapper));
+    ThreadArg* arg_wrapper = (ThreadArg*)malloc(sizeof(*arg_wrapper));
     if (arg_wrapper == NULL) {
         return false;
     }

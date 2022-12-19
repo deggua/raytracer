@@ -20,7 +20,7 @@ void Skybox_Delete(Skybox* skybox)
 
 Skybox* Skybox_Import_BMP(const char* folder_path)
 {
-    Skybox* skybox = calloc(1, sizeof(*skybox));
+    Skybox* skybox = (Skybox*)calloc(1, sizeof(*skybox));
     if (skybox == NULL) {
         return NULL;
     }

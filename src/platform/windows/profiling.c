@@ -10,7 +10,7 @@ typedef struct Stopwatch {
 
 Stopwatch* Stopwatch_New(void)
 {
-    return calloc(1, sizeof(Stopwatch));
+    return (Stopwatch*)calloc(1, sizeof(Stopwatch));
 }
 
 void Stopwatch_Delete(Stopwatch* stopwatch)

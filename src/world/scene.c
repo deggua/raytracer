@@ -23,7 +23,7 @@ typedef struct Scene {
 
 Scene* Scene_New(Skybox* skybox)
 {
-    Scene* scene = malloc(sizeof(Scene));
+    Scene* scene = (Scene*)malloc(sizeof(Scene));
     if (scene == NULL) {
         goto error_Scene;
     }
