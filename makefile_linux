@@ -31,10 +31,10 @@ SRCS += $(wildcard $(SRC_DIR)/world/*.c)
 SRCS += $(wildcard $(SRC_DIR)/platform/linux/*.c)
 OBJS = $(SRCS:src/%.c=obj/%.o)
 
-DEBUG_FNAME 	:= rtdbg.exe
-RELEASE_FNAME 	:= rt.exe
-SANITIZE_FNAME 	:= rtsan.exe
-PROFILE_FNAME 	:= rtprof.exe
+DEBUG_FNAME 	:= rtdbg.out
+RELEASE_FNAME 	:= rt.out
+SANITIZE_FNAME 	:= rtsan.out
+PROFILE_FNAME 	:= rtprof.out
 
 all: debug release
 
